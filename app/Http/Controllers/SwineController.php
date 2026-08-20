@@ -8,6 +8,9 @@ use App\Models\Swine;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use Illuminate\Support\Str;
+
 
 class SwineController extends Controller
 {
@@ -138,21 +141,11 @@ class SwineController extends Controller
             }
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Default Status
-        |--------------------------------------------------------------------------
-        */
-
         $validated['status'] = 'active';
-
-        /*
-        |--------------------------------------------------------------------------
-        | Create Swine
-        |--------------------------------------------------------------------------
-        */
+        $validated['qr_token'] = Str::uuid()->toString();
 
         $swine = Swine::create($validated);
+
 
         return redirect()
             ->route('swine.index')
@@ -167,10 +160,20 @@ class SwineController extends Controller
         $swine->load([
             'farm',
             'currentLocation',
+            'movements.fromLocation',
+            'movements.toLocation',
+            'movements.recordedBy',
         ]);
 
-        return view('swine.show', compact('swine'));
+        $qrCode = QrCode::size(220)->generate(
+            route('swine.scan', [
+                'qr_token' => $swine->qr_token,
+            ])
+        );
+
+        return view('swine.show', compact('swine', 'qrCode'));
     }
+
 
     /**
      * Show the form for editing the specified swine.
@@ -194,150 +197,102 @@ class SwineController extends Controller
         ));
     }
 
-    public function update(Request $request, Swine $swine): RedirectResponse
-{
-    $validated = $request->validate([
-        'farm_id' => 'required|exists:farms,id',
-        'current_location_id' => 'nullable|exists:farm_locations,id',
-        'tag_number' => 'required|string|max:255|unique:swine,tag_number,' . $swine->id,
-        'name' => 'nullable|string|max:255',
-        'sex' => 'required|in:male,female',
-        'breed' => 'nullable|string|max:255',
-        'birth_date' => 'nullable|date|before_or_equal:today',
-        'acquisition_date' => 'nullable|date|before_or_equal:today',
-        'source' => 'nullable|string|max:255',
-        'status' => 'required|string|max:255',
-        'notes' => 'nullable|string',
-    ]);
-
-    // Make sure the location belongs to the selected farm.
-    if (!empty($validated['current_location_id'])) {
-
-        $validLocation = FarmLocation::where('id', $validated['current_location_id'])
-            ->where('farm_id', $validated['farm_id'])
-            ->exists();
-
-        if (!$validLocation) {
-            return back()
-                ->withInput()
-                ->withErrors([
-                    'current_location_id' =>
-                        'The selected location does not belong to the selected farm.',
-                ]);
-        }
-    }
-
-    // IMPORTANT: explicitly prevent deleted_at from being changed.
-    unset($validated['deleted_at']);
-
-    $swine->fill($validated);
-
-    // Make sure the update itself does not modify deleted_at.
-    $swine->deleted_at = null;
-
-    $swine->save();
-
-    return redirect()
-        ->route('swine.index')
-        ->with('success', 'Swine information updated successfully.');
-}
-
     /**
      * Update the specified swine.
      */
-    // public function update(
-    //     Request $request,
-    //     Swine $swine
-    // ): RedirectResponse {
+    public function update(
+        Request $request,
+        Swine $swine
+    ): RedirectResponse {
 
-    //     $validated = $request->validate([
-    //         'farm_id' => [
-    //             'required',
-    //             'exists:farms,id',
-    //         ],
+        $validated = $request->validate([
+            'farm_id' => [
+                'required',
+                'exists:farms,id',
+            ],
 
-    //         'current_location_id' => [
-    //             'nullable',
-    //             'exists:farm_locations,id',
-    //         ],
+            'current_location_id' => [
+                'nullable',
+                'exists:farm_locations,id',
+            ],
 
-    //         'tag_number' => [
-    //             'required',
-    //             'string',
-    //             'max:255',
-    //             'unique:swine,tag_number,' . $swine->id,
-    //         ],
+            'tag_number' => [
+                'required',
+                'string',
+                'max:255',
+                'unique:swine,tag_number,' . $swine->id,
+            ],
 
-    //         'name' => [
-    //             'nullable',
-    //             'string',
-    //             'max:255',
-    //         ],
+            'name' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
 
-    //         'sex' => [
-    //             'required',
-    //             'in:male,female',
-    //         ],
+            'sex' => [
+                'required',
+                'in:male,female',
+            ],
 
-    //         'breed' => [
-    //             'nullable',
-    //             'string',
-    //             'max:255',
-    //         ],
+            'breed' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
 
-    //         'birth_date' => [
-    //             'nullable',
-    //             'date',
-    //             'before_or_equal:today',
-    //         ],
+            'birth_date' => [
+                'nullable',
+                'date',
+                'before_or_equal:today',
+            ],
 
-    //         'acquisition_date' => [
-    //             'nullable',
-    //             'date',
-    //             'before_or_equal:today',
-    //         ],
+            'acquisition_date' => [
+                'nullable',
+                'date',
+                'before_or_equal:today',
+            ],
 
-    //         'source' => [
-    //             'nullable',
-    //             'string',
-    //             'max:255',
-    //         ],
+            'source' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
 
-    //         'status' => [
-    //             'required',
-    //             'string',
-    //             'max:255',
-    //         ],
+            'status' => [
+                'required',
+                'string',
+                'max:255',
+            ],
 
-    //         'notes' => [
-    //             'nullable',
-    //             'string',
-    //         ],
-    //     ]);
+            'notes' => [
+                'nullable',
+                'string',
+            ],
+        ]);
 
-    //     if (!empty($validated['current_location_id'])) {
+        if (!empty($validated['current_location_id'])) {
 
-    //         $validLocation = FarmLocation::query()
-    //             ->where('id', $validated['current_location_id'])
-    //             ->where('farm_id', $validated['farm_id'])
-    //             ->exists();
+            $validLocation = FarmLocation::query()
+                ->where('id', $validated['current_location_id'])
+                ->where('farm_id', $validated['farm_id'])
+                ->exists();
 
-    //         if (!$validLocation) {
-    //             return back()
-    //                 ->withInput()
-    //                 ->withErrors([
-    //                     'current_location_id' =>
-    //                         'The selected location does not belong to the selected farm.',
-    //                 ]);
-    //         }
-    //     }
+            if (!$validLocation) {
+                return back()
+                    ->withInput()
+                    ->withErrors([
+                        'current_location_id' =>
+                            'The selected location does not belong to the selected farm.',
+                    ]);
+            }
+        }
 
-    //     $swine->update($validated);
+        $swine->update($validated);
 
-    //     return redirect()
-    //         ->route('swine.index')
-    //         ->with('success', 'Swine information updated successfully.');
-    // }
+        return redirect()
+            ->route('swine.index')
+            ->with('success', 'Swine information updated successfully.');
+    }
 
     /**
      * Remove the specified swine.
@@ -350,4 +305,12 @@ class SwineController extends Controller
             ->route('swine.index')
             ->with('success', 'Swine record deleted successfully.');
     }
+
+    public function scan($qr_token)
+    {
+        $swine = Swine::where('qr_token', $qr_token)->firstOrFail();
+
+        return view('swine.scan', compact('swine'));
+    }
+
 }

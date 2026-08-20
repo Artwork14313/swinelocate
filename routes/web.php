@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\FarmController;
 use App\Http\Controllers\FarmLocationController;
 use App\Http\Controllers\SwineController;
+use App\Http\Controllers\SwineMovementController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -33,6 +34,18 @@ Route::middleware('auth')->group(function () {
 
         });
     Route::resource('swine', SwineController::class);
+    Route::get('/scan/{qr_token}', [SwineController::class, 'scan'])
+        ->name('swine.scan');
+
+    Route::get(
+        '/swine/{swine}/move',
+        [SwineMovementController::class, 'create']
+    )->name('swine.movements.create');
+
+    Route::post(
+        '/swine/{swine}/move',
+        [SwineMovementController::class, 'store']
+    )->name('swine.movements.store');
 });
 
 require __DIR__ . '/auth.php';

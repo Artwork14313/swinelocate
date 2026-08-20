@@ -5,6 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Farm;
+use App\Models\FarmLocation;
+use App\Models\SwineMovement;
 
 class Swine extends Model
 {
@@ -16,6 +20,7 @@ class Swine extends Model
         'farm_id',
         'current_location_id',
         'tag_number',
+        'qr_token',
         'name',
         'sex',
         'breed',
@@ -44,4 +49,23 @@ class Swine extends Model
             'current_location_id'
         );
     }
+
+    protected static function booted(): void
+    {
+        static::creating(function (Swine $swine) {
+            if (empty($swine->qr_token)) {
+                $swine->qr_token = 'SWL-' . strtoupper(
+                    str()->random(12)
+                );
+            }
+        });
+    }
+
+    public function movements(): HasMany
+    {
+        return $this->hasMany(
+            SwineMovement::class
+        )->latest('movement_date');
+    }
+    
 }
