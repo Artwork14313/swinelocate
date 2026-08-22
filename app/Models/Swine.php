@@ -67,5 +67,15 @@ class Swine extends Model
             SwineMovement::class
         )->latest('movement_date');
     }
-    
+
+    public function healthRecords(): HasMany
+    {
+        return $this->hasMany(HealthRecord::class);
+    }
+
+    public function vaccinationRecords(): HasMany
+    {
+        return $this->hasMany(VaccinationRecord::class);
+    }
+
 }

@@ -6,6 +6,7 @@ use App\Http\Controllers\FarmController;
 use App\Http\Controllers\FarmLocationController;
 use App\Http\Controllers\SwineController;
 use App\Http\Controllers\SwineMovementController;
+use App\Http\Controllers\HealthRecordController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -46,6 +47,16 @@ Route::middleware('auth')->group(function () {
         '/swine/{swine}/move',
         [SwineMovementController::class, 'store']
     )->name('swine.movements.store');
+
+    Route::resource(
+        'health-records',
+        HealthRecordController::class
+    );
+
+    Route::get(
+        '/health-records/swine/{swine}/history',
+        [HealthRecordController::class, 'history']
+    )->name('health-records.history');
 });
 
 require __DIR__ . '/auth.php';

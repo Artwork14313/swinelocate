@@ -211,7 +211,7 @@
                         <button type="submit" class="rounded-lg bg-indigo-600 px-5 py-2
                                    text-sm font-semibold text-white
                                    hover:bg-indigo-700">
-                            Move Swine
+                            Record Movement
                         </button>
 
                     </div>

@@ -306,9 +306,17 @@ class SwineController extends Controller
             ->with('success', 'Swine record deleted successfully.');
     }
 
-    public function scan($qr_token)
+    public function scan(string $qr_token): View
     {
-        $swine = Swine::where('qr_token', $qr_token)->firstOrFail();
+        $swine = Swine::query()
+            ->where('qr_token', $qr_token)
+            ->with([
+                'farm',
+                'currentLocation',
+                'movements.fromLocation',
+                'movements.toLocation',
+            ])
+            ->firstOrFail();
 
         return view('swine.scan', compact('swine'));
     }
