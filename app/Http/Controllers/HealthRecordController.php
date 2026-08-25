@@ -71,6 +71,10 @@ class HealthRecordController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        $vaccineNameRule = $request->record_type === 'Vaccination'
+            ? ['required', 'string', 'max:255']
+            : ['nullable', 'string', 'max:255'];
+
         $validated = $request->validate([
             'swine_id' => [
                 'required',
@@ -80,13 +84,32 @@ class HealthRecordController extends Controller
             'record_date' => [
                 'required',
                 'date',
-                'before_or_equal:today',
             ],
 
             'record_type' => [
                 'required',
                 'string',
                 'max:255',
+            ],
+
+            'vaccine_name' => $vaccineNameRule,
+
+            'dose' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'batch_number' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'next_due_date' => [
+                'nullable',
+                'date',
+                'after_or_equal:record_date',
             ],
 
             'symptoms' => [
@@ -116,7 +139,8 @@ class HealthRecordController extends Controller
 
             'health_status' => [
                 'required',
-                'in:healthy,under_observation,sick,recovering',
+                'string',
+                'max:255',
             ],
 
             'notes' => [
@@ -189,6 +213,10 @@ class HealthRecordController extends Controller
         HealthRecord $healthRecord
     ): RedirectResponse {
 
+        $vaccineNameRule = $request->record_type === 'Vaccination'
+            ? ['required', 'string', 'max:255']
+            : ['nullable', 'string', 'max:255'];
+
         $validated = $request->validate([
             'swine_id' => [
                 'required',
@@ -198,7 +226,6 @@ class HealthRecordController extends Controller
             'record_date' => [
                 'required',
                 'date',
-                'before_or_equal:today',
             ],
 
             'record_type' => [
@@ -207,34 +234,36 @@ class HealthRecordController extends Controller
                 'max:255',
             ],
 
-            'symptoms' => [
+            'vaccine_name' => $vaccineNameRule,
+
+            'dose' => [
                 'nullable',
                 'string',
+                'max:255',
             ],
 
-            'diagnosis' => [
+            'batch_number' => [
                 'nullable',
                 'string',
+                'max:255',
             ],
 
-            'treatment' => [
+            'next_due_date' => [
                 'nullable',
-                'string',
+                'date',
+                'after_or_equal:record_date',
             ],
 
-            'observations' => [
-                'nullable',
-                'string',
-            ],
-
-            'veterinary_assessment' => [
-                'nullable',
-                'string',
-            ],
+            'symptoms' => ['nullable', 'string'],
+            'diagnosis' => ['nullable', 'string'],
+            'treatment' => ['nullable', 'string'],
+            'observations' => ['nullable', 'string'],
+            'veterinary_assessment' => ['nullable', 'string'],
 
             'health_status' => [
                 'required',
-                'in:healthy,under_observation,sick,recovering',
+                'string',
+                'max:255',
             ],
 
             'notes' => [
@@ -242,6 +271,13 @@ class HealthRecordController extends Controller
                 'string',
             ],
         ]);
+
+        if ($validated['record_type'] !== 'Vaccination') {
+            $validated['vaccine_name'] = null;
+            $validated['dose'] = null;
+            $validated['batch_number'] = null;
+            $validated['next_due_date'] = null;
+        }
 
         $healthRecord->update($validated);
 
@@ -292,4 +328,15 @@ class HealthRecordController extends Controller
             )
         );
     }
+
+    public function historyIndex(): View
+    {
+        $swine = Swine::query()
+            ->with('farm')
+            ->orderBy('tag_number')
+            ->get();
+
+        return view('health-records.history-index', compact('swine'));
+    }
+    
 }

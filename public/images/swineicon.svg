@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" class="w-full h-full">
+                                <!-- Location pin -->
+                                <path d="M32 1
+                   C14.5 1 2 13.8 2 20
+                   C2 47 19 59 32 64
+                   C45 59 62 47 62 20
+                   C62 13.8 49.5 1 32 1Z" fill="#223754" />
+
+                                <!-- Pig ears -->
+                                <path d="M20 25
+                   C14 19 9 21 10 28
+                   C10.5 34 16 37 22 33Z" fill="#FFE0A5" />
+
+                                <path d="M44 25
+                   C50 19 55 21 54 28
+                   C53.5 34 48 37 42 33Z" fill="#FFE0A5" />
+
+                                <!-- Pig -->
+                                <ellipse cx="32" cy="32" rx="21" ry="19" fill="#FFE0A5" />
+
+                                <!-- Eyes -->
+                                <ellipse cx="24" cy="29" rx="2.8" ry="4" fill="#223754" />
+
+                                <ellipse cx="40" cy="29" rx="2.8" ry="4" fill="#223754" />
+
+                                <!-- Snout -->
+                                <ellipse cx="32" cy="39" rx="10" ry="7" fill="#E5C98F" />
+
+                                <!-- Nostrils -->
+                                <ellipse cx="28" cy="39" rx="1.8" ry="2.8" fill="#223754" />
+
+                                <ellipse cx="36" cy="39" rx="1.8" ry="2.8" fill="#223754" />
+
+                                <!-- Smile -->
+                                <path d="M27 45 C30 48 34 48 37 45" fill="none" stroke="#223754" stroke-width="2"
+                                    stroke-linecap="round" />
+                            </svg>

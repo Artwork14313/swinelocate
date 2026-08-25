@@ -10,8 +10,8 @@
                     <a href="{{ route('dashboard') }}"
                        class="flex items-center gap-3">
 
-                        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white">
-                            <span class="text-lg font-bold">S</span>
+                        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-[#B9D175] text-white">
+                            <img src="/images/swineicon2.svg" alt="SwineLocate" />
                         </div>
 
                         <div class="hidden sm:block">

@@ -7,14 +7,15 @@ use App\Http\Controllers\FarmLocationController;
 use App\Http\Controllers\SwineController;
 use App\Http\Controllers\SwineMovementController;
 use App\Http\Controllers\HealthRecordController;
+use App\Http\Controllers\DashboardController;
 
 Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -48,15 +49,33 @@ Route::middleware('auth')->group(function () {
         [SwineMovementController::class, 'store']
     )->name('swine.movements.store');
 
+    /*
+ |--------------------------------------------------------------------------
+ | Health History
+ |--------------------------------------------------------------------------
+ */
+
+    Route::get(
+        '/health-history',
+        [HealthRecordController::class, 'historyIndex']
+    )->name('health-records.history.index');
+
+    Route::get(
+        '/health-history/{swine}/history',
+        [HealthRecordController::class, 'history']
+    )->name('health-records.history');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Health Records
+    |--------------------------------------------------------------------------
+    */
+
     Route::resource(
         'health-records',
         HealthRecordController::class
     );
-
-    Route::get(
-        '/health-records/swine/{swine}/history',
-        [HealthRecordController::class, 'history']
-    )->name('health-records.history');
 });
 
 require __DIR__ . '/auth.php';

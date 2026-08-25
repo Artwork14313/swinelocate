@@ -41,11 +41,7 @@
             @endif
 
 
-            <form
-                method="POST"
-                action="{{ route('health-records.store') }}"
-                class="space-y-6"
-            >
+            <form method="POST" action="{{ route('health-records.store') }}" class="space-y-6">
 
                 @csrf
 
@@ -71,21 +67,13 @@
                         {{-- Swine --}}
                         <div class="sm:col-span-2">
 
-                            <label
-                                for="swine_id"
-                                class="block text-sm font-medium text-gray-700"
-                            >
+                            <label for="swine_id" class="block text-sm font-medium text-gray-700">
                                 Swine <span class="text-red-500">*</span>
                             </label>
 
-                            <select
-                                id="swine_id"
-                                name="swine_id"
-                                required
-                                class="mt-2 block w-full rounded-lg border-gray-300
+                            <select id="swine_id" name="swine_id" required class="mt-2 block w-full rounded-lg border-gray-300
                                        shadow-sm focus:border-indigo-500
-                                       focus:ring-indigo-500"
-                            >
+                                       focus:ring-indigo-500">
 
                                 <option value="">
                                     Select swine
@@ -93,10 +81,7 @@
 
                                 @foreach ($swine as $animal)
 
-                                    <option
-                                        value="{{ $animal->id }}"
-                                        @selected(old('swine_id') == $animal->id)
-                                    >
+                                    <option value="{{ $animal->id }}" @selected(old('swine_id') == $animal->id)>
                                         {{ $animal->tag_number }}
                                         @if ($animal->name)
                                             — {{ $animal->name }}
@@ -119,24 +104,15 @@
                         {{-- Record Date --}}
                         <div>
 
-                            <label
-                                for="record_date"
-                                class="block text-sm font-medium text-gray-700"
-                            >
+                            <label for="record_date" class="block text-sm font-medium text-gray-700">
                                 Record Date <span class="text-red-500">*</span>
                             </label>
 
-                            <input
-                                type="date"
-                                id="record_date"
-                                name="record_date"
+                            <input type="date" id="record_date" name="record_date"
                                 value="{{ old('record_date', now()->format('Y-m-d')) }}"
-                                max="{{ now()->format('Y-m-d') }}"
-                                required
-                                class="mt-2 block w-full rounded-lg border-gray-300
+                                max="{{ now()->format('Y-m-d') }}" required class="mt-2 block w-full rounded-lg border-gray-300
                                        shadow-sm focus:border-indigo-500
-                                       focus:ring-indigo-500"
-                            >
+                                       focus:ring-indigo-500">
 
                             @error('record_date')
                                 <p class="mt-1 text-sm text-red-600">
@@ -150,65 +126,43 @@
                         {{-- Record Type --}}
                         <div>
 
-                            <label
-                                for="record_type"
-                                class="block text-sm font-medium text-gray-700"
-                            >
+                            <label for="record_type" class="block text-sm font-medium text-gray-700">
                                 Record Type <span class="text-red-500">*</span>
                             </label>
 
-                            <select
-                                id="record_type"
-                                name="record_type"
-                                required
-                                class="mt-2 block w-full rounded-lg border-gray-300
-                                       shadow-sm focus:border-indigo-500
-                                       focus:ring-indigo-500"
-                            >
+                            <select id="record_type" name="record_type" required class="mt-2 block w-full rounded-lg border-gray-300
+           shadow-sm focus:border-indigo-500
+           focus:ring-indigo-500">
 
                                 <option value="">
                                     Select record type
                                 </option>
 
-                                <option
-                                    value="Routine Examination"
-                                    @selected(old('record_type') === 'Routine Examination')
-                                >
+                                <option value="Routine Examination" @selected(old('record_type') === 'Routine Examination')>
                                     Routine Examination
                                 </option>
 
-                                <option
-                                    value="Illness"
-                                    @selected(old('record_type') === 'Illness')
-                                >
+                                <option value="Vaccination" @selected(old('record_type') === 'Vaccination')>
+                                    Vaccination
+                                </option>
+
+                                <option value="Illness" @selected(old('record_type') === 'Illness')>
                                     Illness
                                 </option>
 
-                                <option
-                                    value="Treatment"
-                                    @selected(old('record_type') === 'Treatment')
-                                >
+                                <option value="Treatment" @selected(old('record_type') === 'Treatment')>
                                     Treatment
                                 </option>
 
-                                <option
-                                    value="Injury"
-                                    @selected(old('record_type') === 'Injury')
-                                >
+                                <option value="Injury" @selected(old('record_type') === 'Injury')>
                                     Injury
                                 </option>
 
-                                <option
-                                    value="Follow-up"
-                                    @selected(old('record_type') === 'Follow-up')
-                                >
+                                <option value="Follow-up" @selected(old('record_type') === 'Follow-up')>
                                     Follow-up
                                 </option>
 
-                                <option
-                                    value="Other"
-                                    @selected(old('record_type') === 'Other')
-                                >
+                                <option value="Other" @selected(old('record_type') === 'Other')>
                                     Other
                                 </option>
 
@@ -224,320 +178,372 @@
 
                     </div>
 
-                </div>
+                    {{-- Vaccination Details --}}
+                    <div id="vaccination-fields" class="hidden rounded-lg border border-indigo-100 bg-indigo-50 p-5">
 
+                        <div class="mb-4">
 
-                {{-- Clinical Information --}}
-                <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+                            <h3 class="text-sm font-semibold text-gray-900">
+                                Vaccination Details
+                            </h3>
 
-                    <div class="border-b border-gray-200 px-6 py-5">
-
-                        <h3 class="text-lg font-semibold text-gray-900">
-                            Clinical Information
-                        </h3>
-
-                        <p class="mt-1 text-sm text-gray-500">
-                            Record symptoms, diagnosis, treatment, and observations.
-                        </p>
-
-                    </div>
-
-
-                    <div class="space-y-6 px-6 py-6">
-
-                        {{-- Symptoms --}}
-                        <div>
-
-                            <label
-                                for="symptoms"
-                                class="block text-sm font-medium text-gray-700"
-                            >
-                                Symptoms
-                            </label>
-
-                            <textarea
-                                id="symptoms"
-                                name="symptoms"
-                                rows="3"
-                                class="mt-2 block w-full rounded-lg border-gray-300
-                                       shadow-sm focus:border-indigo-500
-                                       focus:ring-indigo-500"
-                                placeholder="Describe observed symptoms..."
-                            >{{ old('symptoms') }}</textarea>
-
-                            @error('symptoms')
-                                <p class="mt-1 text-sm text-red-600">
-                                    {{ $message }}
-                                </p>
-                            @enderror
+                            <p class="mt-1 text-xs text-gray-500">
+                                Provide vaccination information for this swine.
+                            </p>
 
                         </div>
 
 
-                        {{-- Diagnosis --}}
-                        <div>
+                        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
 
-                            <label
-                                for="diagnosis"
-                                class="block text-sm font-medium text-gray-700"
-                            >
-                                Diagnosis
-                            </label>
+                            {{-- Vaccine Name --}}
+                            <div>
 
-                            <textarea
-                                id="diagnosis"
-                                name="diagnosis"
-                                rows="3"
-                                class="mt-2 block w-full rounded-lg border-gray-300
-                                       shadow-sm focus:border-indigo-500
-                                       focus:ring-indigo-500"
-                                placeholder="Enter diagnosis..."
-                            >{{ old('diagnosis') }}</textarea>
+                                <label for="vaccine_name" class="block text-sm font-medium text-gray-700">
+                                    Vaccine Name
+                                </label>
 
-                            @error('diagnosis')
-                                <p class="mt-1 text-sm text-red-600">
-                                    {{ $message }}
-                                </p>
-                            @enderror
+                                <input type="text" id="vaccine_name" name="vaccine_name"
+                                    value="{{ old('vaccine_name') }}" class="mt-2 block w-full rounded-lg border-gray-300
+                       shadow-sm focus:border-indigo-500
+                       focus:ring-indigo-500" placeholder="e.g. Swine Fever Vaccine">
 
-                        </div>
+                                @error('vaccine_name')
+                                    <p class="mt-1 text-sm text-red-600">
+                                        {{ $message }}
+                                    </p>
+                                @enderror
+
+                            </div>
 
 
-                        {{-- Treatment --}}
-                        <div>
+                            {{-- Dose --}}
+                            <div>
 
-                            <label
-                                for="treatment"
-                                class="block text-sm font-medium text-gray-700"
-                            >
-                                Treatment
-                            </label>
+                                <label for="dose" class="block text-sm font-medium text-gray-700">
+                                    Dose
+                                </label>
 
-                            <textarea
-                                id="treatment"
-                                name="treatment"
-                                rows="3"
-                                class="mt-2 block w-full rounded-lg border-gray-300
-                                       shadow-sm focus:border-indigo-500
-                                       focus:ring-indigo-500"
-                                placeholder="Describe treatment or medication given..."
-                            >{{ old('treatment') }}</textarea>
+                                <input type="text" id="dose" name="dose" value="{{ old('dose') }}" class="mt-2 block w-full rounded-lg border-gray-300
+                       shadow-sm focus:border-indigo-500
+                       focus:ring-indigo-500" placeholder="e.g. 2 mL">
 
-                            @error('treatment')
-                                <p class="mt-1 text-sm text-red-600">
-                                    {{ $message }}
-                                </p>
-                            @enderror
+                                @error('dose')
+                                    <p class="mt-1 text-sm text-red-600">
+                                        {{ $message }}
+                                    </p>
+                                @enderror
 
-                        </div>
+                            </div>
 
 
-                        {{-- Observations --}}
-                        <div>
+                            {{-- Batch Number --}}
+                            <div>
 
-                            <label
-                                for="observations"
-                                class="block text-sm font-medium text-gray-700"
-                            >
-                                Observations
-                            </label>
+                                <label for="batch_number" class="block text-sm font-medium text-gray-700">
+                                    Batch / Lot Number
+                                </label>
 
-                            <textarea
-                                id="observations"
-                                name="observations"
-                                rows="3"
-                                class="mt-2 block w-full rounded-lg border-gray-300
-                                       shadow-sm focus:border-indigo-500
-                                       focus:ring-indigo-500"
-                                placeholder="Record other observations..."
-                            >{{ old('observations') }}</textarea>
+                                <input type="text" id="batch_number" name="batch_number"
+                                    value="{{ old('batch_number') }}" class="mt-2 block w-full rounded-lg border-gray-300
+                       shadow-sm focus:border-indigo-500
+                       focus:ring-indigo-500" placeholder="Optional">
 
-                            @error('observations')
-                                <p class="mt-1 text-sm text-red-600">
-                                    {{ $message }}
-                                </p>
-                            @enderror
+                                @error('batch_number')
+                                    <p class="mt-1 text-sm text-red-600">
+                                        {{ $message }}
+                                    </p>
+                                @enderror
 
-                        </div>
+                            </div>
 
 
-                        {{-- Veterinary Assessment --}}
-                        <div>
+                            {{-- Next Due Date --}}
+                            <div>
 
-                            <label
-                                for="veterinary_assessment"
-                                class="block text-sm font-medium text-gray-700"
-                            >
-                                Veterinary Assessment
-                            </label>
+                                <label for="next_due_date" class="block text-sm font-medium text-gray-700">
+                                    Next Due Date
+                                </label>
 
-                            <textarea
-                                id="veterinary_assessment"
-                                name="veterinary_assessment"
-                                rows="3"
-                                class="mt-2 block w-full rounded-lg border-gray-300
-                                       shadow-sm focus:border-indigo-500
-                                       focus:ring-indigo-500"
-                                placeholder="Enter veterinary assessment..."
-                            >{{ old('veterinary_assessment') }}</textarea>
+                                <input type="date" id="next_due_date" name="next_due_date"
+                                    value="{{ old('next_due_date') }}" class="mt-2 block w-full rounded-lg border-gray-300
+                       shadow-sm focus:border-indigo-500
+                       focus:ring-indigo-500">
 
-                            @error('veterinary_assessment')
-                                <p class="mt-1 text-sm text-red-600">
-                                    {{ $message }}
-                                </p>
-                            @enderror
+                                @error('next_due_date')
+                                    <p class="mt-1 text-sm text-red-600">
+                                        {{ $message }}
+                                    </p>
+                                @enderror
+
+                            </div>
 
                         </div>
 
                     </div>
 
-                </div>
+                    {{-- Clinical Information --}}
+                    <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+
+                        <div class="border-b border-gray-200 px-6 py-5">
+
+                            <h3 class="text-lg font-semibold text-gray-900">
+                                Clinical Information
+                            </h3>
+
+                            <p class="mt-1 text-sm text-gray-500">
+                                Record symptoms, diagnosis, treatment, and observations.
+                            </p>
+
+                        </div>
 
 
-                {{-- Health Status --}}
-                <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+                        <div class="space-y-6 px-6 py-6">
 
-                    <div class="border-b border-gray-200 px-6 py-5">
+                            {{-- Symptoms --}}
+                            <div>
 
-                        <h3 class="text-lg font-semibold text-gray-900">
-                            Health Status
-                        </h3>
+                                <label for="symptoms" class="block text-sm font-medium text-gray-700">
+                                    Symptoms
+                                </label>
 
-                        <p class="mt-1 text-sm text-gray-500">
-                            Indicate the swine's health condition at the time of recording.
-                        </p>
+                                <textarea id="symptoms" name="symptoms" rows="3" class="mt-2 block w-full rounded-lg border-gray-300
+                                       shadow-sm focus:border-indigo-500
+                                       focus:ring-indigo-500"
+                                    placeholder="Describe observed symptoms...">{{ old('symptoms') }}</textarea>
+
+                                @error('symptoms')
+                                    <p class="mt-1 text-sm text-red-600">
+                                        {{ $message }}
+                                    </p>
+                                @enderror
+
+                            </div>
+
+
+                            {{-- Diagnosis --}}
+                            <div>
+
+                                <label for="diagnosis" class="block text-sm font-medium text-gray-700">
+                                    Diagnosis
+                                </label>
+
+                                <textarea id="diagnosis" name="diagnosis" rows="3" class="mt-2 block w-full rounded-lg border-gray-300
+                                       shadow-sm focus:border-indigo-500
+                                       focus:ring-indigo-500"
+                                    placeholder="Enter diagnosis...">{{ old('diagnosis') }}</textarea>
+
+                                @error('diagnosis')
+                                    <p class="mt-1 text-sm text-red-600">
+                                        {{ $message }}
+                                    </p>
+                                @enderror
+
+                            </div>
+
+
+                            {{-- Treatment --}}
+                            <div>
+
+                                <label for="treatment" class="block text-sm font-medium text-gray-700">
+                                    Treatment
+                                </label>
+
+                                <textarea id="treatment" name="treatment" rows="3" class="mt-2 block w-full rounded-lg border-gray-300
+                                       shadow-sm focus:border-indigo-500
+                                       focus:ring-indigo-500"
+                                    placeholder="Describe treatment or medication given...">{{ old('treatment') }}</textarea>
+
+                                @error('treatment')
+                                    <p class="mt-1 text-sm text-red-600">
+                                        {{ $message }}
+                                    </p>
+                                @enderror
+
+                            </div>
+
+
+                            {{-- Observations --}}
+                            <div>
+
+                                <label for="observations" class="block text-sm font-medium text-gray-700">
+                                    Observations
+                                </label>
+
+                                <textarea id="observations" name="observations" rows="3" class="mt-2 block w-full rounded-lg border-gray-300
+                                       shadow-sm focus:border-indigo-500
+                                       focus:ring-indigo-500"
+                                    placeholder="Record other observations...">{{ old('observations') }}</textarea>
+
+                                @error('observations')
+                                    <p class="mt-1 text-sm text-red-600">
+                                        {{ $message }}
+                                    </p>
+                                @enderror
+
+                            </div>
+
+
+                            {{-- Veterinary Assessment --}}
+                            <div>
+
+                                <label for="veterinary_assessment" class="block text-sm font-medium text-gray-700">
+                                    Veterinary Assessment
+                                </label>
+
+                                <textarea id="veterinary_assessment" name="veterinary_assessment" rows="3" class="mt-2 block w-full rounded-lg border-gray-300
+                                       shadow-sm focus:border-indigo-500
+                                       focus:ring-indigo-500"
+                                    placeholder="Enter veterinary assessment...">{{ old('veterinary_assessment') }}</textarea>
+
+                                @error('veterinary_assessment')
+                                    <p class="mt-1 text-sm text-red-600">
+                                        {{ $message }}
+                                    </p>
+                                @enderror
+
+                            </div>
+
+                        </div>
 
                     </div>
 
 
-                    <div class="px-6 py-6">
+                    {{-- Health Status --}}
+                    <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
 
-                        <label
-                            for="health_status"
-                            class="block text-sm font-medium text-gray-700"
-                        >
-                            Current Health Status
-                            <span class="text-red-500">*</span>
-                        </label>
+                        <div class="border-b border-gray-200 px-6 py-5">
 
-                        <select
-                            id="health_status"
-                            name="health_status"
-                            required
-                            class="mt-2 block w-full rounded-lg border-gray-300
+                            <h3 class="text-lg font-semibold text-gray-900">
+                                Health Status
+                            </h3>
+
+                            <p class="mt-1 text-sm text-gray-500">
+                                Indicate the swine's health condition at the time of recording.
+                            </p>
+
+                        </div>
+
+
+                        <div class="px-6 py-6">
+
+                            <label for="health_status" class="block text-sm font-medium text-gray-700">
+                                Current Health Status
+                                <span class="text-red-500">*</span>
+                            </label>
+
+                            <select id="health_status" name="health_status" required class="mt-2 block w-full rounded-lg border-gray-300
+                                   shadow-sm focus:border-indigo-500
+                                   focus:ring-indigo-500">
+
+                                <option value="">
+                                    Select health status
+                                </option>
+
+                                <option value="healthy" @selected(old('health_status') === 'healthy')>
+                                    Healthy
+                                </option>
+
+                                <option value="under_observation" @selected(old('health_status') === 'under_observation')>
+                                    Under Observation
+                                </option>
+
+                                <option value="sick" @selected(old('health_status') === 'sick')>
+                                    Sick
+                                </option>
+
+                                <option value="recovering" @selected(old('health_status') === 'recovering')>
+                                    Recovering
+                                </option>
+
+                            </select>
+
+                            @error('health_status')
+                                <p class="mt-1 text-sm text-red-600">
+                                    {{ $message }}
+                                </p>
+                            @enderror
+
+                        </div>
+
+                    </div>
+
+
+                    {{-- Additional Notes --}}
+                    <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+
+                        <div class="border-b border-gray-200 px-6 py-5">
+
+                            <h3 class="text-lg font-semibold text-gray-900">
+                                Additional Notes
+                            </h3>
+
+                        </div>
+
+
+                        <div class="px-6 py-6">
+
+                            <textarea id="notes" name="notes" rows="4" class="block w-full rounded-lg border-gray-300
                                    shadow-sm focus:border-indigo-500
                                    focus:ring-indigo-500"
-                        >
+                                placeholder="Additional notes...">{{ old('notes') }}</textarea>
 
-                            <option value="">
-                                Select health status
-                            </option>
+                            @error('notes')
+                                <p class="mt-1 text-sm text-red-600">
+                                    {{ $message }}
+                                </p>
+                            @enderror
 
-                            <option
-                                value="healthy"
-                                @selected(old('health_status') === 'healthy')
-                            >
-                                Healthy
-                            </option>
-
-                            <option
-                                value="under_observation"
-                                @selected(old('health_status') === 'under_observation')
-                            >
-                                Under Observation
-                            </option>
-
-                            <option
-                                value="sick"
-                                @selected(old('health_status') === 'sick')
-                            >
-                                Sick
-                            </option>
-
-                            <option
-                                value="recovering"
-                                @selected(old('health_status') === 'recovering')
-                            >
-                                Recovering
-                            </option>
-
-                        </select>
-
-                        @error('health_status')
-                            <p class="mt-1 text-sm text-red-600">
-                                {{ $message }}
-                            </p>
-                        @enderror
-
-                    </div>
-
-                </div>
-
-
-                {{-- Additional Notes --}}
-                <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
-
-                    <div class="border-b border-gray-200 px-6 py-5">
-
-                        <h3 class="text-lg font-semibold text-gray-900">
-                            Additional Notes
-                        </h3>
+                        </div>
 
                     </div>
 
 
-                    <div class="px-6 py-6">
+                    {{-- Actions --}}
+                    <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
 
-                        <textarea
-                            id="notes"
-                            name="notes"
-                            rows="4"
-                            class="block w-full rounded-lg border-gray-300
-                                   shadow-sm focus:border-indigo-500
-                                   focus:ring-indigo-500"
-                            placeholder="Additional notes..."
-                        >{{ old('notes') }}</textarea>
-
-                        @error('notes')
-                            <p class="mt-1 text-sm text-red-600">
-                                {{ $message }}
-                            </p>
-                        @enderror
-
-                    </div>
-
-                </div>
-
-
-                {{-- Actions --}}
-                <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-
-                    <a
-                        href="{{ route('health-records.index') }}"
-                        class="inline-flex justify-center rounded-lg border border-gray-300
+                        <a href="{{ route('health-records.index') }}" class="inline-flex justify-center rounded-lg border border-gray-300
                                bg-white px-5 py-2.5 text-sm font-semibold text-gray-700
-                               shadow-sm hover:bg-gray-50"
-                    >
-                        Cancel
-                    </a>
+                               shadow-sm hover:bg-gray-50">
+                            Cancel
+                        </a>
 
-                    <button
-                        type="submit"
-                        class="inline-flex justify-center rounded-lg bg-indigo-600
+                        <button type="submit" class="inline-flex justify-center rounded-lg bg-indigo-600
                                px-5 py-2.5 text-sm font-semibold text-white shadow-sm
                                hover:bg-indigo-700
                                focus:outline-none focus:ring-2
-                               focus:ring-indigo-500 focus:ring-offset-2"
-                    >
-                        Save Health Record
-                    </button>
+                               focus:ring-indigo-500 focus:ring-offset-2">
+                            Save Health Record
+                        </button>
 
-                </div>
+                    </div>
 
             </form>
 
         </div>
 
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
 
+            const recordType = document.getElementById('record_type');
+            const vaccinationFields = document.getElementById('vaccination-fields');
+
+            function toggleVaccinationFields() {
+
+                if (recordType.value === 'Vaccination') {
+                    vaccinationFields.classList.remove('hidden');
+                } else {
+                    vaccinationFields.classList.add('hidden');
+                }
+
+            }
+
+            recordType.addEventListener('change', toggleVaccinationFields);
+
+            // Preserve fields after validation errors
+            toggleVaccinationFields();
+
+        });
+    </script>
 </x-app-layout>

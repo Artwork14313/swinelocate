@@ -4,28 +4,30 @@
 
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 
-            <div>
+            <div class="mb-6">
+
                 <h2 class="text-2xl font-bold text-gray-900">
                     Health History
                 </h2>
 
                 <p class="mt-1 text-sm text-gray-500">
-                    Complete veterinary and health history of the swine.
+                    Complete health history for
+                    <span class="font-semibold text-gray-900">
+                        {{ $swine->tag_number }}
+                    </span>
                 </p>
+
             </div>
 
             <div class="flex gap-2">
 
-                <a
-                    href="{{ route('health-records.create', ['swine_id' => $swine->id]) }}"
-                    class="inline-flex items-center justify-center rounded-lg
+                <!-- <a href="{{ route('health-records.create', ['swine_id' => $swine->id]) }}" class="inline-flex items-center justify-center rounded-lg
                            bg-indigo-600 px-4 py-2 text-sm font-semibold
-                           text-white shadow-sm hover:bg-indigo-700"
-                >
+                           text-white shadow-sm hover:bg-indigo-700">
                     Add Health Record
-                </a>
+                </a> -->
 
-                <a href="{{ route('health-records.index') }}" class="inline-flex items-center justify-center rounded-lg
+                <a href="{{ route('health-records.history.index') }}" class="inline-flex items-center justify-center rounded-lg
                            border border-gray-300 bg-white px-4 py-2
                            text-sm font-semibold text-gray-700
                            shadow-sm hover:bg-gray-50">
@@ -148,14 +150,201 @@
 
                     <p class="mt-2 text-lg font-bold text-gray-900">
                         {{ $latestStatus
-                            ? str_replace('_', ' ', ucfirst($latestStatus))
-                            : 'No record' }}
+    ? str_replace('_', ' ', ucfirst($latestStatus))
+    : 'No record' }}
                     </p>
 
                 </div>
 
             </div>
+            {{-- Next Vaccination --}}
+            @php
+                $nextVaccination = $healthRecords
+                    ->where('record_type', 'Vaccination')
+                    ->whereNotNull('next_due_date')
+                    ->sortBy('next_due_date')
+                    ->first();
+            @endphp
 
+            @if ($nextVaccination)
+
+                @php
+                    if ($nextVaccination->next_due_date->isPast()) {
+
+                        $vaccinationStatus = 'Overdue';
+                        $statusClasses = 'bg-red-100 text-red-700';
+                        $statusIcon = '⚠';
+
+                        $vaccinationMessage = 'Vaccination is overdue.';
+
+                    } elseif ($nextVaccination->next_due_date->isToday()) {
+
+                        $vaccinationStatus = 'Due Today';
+                        $statusClasses = 'bg-orange-100 text-orange-700';
+                        $statusIcon = '!';
+
+                        $vaccinationMessage = 'Vaccination is due today.';
+
+                    } elseif (now()->diffInDays($nextVaccination->next_due_date) <= 7) {
+
+                        $vaccinationStatus = 'Due Soon';
+                        $statusClasses = 'bg-yellow-100 text-yellow-700';
+                        $statusIcon = '◷';
+
+                        $daysUntilDue = now()->diffInDays($nextVaccination->next_due_date);
+
+                        $vaccinationMessage =
+                            'Vaccination is due in ' .
+                            $daysUntilDue .
+                            ' day' .
+                            ($daysUntilDue == 1 ? '' : 's') .
+                            '.';
+
+                    } else {
+
+                        $vaccinationStatus = 'Scheduled';
+                        $statusClasses = 'bg-green-100 text-green-700';
+                        $statusIcon = '✓';
+
+                        $daysUntilDue = now()->diffInDays($nextVaccination->next_due_date);
+
+                        $vaccinationMessage =
+                            'Vaccination is scheduled in ' .
+                            $daysUntilDue .
+                            ' days.';
+                    }
+                @endphp
+
+
+                <div class="mt-4 overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+
+                    <div class="border-b border-gray-200 px-6 py-5">
+
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+                            <div>
+
+                                <h3 class="text-lg font-semibold text-gray-900">
+                                    Next Vaccination
+                                </h3>
+
+                                <p class="mt-1 text-sm text-gray-500">
+                                    Upcoming vaccination schedule for this swine.
+                                </p>
+
+                            </div>
+
+
+                            {{-- Status --}}
+                            <span class="inline-flex w-fit items-center gap-2 rounded-full
+                                 px-3 py-1.5 text-sm font-semibold
+                                 ring-1 {{ $statusClasses }}">
+
+                                <span>
+                                    {{ $statusIcon }}
+                                </span>
+
+                                {{ $vaccinationStatus }}
+
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="px-6 py-6">
+
+                        <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
+
+                            {{-- Vaccine --}}
+                            <div>
+
+                                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                    Vaccine
+                                </p>
+
+                                <p class="mt-1 text-sm font-semibold text-gray-900">
+                                    {{ $nextVaccination->vaccine_name ?: '—' }}
+                                </p>
+
+                            </div>
+
+
+                            {{-- Next Due Date --}}
+                            <div>
+
+                                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                    Next Due Date
+                                </p>
+
+                                <p class="mt-1 text-sm font-semibold text-gray-900">
+                                    {{ $nextVaccination->next_due_date->format('F d, Y') }}
+                                </p>
+
+                            </div>
+
+
+                            {{-- Status Message --}}
+                            <div>
+
+                                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                    Due Status
+                                </p>
+
+                                <p class="mt-1 text-sm font-semibold">
+
+                                    @if ($vaccinationStatus === 'Overdue')
+
+                                        <span class="text-red-600">
+                                            {{ $vaccinationMessage }}
+                                        </span>
+
+                                    @elseif ($vaccinationStatus === 'Due Today')
+
+                                        <span class="text-orange-600">
+                                            {{ $vaccinationMessage }}
+                                        </span>
+
+                                    @elseif ($vaccinationStatus === 'Due Soon')
+
+                                        <span class="text-yellow-600">
+                                            {{ $vaccinationMessage }}
+                                        </span>
+
+                                    @else
+
+                                        <span class="text-green-600">
+                                            {{ $vaccinationMessage }}
+                                        </span>
+
+                                    @endif
+
+                                </p>
+
+                            </div>
+
+                        </div>
+
+
+                        {{-- View Vaccination Record --}}
+                        <div class="mt-6 border-t border-gray-100 pt-5">
+
+                            <a href="{{ route('health-records.show', $nextVaccination) }}" class="inline-flex items-center rounded-lg bg-indigo-600
+                              px-4 py-2 text-sm font-semibold text-white
+                              shadow-sm hover:bg-indigo-700">
+
+                                View Vaccination Record
+
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            @endif
 
             {{-- Health History --}}
             <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
@@ -185,12 +374,9 @@
                             No veterinary or health events have been recorded for this swine.
                         </p>
 
-                        <a
-                            href="{{ route('health-records.create', ['swine_id' => $swine->id]) }}"
-                            class="mt-4 inline-flex rounded-lg bg-indigo-600
-                                   px-4 py-2 text-sm font-semibold text-white
-                                   hover:bg-indigo-700"
-                        >
+                        <a href="{{ route('health-records.create', ['swine_id' => $swine->id]) }}" class="mt-4 inline-flex rounded-lg bg-indigo-600
+                                               px-4 py-2 text-sm font-semibold text-white
+                                               hover:bg-indigo-700">
                             Add First Health Record
                         </a>
 
@@ -202,155 +388,151 @@
 
                         @foreach ($healthRecords as $record)
 
-                            @php
+                                        @php
 
-                                $statusClasses = match ($record->health_status) {
+                                            $statusClasses = match ($record->health_status) {
 
-                                    'healthy' =>
-                                        'bg-green-100 text-green-700',
+                                                'healthy' =>
+                                                'bg-green-100 text-green-700',
 
-                                    'under_observation' =>
-                                        'bg-yellow-100 text-yellow-700',
+                                                'under_observation' =>
+                                                'bg-yellow-100 text-yellow-700',
 
-                                    'sick' =>
-                                        'bg-red-100 text-red-700',
+                                                'sick' =>
+                                                'bg-red-100 text-red-700',
 
-                                    'recovering' =>
-                                        'bg-blue-100 text-blue-700',
+                                                'recovering' =>
+                                                'bg-blue-100 text-blue-700',
 
-                                    default =>
-                                        'bg-gray-100 text-gray-700',
+                                                default =>
+                                                'bg-gray-100 text-gray-700',
 
-                                };
+                                            };
 
-                            @endphp
-
-
-                            <div class="px-6 py-6">
-
-                                <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-
-                                    {{-- Date --}}
-                                    <div class="lg:w-32">
-
-                                        <p class="text-sm font-bold text-gray-900">
-                                            {{ $record->record_date?->format('M d, Y') }}
-                                        </p>
-
-                                        <p class="mt-1 text-xs text-gray-500">
-                                            {{ $record->record_date?->format('l') }}
-                                        </p>
-
-                                    </div>
+                                        @endphp
 
 
-                                    {{-- Main information --}}
-                                    <div class="flex-1">
+                                        <div class="px-6 py-6">
 
-                                        <div class="flex flex-wrap items-center gap-2">
+                                            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
 
-                                            <h4 class="font-semibold text-gray-900">
-                                                {{ $record->record_type }}
-                                            </h4>
+                                                {{-- Date --}}
+                                                <div class="lg:w-32">
 
-                                            <span
-                                                class="rounded-full px-2.5 py-1 text-xs
-                                                       font-semibold {{ $statusClasses }}"
-                                            >
-                                                {{ str_replace(
-                                                    '_',
-                                                    ' ',
-                                                    ucfirst($record->health_status)
-                                                ) }}
-                                            </span>
+                                                    <p class="text-sm font-bold text-gray-900">
+                                                        {{ $record->record_date?->format('M d, Y') }}
+                                                    </p>
+
+                                                    <p class="mt-1 text-xs text-gray-500">
+                                                        {{ $record->record_date?->format('l') }}
+                                                    </p>
+
+                                                </div>
+
+
+                                                {{-- Main information --}}
+                                                <div class="flex-1">
+
+                                                    <div class="flex flex-wrap items-center gap-2">
+
+                                                        <h4 class="font-semibold text-gray-900">
+                                                            {{ $record->record_type }}
+                                                        </h4>
+
+                                                        <span
+                                                            class="rounded-full px-2.5 py-1 text-xs
+                                                                                                                   font-semibold {{ $statusClasses }}">
+                                                            {{ str_replace(
+                                '_',
+                                ' ',
+                                ucfirst($record->health_status)
+                            ) }}
+                                                        </span>
+
+                                                    </div>
+
+
+                                                    @if ($record->diagnosis)
+
+                                                        <div class="mt-3">
+
+                                                            <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                                                Diagnosis
+                                                            </p>
+
+                                                            <p class="mt-1 text-sm text-gray-700">
+                                                                {{ $record->diagnosis }}
+                                                            </p>
+
+                                                        </div>
+
+                                                    @endif
+
+
+                                                    @if ($record->treatment)
+
+                                                        <div class="mt-3">
+
+                                                            <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                                                Treatment
+                                                            </p>
+
+                                                            <p class="mt-1 text-sm text-gray-700">
+                                                                {{ $record->treatment }}
+                                                            </p>
+
+                                                        </div>
+
+                                                    @endif
+
+
+                                                    @if ($record->observations)
+
+                                                        <div class="mt-3">
+
+                                                            <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                                                Observations
+                                                            </p>
+
+                                                            <p class="mt-1 text-sm text-gray-700">
+                                                                {{ $record->observations }}
+                                                            </p>
+
+                                                        </div>
+
+                                                    @endif
+
+
+                                                    <p class="mt-4 text-xs text-gray-500">
+
+                                                        Recorded by:
+                                                        <span class="font-medium text-gray-700">
+                                                            {{ $record->recordedBy?->name ?? 'Unknown' }}
+                                                        </span>
+
+                                                    </p>
+
+                                                </div>
+
+
+                                                {{-- View --}}
+                                                <div>
+
+                                                    <a href="{{ route(
+                                'health-records.show',
+                                $record
+                            ) }}" class="inline-flex rounded-lg border
+                                                                                                               border-gray-300 bg-white px-3 py-2
+                                                                                                               text-sm font-medium text-gray-700
+                                                                                                               hover:bg-gray-50">
+                                                        View Details
+                                                    </a>
+
+                                                </div>
+
+                                            </div>
 
                                         </div>
-
-
-                                        @if ($record->diagnosis)
-
-                                            <div class="mt-3">
-
-                                                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
-                                                    Diagnosis
-                                                </p>
-
-                                                <p class="mt-1 text-sm text-gray-700">
-                                                    {{ $record->diagnosis }}
-                                                </p>
-
-                                            </div>
-
-                                        @endif
-
-
-                                        @if ($record->treatment)
-
-                                            <div class="mt-3">
-
-                                                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
-                                                    Treatment
-                                                </p>
-
-                                                <p class="mt-1 text-sm text-gray-700">
-                                                    {{ $record->treatment }}
-                                                </p>
-
-                                            </div>
-
-                                        @endif
-
-
-                                        @if ($record->observations)
-
-                                            <div class="mt-3">
-
-                                                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
-                                                    Observations
-                                                </p>
-
-                                                <p class="mt-1 text-sm text-gray-700">
-                                                    {{ $record->observations }}
-                                                </p>
-
-                                            </div>
-
-                                        @endif
-
-
-                                        <p class="mt-4 text-xs text-gray-500">
-
-                                            Recorded by:
-                                            <span class="font-medium text-gray-700">
-                                                {{ $record->recordedBy?->name ?? 'Unknown' }}
-                                            </span>
-
-                                        </p>
-
-                                    </div>
-
-
-                                    {{-- View --}}
-                                    <div>
-
-                                        <a
-                                            href="{{ route(
-                                                'health-records.show',
-                                                $record
-                                            ) }}"
-                                            class="inline-flex rounded-lg border
-                                                   border-gray-300 bg-white px-3 py-2
-                                                   text-sm font-medium text-gray-700
-                                                   hover:bg-gray-50"
-                                        >
-                                            View Details
-                                        </a>
-
-                                    </div>
-
-                                </div>
-
-                            </div>
 
                         @endforeach
 

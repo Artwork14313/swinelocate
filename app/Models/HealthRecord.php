@@ -15,6 +15,10 @@ class HealthRecord extends Model
         'recorded_by',
         'record_date',
         'record_type',
+        'vaccine_name',
+        'dose',
+        'batch_number',
+        'next_due_date',
         'symptoms',
         'diagnosis',
         'treatment',
@@ -26,6 +30,7 @@ class HealthRecord extends Model
 
     protected $casts = [
         'record_date' => 'date',
+        'next_due_date' => 'date',
     ];
 
     public function swine(): BelongsTo

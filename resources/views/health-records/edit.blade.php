@@ -40,11 +40,7 @@
             @endif
 
 
-            <form
-                method="POST"
-                action="{{ route('health-records.update', $healthRecord) }}"
-                class="space-y-6"
-            >
+            <form method="POST" action="{{ route('health-records.update', $healthRecord) }}" class="space-y-6">
 
                 @csrf
                 @method('PUT')
@@ -67,32 +63,21 @@
                         {{-- Swine --}}
                         <div class="sm:col-span-2">
 
-                            <label
-                                for="swine_id"
-                                class="block text-sm font-medium text-gray-700"
-                            >
+                            <label for="swine_id" class="block text-sm font-medium text-gray-700">
                                 Swine <span class="text-red-500">*</span>
                             </label>
 
-                            <select
-                                id="swine_id"
-                                name="swine_id"
-                                required
-                                class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm
-                                       focus:border-indigo-500 focus:ring-indigo-500"
-                            >
+                            <select id="swine_id" name="swine_id" required class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm
+                                       focus:border-indigo-500 focus:ring-indigo-500">
 
                                 @foreach ($swine as $animal)
 
-                                    <option
-                                        value="{{ $animal->id }}"
-                                        @selected(
-                                            old(
-                                                'swine_id',
-                                                $healthRecord->swine_id
-                                            ) == $animal->id
-                                        )
-                                    >
+                                    <option value="{{ $animal->id }}" @selected(
+                                        old(
+                                            'swine_id',
+                                            $healthRecord->swine_id
+                                        ) == $animal->id
+                                    )>
                                         {{ $animal->tag_number }}
 
                                         @if ($animal->name)
@@ -116,27 +101,16 @@
                         {{-- Record Date --}}
                         <div>
 
-                            <label
-                                for="record_date"
-                                class="block text-sm font-medium text-gray-700"
-                            >
+                            <label for="record_date" class="block text-sm font-medium text-gray-700">
                                 Record Date
                                 <span class="text-red-500">*</span>
                             </label>
 
-                            <input
-                                type="date"
-                                id="record_date"
-                                name="record_date"
-                                value="{{ old(
-                                    'record_date',
-                                    optional($healthRecord->record_date)->format('Y-m-d')
-                                ) }}"
-                                max="{{ now()->format('Y-m-d') }}"
-                                required
-                                class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm
-                                       focus:border-indigo-500 focus:ring-indigo-500"
-                            >
+                            <input type="date" id="record_date" name="record_date" value="{{ old(
+    'record_date',
+    optional($healthRecord->record_date)->format('Y-m-d')
+) }}" max="{{ now()->format('Y-m-d') }}" required class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm
+                                       focus:border-indigo-500 focus:ring-indigo-500">
 
                             @error('record_date')
                                 <p class="mt-1 text-sm text-red-600">
@@ -150,40 +124,30 @@
                         {{-- Record Type --}}
                         <div>
 
-                            <label
-                                for="record_type"
-                                class="block text-sm font-medium text-gray-700"
-                            >
+                            <label for="record_type" class="block text-sm font-medium text-gray-700">
                                 Record Type
                                 <span class="text-red-500">*</span>
                             </label>
 
-                            <select
-                                id="record_type"
-                                name="record_type"
-                                required
-                                class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm
-                                       focus:border-indigo-500 focus:ring-indigo-500"
-                            >
+                            <select id="record_type" name="record_type" required class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm
+                                       focus:border-indigo-500 focus:ring-indigo-500">
 
                                 @foreach ([
-                                    'Routine Examination',
-                                    'Illness',
-                                    'Treatment',
-                                    'Injury',
-                                    'Follow-up',
-                                    'Other'
-                                ] as $type)
+                                        'Routine Examination',
+                                        'Vaccination',
+                                        'Illness',
+                                        'Treatment',
+                                        'Injury',
+                                        'Follow-up',
+                                        'Other'
+                                    ] as $type)
 
-                                    <option
-                                        value="{{ $type }}"
-                                        @selected(
-                                            old(
-                                                'record_type',
-                                                $healthRecord->record_type
-                                            ) === $type
-                                        )
-                                    >
+                                    <option value="{{ $type }}" @selected(
+                                        old(
+                                            'record_type',
+                                            $healthRecord->record_type
+                                        ) === $type
+                                    )>
                                         {{ $type }}
                                     </option>
 
@@ -202,7 +166,115 @@
                     </div>
 
                 </div>
+                {{-- Vaccination Details --}}
+                <div id="vaccination-fields" class="{{ old('record_type', $healthRecord->record_type) === 'Vaccination'
+    ? ''
+    : 'hidden' }}
+    rounded-lg border border-indigo-100 bg-indigo-50 p-5">
 
+                    <div class="mb-4">
+
+                        <h3 class="text-sm font-semibold text-gray-900">
+                            Vaccination Details
+                        </h3>
+
+                        <p class="mt-1 text-xs text-gray-500">
+                            Provide vaccination information for this swine.
+                        </p>
+
+                    </div>
+
+
+                    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+
+                        {{-- Vaccine Name --}}
+                        <div>
+
+                            <label for="vaccine_name" class="block text-sm font-medium text-gray-700">
+                                Vaccine Name
+                            </label>
+
+                            <input type="text" id="vaccine_name" name="vaccine_name"
+                                value="{{ old('vaccine_name', $healthRecord->vaccine_name) }}" class="mt-2 block w-full rounded-lg border-gray-300
+                       shadow-sm focus:border-indigo-500
+                       focus:ring-indigo-500" placeholder="e.g. Swine Fever Vaccine">
+
+                            @error('vaccine_name')
+                                <p class="mt-1 text-sm text-red-600">
+                                    {{ $message }}
+                                </p>
+                            @enderror
+
+                        </div>
+
+
+                        {{-- Dose --}}
+                        <div>
+
+                            <label for="dose" class="block text-sm font-medium text-gray-700">
+                                Dose
+                            </label>
+
+                            <input type="text" id="dose" name="dose" value="{{ old('dose', $healthRecord->dose) }}"
+                                class="mt-2 block w-full rounded-lg border-gray-300
+                       shadow-sm focus:border-indigo-500
+                       focus:ring-indigo-500" placeholder="e.g. 2 mL">
+
+                            @error('dose')
+                                <p class="mt-1 text-sm text-red-600">
+                                    {{ $message }}
+                                </p>
+                            @enderror
+
+                        </div>
+
+
+                        {{-- Batch / Lot Number --}}
+                        <div>
+
+                            <label for="batch_number" class="block text-sm font-medium text-gray-700">
+                                Batch / Lot Number
+                            </label>
+
+                            <input type="text" id="batch_number" name="batch_number"
+                                value="{{ old('batch_number', $healthRecord->batch_number) }}" class="mt-2 block w-full rounded-lg border-gray-300
+                       shadow-sm focus:border-indigo-500
+                       focus:ring-indigo-500" placeholder="Optional">
+
+                            @error('batch_number')
+                                <p class="mt-1 text-sm text-red-600">
+                                    {{ $message }}
+                                </p>
+                            @enderror
+
+                        </div>
+
+
+                        {{-- Next Due Date --}}
+                        <div>
+
+                            <label for="next_due_date" class="block text-sm font-medium text-gray-700">
+                                Next Due Date
+                            </label>
+
+                            <input type="date" id="next_due_date" name="next_due_date" value="{{ old(
+    'next_due_date',
+    $healthRecord->next_due_date?->format('Y-m-d')
+) }}" class="mt-2 block w-full rounded-lg border-gray-300
+                       shadow-sm focus:border-indigo-500
+                       focus:ring-indigo-500">
+
+                            @error('next_due_date')
+                                <p class="mt-1 text-sm text-red-600">
+                                    {{ $message }}
+                                </p>
+                            @enderror
+
+                        </div>
+
+                    </div>
+
+                </div>
 
                 {{-- Clinical Information --}}
                 <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
@@ -219,29 +291,22 @@
                     <div class="space-y-6 px-6 py-6">
 
                         @foreach ([
-                            'symptoms' => 'Symptoms',
-                            'diagnosis' => 'Diagnosis',
-                            'treatment' => 'Treatment',
-                            'observations' => 'Observations',
-                            'veterinary_assessment' => 'Veterinary Assessment'
-                        ] as $field => $label)
+                                'symptoms' => 'Symptoms',
+                                'diagnosis' => 'Diagnosis',
+                                'treatment' => 'Treatment',
+                                'observations' => 'Observations',
+                                'veterinary_assessment' => 'Veterinary Assessment'
+                            ] as $field => $label)
 
                             <div>
 
-                                <label
-                                    for="{{ $field }}"
-                                    class="block text-sm font-medium text-gray-700"
-                                >
+                                <label for="{{ $field }}" class="block text-sm font-medium text-gray-700">
                                     {{ $label }}
                                 </label>
 
-                                <textarea
-                                    id="{{ $field }}"
-                                    name="{{ $field }}"
-                                    rows="3"
+                                <textarea id="{{ $field }}" name="{{ $field }}" rows="3"
                                     class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm
-                                           focus:border-indigo-500 focus:ring-indigo-500"
-                                >{{ old($field, $healthRecord->$field) }}</textarea>
+                                                   focus:border-indigo-500 focus:ring-indigo-500">{{ old($field, $healthRecord->$field) }}</textarea>
 
                                 @error($field)
                                     <p class="mt-1 text-sm text-red-600">
@@ -272,38 +337,27 @@
 
                     <div class="px-6 py-6">
 
-                        <label
-                            for="health_status"
-                            class="block text-sm font-medium text-gray-700"
-                        >
+                        <label for="health_status" class="block text-sm font-medium text-gray-700">
                             Current Health Status
                             <span class="text-red-500">*</span>
                         </label>
 
-                        <select
-                            id="health_status"
-                            name="health_status"
-                            required
-                            class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm
-                                   focus:border-indigo-500 focus:ring-indigo-500"
-                        >
+                        <select id="health_status" name="health_status" required class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm
+                                   focus:border-indigo-500 focus:ring-indigo-500">
 
                             @foreach ([
-                                'healthy' => 'Healthy',
-                                'under_observation' => 'Under Observation',
-                                'sick' => 'Sick',
-                                'recovering' => 'Recovering'
-                            ] as $value => $label)
+                                    'healthy' => 'Healthy',
+                                    'under_observation' => 'Under Observation',
+                                    'sick' => 'Sick',
+                                    'recovering' => 'Recovering'
+                                ] as $value => $label)
 
-                                <option
-                                    value="{{ $value }}"
-                                    @selected(
-                                        old(
-                                            'health_status',
-                                            $healthRecord->health_status
-                                        ) === $value
-                                    )
-                                >
+                                <option value="{{ $value }}" @selected(
+                                    old(
+                                        'health_status',
+                                        $healthRecord->health_status
+                                    ) === $value
+                                )>
                                     {{ $label }}
                                 </option>
 
@@ -335,13 +389,9 @@
 
                     <div class="px-6 py-6">
 
-                        <textarea
-                            id="notes"
-                            name="notes"
-                            rows="4"
+                        <textarea id="notes" name="notes" rows="4"
                             class="block w-full rounded-lg border-gray-300 shadow-sm
-                                   focus:border-indigo-500 focus:ring-indigo-500"
-                        >{{ old('notes', $healthRecord->notes) }}</textarea>
+                                   focus:border-indigo-500 focus:ring-indigo-500">{{ old('notes', $healthRecord->notes) }}</textarea>
 
                     </div>
 
@@ -351,21 +401,15 @@
                 {{-- Actions --}}
                 <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
 
-                    <a
-                        href="{{ route('health-records.index') }}"
-                        class="inline-flex justify-center rounded-lg border border-gray-300
+                    <a href="{{ route('health-records.index') }}" class="inline-flex justify-center rounded-lg border border-gray-300
                                bg-white px-5 py-2.5 text-sm font-semibold text-gray-700
-                               shadow-sm hover:bg-gray-50"
-                    >
+                               shadow-sm hover:bg-gray-50">
                         Cancel
                     </a>
 
-                    <button
-                        type="submit"
-                        class="inline-flex justify-center rounded-lg bg-indigo-600
+                    <button type="submit" class="inline-flex justify-center rounded-lg bg-indigo-600
                                px-5 py-2.5 text-sm font-semibold text-white shadow-sm
-                               hover:bg-indigo-700"
-                    >
+                               hover:bg-indigo-700">
                         Update Health Record
                     </button>
 
@@ -376,5 +420,26 @@
         </div>
 
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
 
+            const recordType = document.getElementById('record_type');
+            const vaccinationFields = document.getElementById('vaccination-fields');
+
+            function toggleVaccinationFields() {
+
+                if (recordType.value === 'Vaccination') {
+                    vaccinationFields.classList.remove('hidden');
+                } else {
+                    vaccinationFields.classList.add('hidden');
+                }
+
+            }
+
+            recordType.addEventListener('change', toggleVaccinationFields);
+
+            toggleVaccinationFields();
+
+        });
+    </script>
 </x-app-layout>

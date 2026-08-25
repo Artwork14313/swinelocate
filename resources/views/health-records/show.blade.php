@@ -15,12 +15,12 @@
             </div>
 
             <div class="flex gap-2">
-                <a href="{{ route('health-records.history', $swine) }}" class="inline-flex items-center justify-center rounded-lg
+                <!-- <a href="{{ route('health-records.history', $swine) }}" class="inline-flex items-center justify-center rounded-lg
            bg-indigo-600 px-4 py-2 text-sm font-semibold
            text-white shadow-sm hover:bg-indigo-700">
                     Health History
-                </a>
-                
+                </a> -->
+
                 <a href="{{ route('health-records.edit', $healthRecord) }}" class="inline-flex items-center justify-center rounded-lg
                            bg-indigo-600 px-4 py-2 text-sm font-semibold
                            text-white shadow-sm hover:bg-indigo-700">
@@ -201,6 +201,207 @@
 
             </div>
 
+            {{-- Vaccination Details --}}
+            @if ($healthRecord->record_type === 'Vaccination')
+
+                @php
+                    $vaccinationStatus = null;
+                    $statusClasses = '';
+                    $statusIcon = '';
+
+                    if ($healthRecord->next_due_date) {
+                        $today = now()->startOfDay();
+                        $dueDate = $healthRecord->next_due_date->startOfDay();
+
+                        if ($dueDate->isPast()) {
+                            $vaccinationStatus = 'Overdue';
+                            $statusClasses = 'bg-red-100 text-red-700 ring-red-200';
+                            $statusIcon = '⚠';
+                        } elseif ($dueDate->isToday()) {
+                            $vaccinationStatus = 'Due Today';
+                            $statusClasses = 'bg-orange-100 text-orange-700 ring-orange-200';
+                            $statusIcon = '!';
+                        } elseif ($today->diffInDays($dueDate) <= 7) {
+                            $vaccinationStatus = 'Due Soon';
+                            $statusClasses = 'bg-yellow-100 text-yellow-700 ring-yellow-200';
+                            $statusIcon = '◷';
+                        } else {
+                            $vaccinationStatus = 'Scheduled';
+                            $statusClasses = 'bg-green-100 text-green-700 ring-green-200';
+                            $statusIcon = '✓';
+                        }
+                    } else {
+                        $vaccinationStatus = 'No Due Date';
+                        $statusClasses = 'bg-gray-100 text-gray-700 ring-gray-200';
+                        $statusIcon = '—';
+                    }
+                @endphp
+
+
+                <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+
+                    {{-- Header --}}
+                    <div class="border-b border-gray-200 px-6 py-5">
+
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900">
+                                    Vaccination Details
+                                </h3>
+
+                                <p class="mt-1 text-sm text-gray-500">
+                                    Vaccine information recorded for this swine.
+                                </p>
+                            </div>
+
+
+                            {{-- Vaccination Status --}}
+                            <span class="inline-flex w-fit items-center gap-2 rounded-full px-3 py-1.5
+                                         text-sm font-semibold ring-1 {{ $statusClasses }}">
+
+                                <span>
+                                    {{ $statusIcon }}
+                                </span>
+
+                                {{ $vaccinationStatus }}
+
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    {{-- Vaccination Information --}}
+                    <div class="px-6 py-6">
+
+                        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+
+                            {{-- Vaccine Name --}}
+                            <div>
+                                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                    Vaccine Name
+                                </p>
+
+                                <p class="mt-1 text-sm font-semibold text-gray-900">
+                                    {{ $healthRecord->vaccine_name ?: '—' }}
+                                </p>
+                            </div>
+
+
+                            {{-- Dose --}}
+                            <div>
+                                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                    Dose
+                                </p>
+
+                                <p class="mt-1 text-sm text-gray-900">
+                                    {{ $healthRecord->dose ?: '—' }}
+                                </p>
+                            </div>
+
+
+                            {{-- Batch Number --}}
+                            <div>
+                                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                    Batch / Lot Number
+                                </p>
+
+                                <p class="mt-1 font-mono text-sm text-gray-900">
+                                    {{ $healthRecord->batch_number ?: '—' }}
+                                </p>
+                            </div>
+
+
+                            {{-- Date Administered --}}
+                            <div>
+                                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                    Date Administered
+                                </p>
+
+                                <p class="mt-1 text-sm text-gray-900">
+                                    {{ $healthRecord->record_date?->format('F d, Y') ?? '—' }}
+                                </p>
+                            </div>
+
+
+                            {{-- Next Due Date --}}
+                            <div>
+                                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                    Next Due Date
+                                </p>
+
+                                <p class="mt-1 text-sm font-semibold text-gray-900">
+                                    {{ $healthRecord->next_due_date?->format('F d, Y') ?? '—' }}
+                                </p>
+                            </div>
+
+
+                            {{-- Due Information --}}
+                            <div>
+                                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                    Due Status
+                                </p>
+
+                                <p class="mt-1 text-sm text-gray-900">
+
+                                    @if (!$healthRecord->next_due_date)
+
+                                        No next vaccination date recorded.
+
+                                    @elseif ($vaccinationStatus === 'Overdue')
+
+                                        <span class="font-semibold text-red-600">
+                                            Vaccination is overdue.
+                                        </span>
+
+                                    @elseif ($vaccinationStatus === 'Due Today')
+
+                                        <span class="font-semibold text-orange-600">
+                                            Vaccination is due today.
+                                        </span>
+
+                                    @elseif ($vaccinationStatus === 'Due Soon')
+
+                                        @php
+                                            $daysUntilDue = now()
+                                                ->startOfDay()
+                                                ->diffInDays(
+                                                    $healthRecord->next_due_date->startOfDay()
+                                                );
+                                        @endphp
+
+                                        <span class="font-semibold text-yellow-600">
+                                            Vaccination is due in {{ $daysUntilDue }} day{{ $daysUntilDue == 1 ? '' : 's' }}.
+                                        </span>
+
+                                    @else
+
+                                        @php
+                                            $daysUntilDue = now()
+                                                ->startOfDay()
+                                                ->diffInDays(
+                                                    $healthRecord->next_due_date->startOfDay()
+                                                );
+                                        @endphp
+
+                                        <span class="font-semibold text-green-600">
+                                            Vaccination is scheduled in {{ $daysUntilDue }} days.
+                                        </span>
+
+                                    @endif
+
+                                </p>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            @endif
 
             {{-- Clinical Information --}}
             <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
@@ -289,7 +490,6 @@
                 </div>
 
             </div>
-
 
             {{-- Additional Notes --}}
             <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">

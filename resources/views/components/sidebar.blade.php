@@ -1,5 +1,5 @@
 <aside class="fixed inset-y-0 left-0 z-40 hidden w-64
-           border-r border-gray-200 bg-white
+           border-r border-gray-200 bg-[#F2F2ED]
            lg:flex lg:flex-col">
 
     {{-- Brand --}}
@@ -7,8 +7,8 @@
 
         <a href="{{ route('dashboard') }}" class="flex items-center gap-3">
 
-            <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 text-white">
-                <span class="font-bold">S</span>
+            <div class="flex h-9 w-9 items-center justify-center rounded-lg text-white bg-[#B9D175]">
+                <img src="/images/swineicon2.svg" alt="SwineLocate" />
             </div>
 
             <div>
@@ -120,19 +120,22 @@
             <div class="space-y-1">
 
                 <a href="{{ route('health-records.index') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium
-    {{ request()->routeIs('health-records.*')
+    {{ request()->routeIs('health-records.index') || request()->routeIs('health-records.show') || request()->routeIs('health-records.create') || request()->routeIs('health-records.edit')
     ? 'bg-purple-50 text-purple-700'
     : 'text-gray-700 hover:bg-gray-50' }}">
                     Health Records
                 </a>
 
-                <span class="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-400">
+                <!-- <span class="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-400">
                     Vaccinations
-                </span>
+                </span> -->
 
-                <span class="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-400">
-                    Health History
-                </span>
+                    <a href="{{ route('health-records.history.index') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium
+    {{ request()->routeIs('health-records.history.index') || request()->routeIs('health-records.history')
+    ? 'bg-purple-50 text-purple-700'
+    : 'text-gray-700 hover:bg-gray-50' }}">
+                        Health History
+                    </a>
 
             </div>
 
