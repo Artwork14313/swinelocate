@@ -78,4 +78,9 @@ class Swine extends Model
         return $this->hasMany(VaccinationRecord::class);
     }
 
+    public function weightRecords(): HasMany
+    {
+        return $this->hasMany(WeightRecord::class);
+    }
+
 }

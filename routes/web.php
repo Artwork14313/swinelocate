@@ -8,6 +8,8 @@ use App\Http\Controllers\SwineController;
 use App\Http\Controllers\SwineMovementController;
 use App\Http\Controllers\HealthRecordController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\WeightRecordController;
+use App\Http\Controllers\GrowthMonitoringController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -76,6 +78,75 @@ Route::middleware('auth')->group(function () {
         'health-records',
         HealthRecordController::class
     );
+
+    /*
+|--------------------------------------------------------------------------
+| Weight Records
+|--------------------------------------------------------------------------
+*/
+
+    Route::resource(
+        'weight-records',
+        WeightRecordController::class
+    );
+
+    /*
+|--------------------------------------------------------------------------
+| Growth Monitoring
+|--------------------------------------------------------------------------
+*/
+
+    Route::get(
+        '/growth-monitoring',
+        [GrowthMonitoringController::class, 'index']
+    )->name('growth-monitoring.index');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Swine Movement
+    |--------------------------------------------------------------------------
+    */
+    Route::get(
+        '/swine-movements',
+        [SwineMovementController::class, 'index']
+    )->name('swine-movements.index');
+
+    Route::get(
+        '/swine-movements/create',
+        [SwineMovementController::class, 'create']
+    )->name('swine-movements.create');
+
+    Route::post(
+        '/swine-movements',
+        [SwineMovementController::class, 'store']
+    )->name('swine-movements.store');
+
+    Route::get(
+        '/swine-movements/{swine}/locations',
+        [SwineMovementController::class, 'locations']
+    )->name('swine-movements.locations');
+
+    Route::get(
+        '/swine-movements/{swineMovement}',
+        [SwineMovementController::class, 'show']
+    )->name('swine-movements.show');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Movement from Swine Profile
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get(
+        '/swine/{swine}/move',
+        [SwineMovementController::class, 'create']
+    )->name('swine.movements.create');
+
+    Route::post(
+        '/swine/{swine}/move',
+        [SwineMovementController::class, 'store']
+    )->name('swine.movements.store');
+
 });
 
 require __DIR__ . '/auth.php';

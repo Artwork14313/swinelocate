@@ -130,12 +130,12 @@
                     Vaccinations
                 </span> -->
 
-                    <a href="{{ route('health-records.history.index') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium
+                <a href="{{ route('health-records.history.index') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium
     {{ request()->routeIs('health-records.history.index') || request()->routeIs('health-records.history')
     ? 'bg-purple-50 text-purple-700'
     : 'text-gray-700 hover:bg-gray-50' }}">
-                        Health History
-                    </a>
+                    Health History
+                </a>
 
             </div>
 
@@ -154,17 +154,22 @@
 
             <div class="space-y-1">
 
-                <span class="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-400">
+                <a href="{{ route('weight-records.index') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 {{ request()->routeIs('weight-records.*')
+    ? 'bg-purple-50 text-purple-700'
+    : 'text-gray-700 hover:bg-gray-50' }}">
                     Weight Records
-                </span>
+                </a>
 
-                <span class="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-400">
+                <a href="{{ route('growth-monitoring.index') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 {{ request()->routeIs('growth-monitoring.*')
+    ? 'bg-purple-50 text-purple-700'
+    : 'text-gray-700 hover:bg-gray-50' }}">
                     Growth Monitoring
-                </span>
+                </a>
 
 
-                <a href="{{ route('swine.index') }}"
-                    class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                <a href="{{ route('swine-movements.index') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 {{ request()->routeIs('swine-movements.*')
+    ? 'bg-purple-50 text-purple-700'
+    : 'text-gray-700 hover:bg-gray-50' }}">
                     Swine Movements
                 </a>
 

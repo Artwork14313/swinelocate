@@ -3,10 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SwineMovement extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'swine_id',
         'from_location_id',
@@ -21,10 +24,22 @@ class SwineMovement extends Model
         'movement_date' => 'datetime',
     ];
 
+    /*
+    |--------------------------------------------------------------------------
+    | Swine
+    |--------------------------------------------------------------------------
+    */
+
     public function swine(): BelongsTo
     {
         return $this->belongsTo(Swine::class);
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Previous Location
+    |--------------------------------------------------------------------------
+    */
 
     public function fromLocation(): BelongsTo
     {
@@ -34,6 +49,12 @@ class SwineMovement extends Model
         );
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | New Location
+    |--------------------------------------------------------------------------
+    */
+
     public function toLocation(): BelongsTo
     {
         return $this->belongsTo(
@@ -41,6 +62,12 @@ class SwineMovement extends Model
             'to_location_id'
         );
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Recorded By
+    |--------------------------------------------------------------------------
+    */
 
     public function recordedBy(): BelongsTo
     {
