@@ -18,7 +18,7 @@
             <a href="{{ route('swine.index') }}" class="inline-flex items-center justify-center rounded-lg
                        bg-[#3368A0] px-4 py-2 text-sm font-semibold
                        text-white hover:bg-[#28557F]">
-                Select Swine to Move
+                Move Swine
             </a>
 
         </div>
@@ -223,9 +223,9 @@
                         </p>
 
                         <a href="{{ route('swine-movements.create') }}" class="mt-4 inline-flex rounded-lg
-                                                       bg-[#3368A0] px-4 py-2
-                                                       text-sm font-semibold text-white
-                                                       hover:bg-[#28557F]">
+                                                           bg-[#3368A0] px-4 py-2
+                                                           text-sm font-semibold text-white
+                                                           hover:bg-[#28557F]">
                             Record First Movement
                         </a>
 
@@ -244,44 +244,44 @@
                                 <tr>
 
                                     <th class="px-6 py-3 text-left text-xs
-                                                                   font-semibold uppercase
-                                                                   tracking-wider text-gray-500">
+                                                                       font-semibold uppercase
+                                                                       tracking-wider text-gray-500">
                                         Date
                                     </th>
 
                                     <th class="px-6 py-3 text-left text-xs
-                                                                   font-semibold uppercase
-                                                                   tracking-wider text-gray-500">
+                                                                       font-semibold uppercase
+                                                                       tracking-wider text-gray-500">
                                         Swine
                                     </th>
 
                                     <th class="px-6 py-3 text-left text-xs
-                                                                   font-semibold uppercase
-                                                                   tracking-wider text-gray-500">
+                                                                       font-semibold uppercase
+                                                                       tracking-wider text-gray-500">
                                         From
                                     </th>
 
                                     <th class="px-6 py-3 text-left text-xs
-                                                                   font-semibold uppercase
-                                                                   tracking-wider text-gray-500">
+                                                                       font-semibold uppercase
+                                                                       tracking-wider text-gray-500">
                                         To
                                     </th>
 
                                     <th class="px-6 py-3 text-left text-xs
-                                                                   font-semibold uppercase
-                                                                   tracking-wider text-gray-500">
+                                                                       font-semibold uppercase
+                                                                       tracking-wider text-gray-500">
                                         Reason
                                     </th>
 
                                     <th class="px-6 py-3 text-left text-xs
-                                                                   font-semibold uppercase
-                                                                   tracking-wider text-gray-500">
+                                                                       font-semibold uppercase
+                                                                       tracking-wider text-gray-500">
                                         Recorded By
                                     </th>
 
                                     <th class="px-6 py-3 text-right text-xs
-                                                                   font-semibold uppercase
-                                                                   tracking-wider text-gray-500">
+                                                                       font-semibold uppercase
+                                                                       tracking-wider text-gray-500">
                                         Action
                                     </th>
 
@@ -317,7 +317,7 @@
 
                                                                 <a href="{{ route('swine.show', $movement->swine) }}"
                                                                     class="text-sm font-semibold text-[#3368A0]
-                                                                                                                                                                                                   hover:underline">
+                                                                                                                                                                                                                               hover:underline">
                                                                     {{ $movement->swine?->tag_number ?? '—' }}
                                                                 </a>
 
@@ -362,9 +362,9 @@
 
                                                                     <span
                                                                         class="inline-flex rounded-full
-                                                                                                                                                                                                                             bg-gray-100 px-2.5 py-1
-                                                                                                                                                                                                                             text-xs font-medium
-                                                                                                                                                                                                                             text-gray-700">
+                                                                                                                                                                                                                                                             bg-gray-100 px-2.5 py-1
+                                                                                                                                                                                                                                                             text-xs font-medium
+                                                                                                                                                                                                                                                             text-gray-700">
                                                                         {{ $movement->reason }}
                                                                     </span>
 
@@ -399,12 +399,12 @@
                                         $movement
                                     ) }}"
                                                                     class="inline-flex rounded-lg
-                                                                                                                                                                                                   border border-gray-300
-                                                                                                                                                                                                   bg-white px-3 py-2
-                                                                                                                                                                                                   text-sm font-medium
-                                                                                                                                                                                                   text-gray-700
-                                                                                                                                                                                                   hover:bg-gray-50">
-                                                                    View
+                                                                                                                                                                                                                               border border-gray-300
+                                                                                                                                                                                                                               bg-white px-3 py-2
+                                                                                                                                                                                                                               text-sm font-medium
+                                                                                                                                                                                                                               text-gray-700
+                                                                                                                                                                                                                               hover:bg-gray-50">
+                                                                    View Details
                                                                 </a>
 
                                                             </td>
@@ -450,8 +450,8 @@
 
                                                     <span
                                                         class="rounded-full bg-gray-100
-                                                                                                                                                                             px-2.5 py-1 text-xs
-                                                                                                                                                                             font-medium text-gray-700">
+                                                                                                                                                                                                     px-2.5 py-1 text-xs
+                                                                                                                                                                                                     font-medium text-gray-700">
                                                         {{ $movement->reason }}
                                                     </span>
 
@@ -505,7 +505,7 @@
                                 $movement
                             ) }}"
                                                     class="text-sm font-medium text-[#3368A0]
-                                                                                                                                                   hover:underline">
+                                                                                                                                                                       hover:underline">
                                                     View Details
                                                 </a>
 

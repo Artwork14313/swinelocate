@@ -34,7 +34,7 @@
                     </h1>
 
                     <p class="text-lg text-white/90 max-w-lg pt-20">
-                        A QR-Based Web and Mobile Application for Swine Traceability and Management with Offline Data
+                        A QR-Based Web and Mobile Application for Swine Traceability and Management with Offline access & Data
                         Synchronization.
                     </p>
 

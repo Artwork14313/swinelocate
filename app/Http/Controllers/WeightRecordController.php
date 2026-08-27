@@ -88,6 +88,49 @@ class WeightRecordController extends Controller
             ->with('success', 'Weight record added successfully.');
     }
 
+    /**
+     * Store a weight record received from the offline synchronization queue.
+     *
+     * This endpoint is used when a weight record was created while
+     * the application had no internet connection.
+     */
+    public function syncStore(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $validated = $request->validate([
+            'swine_id' => [
+                'required',
+                'exists:swine,id',
+            ],
+
+            'record_date' => [
+                'required',
+                'date',
+            ],
+
+            'weight' => [
+                'required',
+                'numeric',
+                'min:0.01',
+                'max:9999.99',
+            ],
+
+            'notes' => [
+                'nullable',
+                'string',
+                'max:2000',
+            ],
+        ]);
+
+        $validated['recorded_by'] = auth()->id();
+
+        $weightRecord = WeightRecord::create($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Offline weight record synchronized successfully.',
+            'weight_record_id' => $weightRecord->id,
+        ], 201);
+    }
 
     /**
      * Display a weight record.

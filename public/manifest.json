@@ -1,0 +1,23 @@
+{
+    "name": "SwineLocate",
+    "short_name": "SwineLocate",
+    "description": "QR-Based Swine Traceability and Management System",
+    "start_url": "/dashboard",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "portrait-primary",
+    "background_color": "#f9fafb",
+    "theme_color": "#3368A0",
+    "icons": [
+        {
+            "src": "/icons/SwineLocateLogo.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/icons/SwineLocateLogo.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}

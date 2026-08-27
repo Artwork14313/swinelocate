@@ -96,7 +96,7 @@
 
 
                 <a href="{{ route('swine.index') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium
-                    {{ request()->routeIs('swine.*')
+                    {{ request()->routeIs('swine.*') && !request()->routeIs('swine.scan')
     ? 'bg-green-50 text-green-700'
     : 'text-gray-700 hover:bg-gray-50' }}">
                     Swine
@@ -190,18 +190,25 @@
 
             <div class="space-y-1">
 
-                <a href="{{ route('swine.index') }}"
-                    class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                    QR & Swine Records
+                {{-- Scan QR --}}
+                <a href="{{ route('qr.scanner') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium
+                   text-gray-700 hover:bg-gray-50 transition {{ request()->routeIs('qr.scanner') || request()->routeIs('swine.scan')
+    ? 'bg-purple-50 text-purple-700'
+    : 'text-gray-700 hover:bg-gray-50' }}">
+
+                    <svg class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke-width="1.8"
+                        stroke="currentColor">
+
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.5A1.5 1.5 0 015.25 3h3A1.5 1.5 0 019.75 4.5v3A1.5 1.5 0 018.25 9h-3A1.5 1.5 0 013.75 7.5v-3z
+                       M14.25 4.5A1.5 1.5 0 0115.75 3h3a1.5 1.5 0 011.5 1.5v3A1.5 1.5 0 0118.75 9h-3a1.5 1.5 0 01-1.5-1.5v-3z
+                       M3.75 16.5A1.5 1.5 0 015.25 15h3a1.5 1.5 0 011.5 1.5v3A1.5 1.5 0 018.25 21h-3a1.5 1.5 0 01-1.5-1.5v-3z
+                       M14.25 15h1.5v1.5h-1.5V15zm3 0h1.5v1.5h-1.5V15zm-3 3h1.5v1.5h-1.5V18zm3 0h1.5v1.5h-1.5V18z" />
+
+                    </svg>
+
+                    <span>Scan QR</span>
+
                 </a>
-
-                <span class="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-400">
-                    Scan QR
-                </span>
-
-                <span class="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-400">
-                    Traceability
-                </span>
 
             </div>
 

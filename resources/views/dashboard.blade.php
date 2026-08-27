@@ -896,6 +896,138 @@
                         </div>
 
                     @endif
+
+                    {{-- ==========================================================
+                    RECENT MOVEMENT ACTIVITY
+                    =========================================================== --}}
+
+                    <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200 mt-6">
+
+                        {{-- Header --}}
+                        <div
+                            class="flex flex-col gap-3 border-b border-gray-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900">
+                                    Recent Movement Activity
+                                </h3>
+
+                                <p class="mt-1 text-sm text-gray-500">
+                                    Latest location movements recorded for swine.
+                                </p>
+                            </div>
+
+                            <a href="{{ route('swine-movements.index') }}"
+                                class="inline-flex items-center text-sm font-medium text-[#3368A0] hover:text-[#28557F]">
+                                View All Movements
+                                <span class="ml-1">→</span>
+                            </a>
+
+                        </div>
+
+
+                        {{-- Movement List --}}
+                        <div class="divide-y divide-gray-100">
+
+                            @forelse ($recentMovementActivity as $movement)
+
+                                <div class="px-6 py-5">
+
+                                    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
+                                        {{-- Swine --}}
+                                        <div class="min-w-0">
+
+                                            <div class="flex items-center gap-3">
+
+                                                <div
+                                                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100">
+                                                    <svg class="h-5 w-5 text-gray-600" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2" d="M5 12h14M12 5l7 7-7 7" />
+                                                    </svg>
+                                                </div>
+
+                                                <div class="min-w-0">
+
+                                                    <p class="truncate text-sm font-semibold text-gray-900">
+                                                        {{ $movement->swine?->tag_number ?? 'Unknown Swine' }}
+                                                    </p>
+
+                                                    @if ($movement->swine?->name)
+
+                                                        <p class="truncate text-xs text-gray-500">
+                                                            {{ $movement->swine->name }}
+                                                        </p>
+
+                                                    @endif
+
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+
+
+                                        {{-- Movement --}}
+                                        <div class="flex items-center gap-2 text-sm">
+
+                                            <span class="rounded-md bg-gray-100 px-2.5 py-1 text-gray-700">
+                                                {{ $movement->fromLocation?->name ?? 'No location' }}
+                                            </span>
+
+                                            <span class="text-gray-400">
+                                                →
+                                            </span>
+
+                                            <span class="rounded-md bg-blue-50 px-2.5 py-1 text-[#3368A0]">
+                                                {{ $movement->toLocation?->name ?? 'No location' }}
+                                            </span>
+
+                                        </div>
+
+
+                                        {{-- Date / User --}}
+                                        <div class="text-left sm:text-right">
+
+                                            <p class="text-sm font-medium text-gray-900">
+                                                {{ $movement->movement_date->format('M d, Y') }}
+                                            </p>
+
+                                            <p class="mt-1 text-xs text-gray-500">
+                                                {{ $movement->movement_date->format('h:i A') }}
+
+                                                @if ($movement->recordedBy)
+                                                    · {{ $movement->recordedBy->name }}
+                                                @endif
+                                            </p>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            @empty
+
+                                <div class="px-6 py-10 text-center">
+
+                                    <p class="text-sm font-medium text-gray-900">
+                                        No movement records yet.
+                                    </p>
+
+                                    <p class="mt-1 text-sm text-gray-500">
+                                        Swine movement activity will appear here.
+                                    </p>
+
+                                </div>
+
+                            @endforelse
+
+                        </div>
+
+                    </div>
                 </div>
             </div>
 

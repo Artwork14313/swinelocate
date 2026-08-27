@@ -10,6 +10,7 @@ use App\Http\Controllers\HealthRecordController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\WeightRecordController;
 use App\Http\Controllers\GrowthMonitoringController;
+use App\Http\Controllers\QrTraceabilityController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -38,7 +39,7 @@ Route::middleware('auth')->group(function () {
 
         });
     Route::resource('swine', SwineController::class);
-    Route::get('/scan/{qr_token}', [SwineController::class, 'scan'])
+    Route::get('/qr/scan/{qr_token}', [SwineController::class, 'scan'])
         ->name('swine.scan');
 
     Route::get(
@@ -132,20 +133,26 @@ Route::middleware('auth')->group(function () {
     )->name('swine-movements.show');
 
     /*
-    |--------------------------------------------------------------------------
-    | Movement from Swine Profile
-    |--------------------------------------------------------------------------
-    */
+|--------------------------------------------------------------------------
+| QR & Traceability
+|--------------------------------------------------------------------------
+*/
 
-    Route::get(
-        '/swine/{swine}/move',
-        [SwineMovementController::class, 'create']
-    )->name('swine.movements.create');
+    Route::get('/qr/scanner', [QrTraceabilityController::class, 'scanner'])
+        ->name('qr.scanner');
 
+    Route::get('/swine/scan/{qr_token}', [SwineController::class, 'scan'])
+        ->name('swine.scan');
+
+    /*
+|--------------------------------------------------------------------------
+Offline sync
+|--------------------------------------------------------------------------
+*/
     Route::post(
-        '/swine/{swine}/move',
-        [SwineMovementController::class, 'store']
-    )->name('swine.movements.store');
+        '/weight-records/sync',
+        [WeightRecordController::class, 'syncStore']
+    )->name('weight-records.sync');
 
 });
 

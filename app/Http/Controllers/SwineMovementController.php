@@ -17,12 +17,6 @@ class SwineMovementController extends Controller
      */
     public function index(Request $request): View
     {
-        /*
-        |--------------------------------------------------------------------------
-        | Movement Records
-        |--------------------------------------------------------------------------
-        */
-
         $movements = SwineMovement::query()
             ->with([
                 'swine',
@@ -31,9 +25,6 @@ class SwineMovementController extends Controller
                 'recordedBy',
             ])
 
-            /*
-             * Search by swine tag number or name.
-             */
             ->when($request->filled('search'), function ($query) use ($request) {
 
                 $search = trim($request->search);
@@ -52,9 +43,6 @@ class SwineMovementController extends Controller
 
             })
 
-            /*
-             * Filter by starting date.
-             */
             ->when($request->filled('from_date'), function ($query) use ($request) {
 
                 $query->whereDate(
@@ -65,9 +53,6 @@ class SwineMovementController extends Controller
 
             })
 
-            /*
-             * Filter by ending date.
-             */
             ->when($request->filled('to_date'), function ($query) use ($request) {
 
                 $query->whereDate(
@@ -78,9 +63,6 @@ class SwineMovementController extends Controller
 
             })
 
-            /*
-             * Newest movement first.
-             */
             ->latest('movement_date')
             ->latest('id')
             ->paginate(15)
@@ -93,28 +75,17 @@ class SwineMovementController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        // All recorded movements
         $totalMovements = SwineMovement::count();
 
-
-        // Movements recorded today
         $todayMovements = SwineMovement::query()
             ->whereDate('movement_date', today())
             ->count();
 
-
-        // Movements recorded this month
         $thisMonthMovements = SwineMovement::query()
             ->whereMonth('movement_date', now()->month)
             ->whereYear('movement_date', now()->year)
             ->count();
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Return View
-        |--------------------------------------------------------------------------
-        */
 
         return view('swine-movements.index', compact(
             'movements',
@@ -126,31 +97,52 @@ class SwineMovementController extends Controller
 
 
     /**
-     * Display the form for recording a swine movement.
+     * Display the form for recording a movement.
+     *
+     * The swine is selected from the Swine Index.
      */
-    public function create(?Swine $swine = null): View
+    public function create(Swine $swine): View
     {
-        $swines = Swine::query()
+        /*
+        |--------------------------------------------------------------------------
+        | Only active swine can be moved.
+        |--------------------------------------------------------------------------
+        */
+
+        if ($swine->status !== 'active') {
+
+            abort(
+                403,
+                'Only active swine can be moved.'
+            );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Load current location.
+        |--------------------------------------------------------------------------
+        */
+
+        $swine->load('currentLocation');
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Get active locations belonging to
+        | the same farm as the swine.
+        |--------------------------------------------------------------------------
+        */
+
+        $locations = FarmLocation::query()
+            ->where('farm_id', $swine->farm_id)
             ->where('status', 'active')
-            ->with([
-                'farm',
-                'currentLocation',
-            ])
-            ->orderBy('tag_number')
+            ->orderBy('name')
             ->get();
 
-        $locations = collect();
-
-        if ($swine) {
-            $locations = FarmLocation::where('farm_id', $swine->farm_id)
-                ->where('status', 'active')
-                ->orderBy('name')
-                ->get();
-        }
 
         return view('swine-movements.create', [
             'swine' => $swine,
-            'swines' => $swines,
             'locations' => $locations,
         ]);
     }
@@ -159,15 +151,36 @@ class SwineMovementController extends Controller
     /**
      * Store a new swine movement.
      */
-    public function store(Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'swine_id' => [
-                'required',
-                'integer',
-                'exists:swine,id',
-            ],
+    public function store(
+        Request $request,
+        Swine $swine
+    ): RedirectResponse {
 
+        /*
+        |--------------------------------------------------------------------------
+        | Prevent movement of inactive, sold,
+        | or deceased swine.
+        |--------------------------------------------------------------------------
+        */
+
+        if ($swine->status !== 'active') {
+
+            return redirect()
+                ->route('swine-movements.index')
+                ->with(
+                    'error',
+                    'Only active swine can be moved.'
+                );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Validate movement information.
+        |--------------------------------------------------------------------------
+        */
+
+        $validated = $request->validate([
             'to_location_id' => [
                 'required',
                 'integer',
@@ -191,14 +204,28 @@ class SwineMovementController extends Controller
             ],
         ]);
 
-        $swine = Swine::findOrFail($validated['swine_id']);
 
-        $destination = FarmLocation::where('id', $validated['to_location_id'])
+        /*
+        |--------------------------------------------------------------------------
+        | Validate destination.
+        |--------------------------------------------------------------------------
+        |
+        | Destination must:
+        | 1. Exist
+        | 2. Belong to the same farm
+        | 3. Be active
+        |--------------------------------------------------------------------------
+        */
+
+        $destination = FarmLocation::query()
+            ->where('id', $validated['to_location_id'])
             ->where('farm_id', $swine->farm_id)
             ->where('status', 'active')
             ->first();
 
+
         if (!$destination) {
+
             return back()
                 ->withErrors([
                     'to_location_id' =>
@@ -207,10 +234,18 @@ class SwineMovementController extends Controller
                 ->withInput();
         }
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | Prevent movement to the current location.
+        |--------------------------------------------------------------------------
+        */
+
         if (
             $swine->current_location_id !== null &&
             (int) $swine->current_location_id === (int) $destination->id
         ) {
+
             return back()
                 ->withErrors([
                     'to_location_id' =>
@@ -219,24 +254,60 @@ class SwineMovementController extends Controller
                 ->withInput();
         }
 
-        DB::transaction(function () use ($swine, $destination, $validated) {
 
+        /*
+        |--------------------------------------------------------------------------
+        | Record movement and update swine location.
+        |--------------------------------------------------------------------------
+        */
+
+        DB::transaction(function () use (
+            $swine,
+            $destination,
+            $validated
+        ) {
+
+            /*
+             * Save the swine's current location
+             * before changing it.
+             */
             $fromLocationId = $swine->current_location_id;
 
+
+            /*
+             * Create movement history.
+             */
             SwineMovement::create([
                 'swine_id' => $swine->id,
+
                 'from_location_id' => $fromLocationId,
+
                 'to_location_id' => $destination->id,
+
                 'movement_date' => $validated['movement_date'],
+
                 'reason' => $validated['reason'] ?? null,
+
                 'notes' => $validated['notes'] ?? null,
+
                 'recorded_by' => auth()->id(),
             ]);
 
+
+            /*
+             * Update the swine's current location.
+             */
             $swine->update([
                 'current_location_id' => $destination->id,
             ]);
         });
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Return to Movement History.
+        |--------------------------------------------------------------------------
+        */
 
         return redirect()
             ->route('swine-movements.index')
@@ -246,41 +317,21 @@ class SwineMovementController extends Controller
             );
     }
 
-    public function locations(Swine $swine)
-    {
-        $locations = FarmLocation::query()
-            ->where('farm_id', $swine->farm_id)
-            ->where('status', 'active')
-            ->orderBy('name')
-            ->get([
-                'id',
-                'name',
-                'location_code',
-            ]);
 
-        $currentLocation = $swine->currentLocation;
+    /**
+     * Display a single movement record.
+     */
+    public function show(
+        SwineMovement $swineMovement
+    ): View {
 
-        return response()->json([
-            'current_location' => $currentLocation
-                ? [
-                    'id' => $currentLocation->id,
-                    'name' => $currentLocation->name,
-                    'location_code' => $currentLocation->location_code,
-                ]
-                : null,
-
-            'locations' => $locations,
-        ]);
-    }
-
-    public function show(SwineMovement $swineMovement): View
-    {
         $swineMovement->load([
             'swine.farm',
             'fromLocation',
             'toLocation',
             'recordedBy',
         ]);
+
 
         return view('swine-movements.show', [
             'movement' => $swineMovement,

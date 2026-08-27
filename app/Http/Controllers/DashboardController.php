@@ -7,6 +7,7 @@ use App\Models\HealthRecord;
 use App\Models\Swine;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use App\Models\SwineMovement;
 
 class DashboardController extends Controller
 {
@@ -194,6 +195,17 @@ class DashboardController extends Controller
             ->get();
 
 
+        $recentMovementActivity = SwineMovement::query()
+            ->with([
+                'swine',
+                'fromLocation',
+                'toLocation',
+                'recordedBy',
+            ])
+            ->latest('movement_date')
+            ->latest('id')
+            ->take(5)
+            ->get();
         /*
         |--------------------------------------------------------------------------
         | Dashboard
@@ -223,7 +235,9 @@ class DashboardController extends Controller
 
             // Swine population
             'swineByStatus',
-            'swineByBreed'
+            'swineByBreed',
+
+            'recentMovementActivity',
         ));
     }
 }

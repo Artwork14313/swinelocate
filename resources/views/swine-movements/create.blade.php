@@ -8,7 +8,7 @@
             </h2>
 
             <p class="mt-1 text-sm text-gray-500">
-                Record a new location movement for a swine.
+                Record a new location movement for this swine.
             </p>
         </div>
 
@@ -23,83 +23,24 @@
 
 
                 {{-- ==========================================================
-                    SWINE INFORMATION / SELECTION
+                    SWINE INFORMATION
                 =========================================================== --}}
 
                 <div class="border-b border-gray-200 bg-gray-50 px-6 py-5">
 
-                    @if ($swine)
+                    <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                        Selected Swine
+                    </p>
 
-                        {{-- Swine already selected from Swine Profile --}}
+                    <h3 class="mt-1 text-xl font-bold text-gray-900">
+                        {{ $swine->tag_number }}
+                    </h3>
 
-                        <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
-                            Selected Swine
+                    @if ($swine->name)
+
+                        <p class="mt-1 text-sm text-gray-500">
+                            {{ $swine->name }}
                         </p>
-
-                        <h3 class="mt-1 text-xl font-bold text-gray-900">
-                            {{ $swine->tag_number }}
-                        </h3>
-
-                        @if ($swine->name)
-
-                            <p class="mt-1 text-sm text-gray-500">
-                                {{ $swine->name }}
-                            </p>
-
-                        @endif
-
-                    @else
-
-                        {{-- Select Swine from Movement Module --}}
-
-                        <label
-                            for="swine_id"
-                            class="block text-sm font-medium text-gray-700"
-                        >
-                            Select Swine
-                            <span class="text-red-500">*</span>
-                        </label>
-
-                        <select
-                            id="swine_id"
-                            name="swine_id"
-                            form="movement-form"
-                            required
-                            class="mt-2 block w-full rounded-lg border-gray-300
-                                   shadow-sm focus:border-indigo-500
-                                   focus:ring-indigo-500"
-                        >
-
-                            <option value="">
-                                Select a swine
-                            </option>
-
-                            @foreach ($swines as $item)
-
-                                <option
-                                    value="{{ $item->id }}"
-                                    @selected(old('swine_id') == $item->id)
-                                >
-
-                                    {{ $item->tag_number }}
-
-                                    @if ($item->name)
-                                        — {{ $item->name }}
-                                    @endif
-
-                                </option>
-
-                            @endforeach
-
-                        </select>
-
-                        @error('swine_id')
-
-                            <p class="mt-1 text-sm text-red-600">
-                                {{ $message }}
-                            </p>
-
-                        @enderror
 
                     @endif
 
@@ -111,11 +52,8 @@
                 =========================================================== --}}
 
                 <form
-                    id="movement-form"
                     method="POST"
-                    action="{{ $swine
-                        ? route('swine.movements.store', $swine)
-                        : route('swine-movements.store') }}"
+                    action="{{ route('swine.movements.store', $swine) }}"
                     class="px-6 py-6"
                 >
 
@@ -135,38 +73,21 @@
                                 Current Location
                             </label>
 
-                            @if ($swine)
+                            <div class="mt-2 rounded-lg bg-gray-100 px-4 py-3">
 
-                                <div class="mt-2 rounded-lg bg-gray-100 px-4 py-3">
+                                <p class="text-sm font-medium text-gray-900">
+                                    {{ $swine->currentLocation?->name ?? 'No location assigned' }}
+                                </p>
 
-                                    <p class="text-sm font-medium text-gray-900">
-                                        {{ $swine->currentLocation?->name ?? 'No location assigned' }}
+                                @if ($swine->currentLocation?->location_code)
+
+                                    <p class="mt-1 text-xs text-gray-500">
+                                        {{ $swine->currentLocation->location_code }}
                                     </p>
 
-                                    @if ($swine->currentLocation?->location_code)
+                                @endif
 
-                                        <p class="mt-1 text-xs text-gray-500">
-                                            {{ $swine->currentLocation->location_code }}
-                                        </p>
-
-                                    @endif
-
-                                </div>
-
-                            @else
-
-                                <div
-                                    id="current-location"
-                                    class="mt-2 rounded-lg bg-gray-100 px-4 py-3"
-                                >
-
-                                    <p class="text-sm text-gray-500">
-                                        Select a swine first.
-                                    </p>
-
-                                </div>
-
-                            @endif
+                            </div>
 
                         </div>
 
@@ -191,44 +112,36 @@
                                 id="to_location_id"
                                 name="to_location_id"
                                 required
-                                @disabled(!$swine)
                                 class="mt-2 block w-full rounded-lg border-gray-300
                                        shadow-sm focus:border-indigo-500
-                                       focus:ring-indigo-500
-                                       disabled:bg-gray-100
-                                       disabled:text-gray-400"
+                                       focus:ring-indigo-500"
                             >
 
-                                @if ($swine)
+                                <option value="">
+                                    Select destination
+                                </option>
 
-                                    <option value="">
-                                        Select destination
+
+                                @foreach ($locations as $location)
+
+                                    <option
+                                        value="{{ $location->id }}"
+                                        @selected(
+                                            old('to_location_id') == $location->id
+                                        )
+                                    >
+
+                                        {{ $location->name }}
+
+                                        @if ($location->location_code)
+
+                                            — {{ $location->location_code }}
+
+                                        @endif
+
                                     </option>
 
-                                    @foreach ($locations as $location)
-
-                                        <option
-                                            value="{{ $location->id }}"
-                                            @selected(old('to_location_id') == $location->id)
-                                        >
-
-                                            {{ $location->name }}
-
-                                            @if ($location->location_code)
-                                                — {{ $location->location_code }}
-                                            @endif
-
-                                        </option>
-
-                                    @endforeach
-
-                                @else
-
-                                    <option value="">
-                                        Select a swine first
-                                    </option>
-
-                                @endif
+                                @endforeach
 
                             </select>
 
@@ -312,14 +225,12 @@
                                     Select reason
                                 </option>
 
-
                                 <option
                                     value="Growth"
                                     @selected(old('reason') === 'Growth')
                                 >
                                     Growth / Development
                                 </option>
-
 
                                 <option
                                     value="Health"
@@ -328,14 +239,12 @@
                                     Health / Medical
                                 </option>
 
-
                                 <option
                                     value="Breeding"
                                     @selected(old('reason') === 'Breeding')
                                 >
                                     Breeding
                                 </option>
-
 
                                 <option
                                     value="Management"
@@ -344,14 +253,12 @@
                                     Farm Management
                                 </option>
 
-
                                 <option
                                     value="Sale"
                                     @selected(old('reason') === 'Sale')
                                 >
                                     Sale / Transfer
                                 </option>
-
 
                                 <option
                                     value="Other"
@@ -418,30 +325,14 @@
 
                     <div class="mt-8 flex items-center justify-end gap-3">
 
-
-                        @if ($swine)
-
-                            <a
-                                href="{{ route('swine.show', $swine) }}"
-                                class="rounded-lg border border-gray-300
-                                       bg-white px-4 py-2 text-sm font-medium
-                                       text-gray-700 hover:bg-gray-50"
-                            >
-                                Cancel
-                            </a>
-
-                        @else
-
-                            <a
-                                href="{{ route('swine-movements.index') }}"
-                                class="rounded-lg border border-gray-300
-                                       bg-white px-4 py-2 text-sm font-medium
-                                       text-gray-700 hover:bg-gray-50"
-                            >
-                                Cancel
-                            </a>
-
-                        @endif
+                        <a
+                            href="{{ route('swine-movements.index') }}"
+                            class="rounded-lg border border-gray-300
+                                   bg-white px-4 py-2 text-sm font-medium
+                                   text-gray-700 hover:bg-gray-50"
+                        >
+                            Cancel
+                        </a>
 
 
                         <button
@@ -462,253 +353,5 @@
         </div>
 
     </div>
-
-
-    {{-- ================================================================
-        DYNAMIC SWINE / LOCATION LOADING
-    ================================================================= --}}
-
-    @if (!$swine)
-
-        <script>
-
-            document.addEventListener('DOMContentLoaded', function () {
-
-                const swineSelect =
-                    document.getElementById('swine_id');
-
-                const locationSelect =
-                    document.getElementById('to_location_id');
-
-                const currentLocation =
-                    document.getElementById('current-location');
-
-
-                if (!swineSelect || !locationSelect) {
-                    return;
-                }
-
-
-                swineSelect.addEventListener('change', async function () {
-
-                    const swineId = this.value;
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | No swine selected
-                    |--------------------------------------------------------------------------
-                    */
-
-                    if (!swineId) {
-
-                        locationSelect.innerHTML = `
-                            <option value="">
-                                Select a swine first
-                            </option>
-                        `;
-
-                        locationSelect.disabled = true;
-
-
-                        if (currentLocation) {
-
-                            currentLocation.innerHTML = `
-                                <p class="text-sm text-gray-500">
-                                    Select a swine first.
-                                </p>
-                            `;
-
-                        }
-
-                        return;
-                    }
-
-
-                    /*
-                    |--------------------------------------------------------------------------
-                    | Loading
-                    |--------------------------------------------------------------------------
-                    */
-
-                    locationSelect.innerHTML = `
-                        <option value="">
-                            Loading locations...
-                        </option>
-                    `;
-
-                    locationSelect.disabled = true;
-
-
-                    if (currentLocation) {
-
-                        currentLocation.innerHTML = `
-                            <p class="text-sm text-gray-500">
-                                Loading current location...
-                            </p>
-                        `;
-
-                    }
-
-
-                    try {
-
-                        const response = await fetch(
-                            `/swine-movements/${swineId}/locations`,
-                            {
-                                headers: {
-                                    'Accept': 'application/json',
-                                    'X-Requested-With': 'XMLHttpRequest'
-                                }
-                            }
-                        );
-
-
-                        if (!response.ok) {
-                            throw new Error(
-                                'Failed to load locations.'
-                            );
-                        }
-
-
-                        const data = await response.json();
-
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Current Location
-                        |--------------------------------------------------------------------------
-                        */
-
-                        if (currentLocation) {
-
-                            if (data.current_location) {
-
-                                currentLocation.innerHTML = `
-
-                                    <p class="text-sm font-medium text-gray-900">
-                                        ${data.current_location.name}
-                                    </p>
-
-                                    ${
-                                        data.current_location.location_code
-                                            ? `
-                                                <p class="mt-1 text-xs text-gray-500">
-                                                    ${data.current_location.location_code}
-                                                </p>
-                                            `
-                                            : ''
-                                    }
-
-                                `;
-
-                            } else {
-
-                                currentLocation.innerHTML = `
-
-                                    <p class="text-sm text-gray-500">
-                                        No location assigned
-                                    </p>
-
-                                `;
-
-                            }
-
-                        }
-
-
-                        /*
-                        |--------------------------------------------------------------------------
-                        | Destination Locations
-                        |--------------------------------------------------------------------------
-                        */
-
-                        locationSelect.innerHTML = `
-
-                            <option value="">
-                                Select destination
-                            </option>
-
-                        `;
-
-
-                        if (!data.locations.length) {
-
-                            locationSelect.innerHTML = `
-
-                                <option value="">
-                                    No active locations available
-                                </option>
-
-                            `;
-
-                            locationSelect.disabled = true;
-
-                            return;
-                        }
-
-
-                        data.locations.forEach(function (location) {
-
-                            const option =
-                                document.createElement('option');
-
-
-                            option.value = location.id;
-
-
-                            option.textContent =
-                                location.name +
-                                (
-                                    location.location_code
-                                        ? ` — ${location.location_code}`
-                                        : ''
-                                );
-
-
-                            locationSelect.appendChild(option);
-
-                        });
-
-
-                        locationSelect.disabled = false;
-
-                    } catch (error) {
-
-                        console.error(error);
-
-
-                        locationSelect.innerHTML = `
-
-                            <option value="">
-                                Unable to load locations
-                            </option>
-
-                        `;
-
-                        locationSelect.disabled = true;
-
-
-                        if (currentLocation) {
-
-                            currentLocation.innerHTML = `
-
-                                <p class="text-sm text-red-600">
-                                    Unable to load current location.
-                                </p>
-
-                            `;
-
-                        }
-
-                    }
-
-                });
-
-            });
-
-        </script>
-
-    @endif
 
 </x-app-layout>
