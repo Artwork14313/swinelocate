@@ -11,6 +11,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\WeightRecordController;
 use App\Http\Controllers\GrowthMonitoringController;
 use App\Http\Controllers\QrTraceabilityController;
+use App\Http\Controllers\SyncStatusController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -153,6 +154,12 @@ Offline sync
         '/weight-records/sync',
         [WeightRecordController::class, 'syncStore']
     )->name('weight-records.sync');
+
+
+    Route::get(
+        '/sync-status',
+        [SyncStatusController::class, 'index']
+    )->name('sync-status.index');
 
 });
 

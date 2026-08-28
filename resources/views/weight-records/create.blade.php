@@ -21,9 +21,7 @@
 
         <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
 
-            <form method="POST"
-                action="{{ route('weight-records.store') }}"
-                class="space-y-6">
+            <form id="weight-record-form" method="POST" action="{{ route('weight-records.store') }}" class="space-y-6">
 
                 @csrf
 
@@ -50,16 +48,13 @@
                         {{-- Swine --}}
                         <div>
 
-                            <label for="swine_id"
-                                class="block text-sm font-medium text-gray-700">
+                            <label for="swine_id" class="block text-sm font-medium text-gray-700">
 
                                 Swine
 
                             </label>
 
-                            <select id="swine_id"
-                                name="swine_id"
-                                class="mt-2 block w-full rounded-lg border-gray-300
+                            <select id="swine_id" name="swine_id" class="mt-2 block w-full rounded-lg border-gray-300
                                        shadow-sm focus:border-indigo-500
                                        focus:ring-indigo-500">
 
@@ -69,10 +64,9 @@
 
                                 @foreach ($swines as $swine)
 
-                                    <option value="{{ $swine->id }}"
-                                        @selected(
-                                            old('swine_id', $selectedSwine?->id) == $swine->id
-                                        )>
+                                    <option value="{{ $swine->id }}" @selected(
+                                        old('swine_id', $selectedSwine?->id) == $swine->id
+                                    )>
 
                                         {{ $swine->tag_number }}
 
@@ -100,19 +94,15 @@
                         {{-- Record Date --}}
                         <div>
 
-                            <label for="record_date"
-                                class="block text-sm font-medium text-gray-700">
+                            <label for="record_date" class="block text-sm font-medium text-gray-700">
 
                                 Record Date
 
                             </label>
 
-                            <input type="date"
-                                id="record_date"
-                                name="record_date"
+                            <input type="date" id="record_date" name="record_date"
                                 value="{{ old('record_date', now()->format('Y-m-d')) }}"
-                                max="{{ now()->format('Y-m-d') }}"
-                                class="mt-2 block w-full rounded-lg border-gray-300
+                                max="{{ now()->format('Y-m-d') }}" class="mt-2 block w-full rounded-lg border-gray-300
                                        shadow-sm focus:border-indigo-500
                                        focus:ring-indigo-500">
 
@@ -134,8 +124,7 @@
                         {{-- Weight --}}
                         <div>
 
-                            <label for="weight"
-                                class="block text-sm font-medium text-gray-700">
+                            <label for="weight" class="block text-sm font-medium text-gray-700">
 
                                 Weight (kg)
 
@@ -143,18 +132,11 @@
 
                             <div class="relative mt-2">
 
-                                <input type="number"
-                                    id="weight"
-                                    name="weight"
-                                    value="{{ old('weight') }}"
-                                    step="0.01"
-                                    min="0.01"
-                                    max="9999.99"
-                                    class="block w-full rounded-lg border-gray-300
+                                <input type="number" id="weight" name="weight" value="{{ old('weight') }}" step="0.01"
+                                    min="0.01" max="9999.99" class="block w-full rounded-lg border-gray-300
                                            pr-14 shadow-sm
                                            focus:border-indigo-500
-                                           focus:ring-indigo-500"
-                                    placeholder="e.g. 45.50">
+                                           focus:ring-indigo-500" placeholder="e.g. 45.50">
 
                                 <span class="absolute inset-y-0 right-0
                                              flex items-center pr-4
@@ -180,18 +162,13 @@
                         {{-- Notes --}}
                         <div>
 
-                            <label for="notes"
-                                class="block text-sm font-medium text-gray-700">
+                            <label for="notes" class="block text-sm font-medium text-gray-700">
 
                                 Notes
 
                             </label>
 
-                            <textarea id="notes"
-                                name="notes"
-                                rows="4"
-                                maxlength="2000"
-                                class="mt-2 block w-full rounded-lg border-gray-300
+                            <textarea id="notes" name="notes" rows="4" maxlength="2000" class="mt-2 block w-full rounded-lg border-gray-300
                                        shadow-sm focus:border-indigo-500
                                        focus:ring-indigo-500"
                                 placeholder="Optional notes about the weighing...">{{ old('notes') }}</textarea>
@@ -214,8 +191,7 @@
                 {{-- Actions --}}
                 <div class="flex items-center justify-end gap-3">
 
-                    <a href="{{ route('weight-records.index') }}"
-                        class="rounded-lg border border-gray-300 bg-white
+                    <a href="{{ route('weight-records.index') }}" class="rounded-lg border border-gray-300 bg-white
                                px-4 py-2 text-sm font-semibold text-gray-700
                                shadow-sm hover:bg-gray-50">
 
@@ -223,8 +199,7 @@
 
                     </a>
 
-                    <button type="submit"
-                        class="rounded-lg bg-[#3368A0] px-5 py-2
+                    <button type="submit" class="rounded-lg bg-[#3368A0] px-5 py-2
                                text-sm font-semibold text-white shadow-sm
                                hover:bg-[#28557F]">
 

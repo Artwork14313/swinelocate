@@ -1,232 +1,195 @@
-const DB_NAME = 'SwineLocateDB';
-const DB_VERSION = 1;
-const STORE_NAME = 'sync_queue';
+import {
+    getAllOffline,
+    deleteOffline,
+} from './offline-db';
 
-function openDatabase() {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-        request.onupgradeneeded = (event) => {
-            const db = event.target.result;
-
-            if (!db.objectStoreNames.contains(STORE_NAME)) {
-                const store = db.createObjectStore(STORE_NAME, {
-                    keyPath: 'id',
-                    autoIncrement: true,
-                });
-
-                store.createIndex('status', 'status', {
-                    unique: false,
-                });
-
-                store.createIndex('created_at', 'created_at', {
-                    unique: false,
-                });
-            }
-        };
-
-        request.onsuccess = () => {
-            resolve(request.result);
-        };
-
-        request.onerror = () => {
-            reject(request.error);
-        };
-    });
-}
-
+let isSynchronizing = false;
 
 /**
- * Add an offline action to the synchronization queue.
+ * Get pending synchronization records.
  */
-export async function addToSyncQueue(data) {
-    const db = await openDatabase();
+async function getPendingSync() {
 
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction(
-            STORE_NAME,
-            'readwrite'
-        );
+    const records = await getAllOffline(
+        'sync_queue'
+    );
 
-        const store = transaction.objectStore(STORE_NAME);
-
-        const request = store.add({
-            type: data.type,
-            endpoint: data.endpoint,
-            method: data.method ?? 'POST',
-            payload: data.payload ?? {},
-            status: 'pending',
-            created_at: new Date().toISOString(),
-        });
-
-        request.onsuccess = () => {
-            resolve(request.result);
-        };
-
-        request.onerror = () => {
-            reject(request.error);
-        };
-    });
-}
-
-
-/**
- * Get all pending synchronization records.
- */
-export async function getPendingSync() {
-    const db = await openDatabase();
-
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction(
-            STORE_NAME,
-            'readonly'
-        );
-
-        const store = transaction.objectStore(STORE_NAME);
-
-        const request = store.getAll();
-
-        request.onsuccess = () => {
-            resolve(
-                request.result.filter(
-                    item => item.status === 'pending'
-                )
-            );
-        };
-
-        request.onerror = () => {
-            reject(request.error);
-        };
-    });
+    return records.filter(
+        record => record.status === 'pending'
+    );
 }
 
 
 /**
  * Remove successfully synchronized record.
  */
-export async function removeFromSyncQueue(id) {
-    const db = await openDatabase();
+async function removeFromSyncQueue(id) {
 
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction(
-            STORE_NAME,
-            'readwrite'
-        );
+    await deleteOffline(
+        'sync_queue',
+        id
+    );
 
-        const store = transaction.objectStore(STORE_NAME);
-
-        const request = store.delete(id);
-
-        request.onsuccess = () => {
-            resolve();
-        };
-
-        request.onerror = () => {
-            reject(request.error);
-        };
-    });
 }
 
+//save last sync date
+function saveLastSync() {
+
+    localStorage.setItem(
+        'swine_locate_last_sync',
+        new Date().toISOString()
+    );
+
+}
 
 /**
  * Synchronize pending records with Laravel.
  */
 export async function syncPendingRecords() {
 
-    if (!navigator.onLine) {
+    if (isSynchronizing) {
+        console.log('Synchronization already in progress.');
         return;
     }
 
-    const pendingRecords = await getPendingSync();
+    if (!navigator.onLine) {
+        console.log('Offline. Synchronization skipped.');
+        return;
+    }
 
-    for (const record of pendingRecords) {
+    isSynchronizing = true;
 
-        try {
+    try {
 
-            const response = await fetch(
-                record.endpoint,
-                {
-                    method: record.method,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN':
-                            document
-                                .querySelector(
-                                    'meta[name="csrf-token"]'
-                                )
-                                ?.getAttribute('content'),
-                    },
-                    body: JSON.stringify(
-                        record.payload
-                    ),
-                }
+        console.log(
+            'Checking for pending offline records...'
+        );
+
+        const pendingRecords =
+            await getPendingSync();
+
+        if (pendingRecords.length === 0) {
+            console.log(
+                'No pending records to synchronize.'
             );
+            return;
+        }
 
+        console.log(
+            `Found ${pendingRecords.length} pending record(s).`
+        );
 
-            if (response.ok) {
+        for (const record of pendingRecords) {
 
-                await removeFromSyncQueue(
-                    record.id
-                );
+            try {
 
                 console.log(
-                    'Synced offline record:',
-                    record.id
+                    'Synchronizing:',
+                    record
                 );
 
-            } else {
+                const response = await fetch(
+                    record.endpoint,
+                    {
+                        method: record.method ?? 'POST',
+
+                        headers: {
+                            'Content-Type':
+                                'application/json',
+
+                            'Accept':
+                                'application/json',
+
+                            'X-CSRF-TOKEN':
+                                document
+                                    .querySelector(
+                                        'meta[name="csrf-token"]'
+                                    )
+                                    ?.getAttribute(
+                                        'content'
+                                    ),
+                        },
+
+                        body: JSON.stringify(
+                            record.payload ?? {}
+                        ),
+                    }
+                );
+                if (response.ok) {
+
+                    await removeFromSyncQueue(record.id);
+
+                    saveLastSync();
+
+                    console.log(
+                        'Successfully synchronized record:',
+                        record.id
+                    );
+
+                } else {
+                    const errorText =
+                        await response.text();
+
+
+                    console.error(
+                        'Synchronization failed:',
+                        response.status,
+                        errorText
+                    );
+                }
+
+            } catch (error) {
 
                 console.error(
-                    'Sync failed:',
-                    record.id
+                    'Synchronization error:',
+                    error
                 );
-
             }
-
-        } catch (error) {
-
-            console.error(
-                'Unable to synchronize record:',
-                error
-            );
-
         }
+
+    } finally {
+
+        isSynchronizing = false;
 
     }
 }
 
 
 /**
- * Automatically synchronize when
- * the internet connection returns.
+ * Internet connection restored.
  */
 window.addEventListener(
     'online',
-    () => {
+    async () => {
+
         console.log(
             'Internet connection restored.'
         );
 
-        syncPendingRecords();
+        await syncPendingRecords();
+
     }
 );
 
 
 /**
- * Try synchronization when the
- * application loads.
+ * Try synchronization when application loads.
  */
 document.addEventListener(
     'DOMContentLoaded',
-    () => {
-        syncPendingRecords();
+    async () => {
+
+        await syncPendingRecords();
+
     }
 );
 
+
+/**
+ * Expose synchronization functions.
+ */
 window.SwineLocateOffline = {
-    addToSyncQueue,
-    getPendingSync,
-    removeFromSyncQueue,
+
     syncPendingRecords,
+
 };

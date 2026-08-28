@@ -77,6 +77,28 @@
         </div>
 
     </div>
+
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(function (registration) {
+                        console.log(
+                            'SwineLocate Service Worker registered:',
+                            registration.scope
+                        );
+                    })
+                    .catch(function (error) {
+                        console.error(
+                            'SwineLocate Service Worker registration failed:',
+                            error
+                        );
+                    });
+            });
+        }
+    </script>
+
     @stack('scripts')
 </body>
 

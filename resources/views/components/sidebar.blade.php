@@ -216,24 +216,23 @@
 
 
         {{-- ========================================================= --}}
-        {{-- 6. OFFLINE SYNCHRONIZATION --}}
+        {{-- OFFLINE & SYNCHRONIZATION --}}
         {{-- ========================================================= --}}
 
         <div class="mb-6">
 
             <p class="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
-                Offline Synchronization
+                Data Synchronization
             </p>
 
             <div class="space-y-1">
 
-                <span class="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-400">
-                    Pending Sync
-                </span>
+                <a href="{{ route('sync-status.index') }}"
+                    class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
 
-                <span class="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-400">
                     Sync Status
-                </span>
+
+                </a>
 
             </div>
 
