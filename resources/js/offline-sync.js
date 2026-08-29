@@ -3,7 +3,9 @@ import {
     deleteOffline,
 } from './offline-db';
 
+
 let isSynchronizing = false;
+
 
 /**
  * Get pending synchronization records.
@@ -17,6 +19,7 @@ async function getPendingSync() {
     return records.filter(
         record => record.status === 'pending'
     );
+
 }
 
 
@@ -32,7 +35,10 @@ async function removeFromSyncQueue(id) {
 
 }
 
-//save last sync date
+
+/**
+ * Save the latest successful synchronization time.
+ */
 function saveLastSync() {
 
     localStorage.setItem(
@@ -42,22 +48,45 @@ function saveLastSync() {
 
 }
 
+
 /**
  * Synchronize pending records with Laravel.
  */
 export async function syncPendingRecords() {
 
+    /*
+     * Prevent multiple synchronization
+     * processes from running at the same time.
+     */
     if (isSynchronizing) {
-        console.log('Synchronization already in progress.');
+
+        console.log(
+            'Synchronization already in progress.'
+        );
+
         return;
+
     }
 
+
+    /*
+     * Do not synchronize while offline.
+     */
     if (!navigator.onLine) {
-        console.log('Offline. Synchronization skipped.');
+
+        console.log(
+            'Offline. Synchronization skipped.'
+        );
+
         return;
+
     }
+
 
     isSynchronizing = true;
+
+    let synchronizedCount = 0;
+
 
     try {
 
@@ -65,20 +94,30 @@ export async function syncPendingRecords() {
             'Checking for pending offline records...'
         );
 
+
         const pendingRecords =
             await getPendingSync();
 
+
         if (pendingRecords.length === 0) {
+
             console.log(
                 'No pending records to synchronize.'
             );
+
             return;
+
         }
+
 
         console.log(
             `Found ${pendingRecords.length} pending record(s).`
         );
 
+
+        /*
+         * Synchronize each pending record.
+         */
         for (const record of pendingRecords) {
 
             try {
@@ -88,12 +127,15 @@ export async function syncPendingRecords() {
                     record
                 );
 
+
                 const response = await fetch(
                     record.endpoint,
                     {
-                        method: record.method ?? 'POST',
+                        method:
+                            record.method ?? 'POST',
 
                         headers: {
+
                             'Content-Type':
                                 'application/json',
 
@@ -108,25 +150,39 @@ export async function syncPendingRecords() {
                                     ?.getAttribute(
                                         'content'
                                     ),
+
                         },
 
                         body: JSON.stringify(
                             record.payload ?? {}
                         ),
+
                     }
                 );
+
+
                 if (response.ok) {
 
-                    await removeFromSyncQueue(record.id);
+                    /*
+                     * Remove successfully
+                     * synchronized record.
+                     */
+                    await removeFromSyncQueue(
+                        record.id
+                    );
 
-                    saveLastSync();
+
+                    synchronizedCount++;
+
 
                     console.log(
                         'Successfully synchronized record:',
                         record.id
                     );
 
+
                 } else {
+
                     const errorText =
                         await response.text();
 
@@ -136,7 +192,9 @@ export async function syncPendingRecords() {
                         response.status,
                         errorText
                     );
+
                 }
+
 
             } catch (error) {
 
@@ -144,14 +202,33 @@ export async function syncPendingRecords() {
                     'Synchronization error:',
                     error
                 );
+
             }
+
         }
+
+
+        /*
+         * Save one synchronization time
+         * for the whole synchronization session.
+         */
+        if (synchronizedCount > 0) {
+
+            saveLastSync();
+
+            console.log(
+                `Synchronization completed. ${synchronizedCount} record(s) synchronized.`
+            );
+
+        }
+
 
     } finally {
 
         isSynchronizing = false;
 
     }
+
 }
 
 
@@ -186,7 +263,7 @@ document.addEventListener(
 
 
 /**
- * Expose synchronization functions.
+ * Expose synchronization function.
  */
 window.SwineLocateOffline = {
 

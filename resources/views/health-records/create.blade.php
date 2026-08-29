@@ -41,7 +41,7 @@
             @endif
 
 
-            <form method="POST" action="{{ route('health-records.store') }}" class="space-y-6">
+            <form id="health-record-form" method="POST" action="{{ route('health-records.store') }}" class="space-y-6">
 
                 @csrf
 

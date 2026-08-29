@@ -5,11 +5,11 @@
         <div>
 
             <h2 class="text-2xl font-bold text-gray-900">
-                Add Weight Record
+                Register Farm
             </h2>
 
             <p class="mt-1 text-sm text-gray-500">
-                Record the current weight of a swine.
+                Add a new farm to the SwineLocate system.
             </p>
 
         </div>
@@ -19,36 +19,114 @@
 
     <div class="py-8">
 
-        <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-
-            {{-- Offline Status --}}
-            <div
-                id="offline-status"
-                class="mb-6 hidden rounded-lg border px-4 py-3 text-sm"
-            ></div>
-
+        <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
 
             <form
-                id="weight-record-form"
                 method="POST"
-                action="{{ route('weight-records.store') }}"
+                action="{{ route('farms.store') }}"
                 class="space-y-6"
             >
 
                 @csrf
 
 
-                {{-- Weight Information --}}
+                {{-- Farm Information --}}
                 <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
 
                     <div class="border-b border-gray-200 px-6 py-5">
 
                         <h3 class="text-lg font-semibold text-gray-900">
-                            Weight Information
+                            Farm Information
                         </h3>
 
                         <p class="mt-1 text-sm text-gray-500">
-                            Enter the swine and its recorded weight.
+                            Enter the basic information of the farm.
+                        </p>
+
+                    </div>
+
+
+                    <div class="grid grid-cols-1 gap-5 px-6 py-6 sm:grid-cols-2">
+
+
+                        {{-- Farm Code --}}
+                        <div>
+
+                            <label
+                                for="farm_code"
+                                class="block text-sm font-medium text-gray-700"
+                            >
+                                Farm Code
+                            </label>
+
+                            <input
+                                type="text"
+                                id="farm_code"
+                                name="farm_code"
+                                value="{{ old('farm_code') }}"
+                                maxlength="50"
+                                required
+                                placeholder="e.g. FARM-001"
+                                class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm
+                                       focus:border-indigo-500 focus:ring-indigo-500"
+                            >
+
+                            @error('farm_code')
+                                <p class="mt-1 text-sm text-red-600">
+                                    {{ $message }}
+                                </p>
+                            @enderror
+
+                        </div>
+
+
+                        {{-- Farm Name --}}
+                        <div>
+
+                            <label
+                                for="name"
+                                class="block text-sm font-medium text-gray-700"
+                            >
+                                Farm Name
+                            </label>
+
+                            <input
+                                type="text"
+                                id="name"
+                                name="name"
+                                value="{{ old('name') }}"
+                                maxlength="255"
+                                required
+                                placeholder="Enter farm name"
+                                class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm
+                                       focus:border-indigo-500 focus:ring-indigo-500"
+                            >
+
+                            @error('name')
+                                <p class="mt-1 text-sm text-red-600">
+                                    {{ $message }}
+                                </p>
+                            @enderror
+
+                        </div>
+
+
+                    </div>
+
+                </div>
+
+
+                {{-- Location Information --}}
+                <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+
+                    <div class="border-b border-gray-200 px-6 py-5">
+
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            Location Information
+                        </h3>
+
+                        <p class="mt-1 text-sm text-gray-500">
+                            Enter the farm's location and geographic coordinates.
                         </p>
 
                     </div>
@@ -57,177 +135,284 @@
                     <div class="space-y-5 px-6 py-6">
 
 
-                        {{-- Swine --}}
+                        {{-- Address --}}
                         <div>
 
                             <label
-                                for="swine_id"
+                                for="address"
                                 class="block text-sm font-medium text-gray-700"
                             >
-                                Swine
-                                <span class="text-red-500">*</span>
-                            </label>
-
-                            <select
-                                id="swine_id"
-                                name="swine_id"
-                                required
-                                class="mt-2 block w-full rounded-lg border-gray-300
-                                       shadow-sm focus:border-indigo-500
-                                       focus:ring-indigo-500"
-                            >
-
-                                <option value="">
-                                    Select swine
-                                </option>
-
-                                @foreach ($swines as $swine)
-
-                                    <option
-                                        value="{{ $swine->id }}"
-                                        @selected(
-                                            old('swine_id', $selectedSwine?->id) == $swine->id
-                                        )
-                                    >
-
-                                        {{ $swine->tag_number }}
-
-                                        @if ($swine->name)
-                                            — {{ $swine->name }}
-                                        @endif
-
-                                    </option>
-
-                                @endforeach
-
-                            </select>
-
-                            @error('swine_id')
-
-                                <p class="mt-1 text-sm text-red-600">
-                                    {{ $message }}
-                                </p>
-
-                            @enderror
-
-                        </div>
-
-
-                        {{-- Record Date --}}
-                        <div>
-
-                            <label
-                                for="record_date"
-                                class="block text-sm font-medium text-gray-700"
-                            >
-                                Record Date
-                                <span class="text-red-500">*</span>
-                            </label>
-
-                            <input
-                                type="date"
-                                id="record_date"
-                                name="record_date"
-                                value="{{ old('record_date', now()->format('Y-m-d')) }}"
-                                max="{{ now()->format('Y-m-d') }}"
-                                required
-                                class="mt-2 block w-full rounded-lg border-gray-300
-                                       shadow-sm focus:border-indigo-500
-                                       focus:ring-indigo-500"
-                            >
-
-                            <p class="mt-1 text-xs text-gray-500">
-                                Date when the swine was weighed.
-                            </p>
-
-                            @error('record_date')
-
-                                <p class="mt-1 text-sm text-red-600">
-                                    {{ $message }}
-                                </p>
-
-                            @enderror
-
-                        </div>
-
-
-                        {{-- Weight --}}
-                        <div>
-
-                            <label
-                                for="weight"
-                                class="block text-sm font-medium text-gray-700"
-                            >
-                                Weight (kg)
-                                <span class="text-red-500">*</span>
-                            </label>
-
-                            <div class="relative mt-2">
-
-                                <input
-                                    type="number"
-                                    id="weight"
-                                    name="weight"
-                                    value="{{ old('weight') }}"
-                                    step="0.01"
-                                    min="0.01"
-                                    max="9999.99"
-                                    required
-                                    class="block w-full rounded-lg border-gray-300
-                                           pr-14 shadow-sm
-                                           focus:border-indigo-500
-                                           focus:ring-indigo-500"
-                                    placeholder="e.g. 45.50"
-                                >
-
-                                <span
-                                    class="absolute inset-y-0 right-0
-                                           flex items-center pr-4
-                                           text-sm text-gray-500"
-                                >
-                                    kg
-                                </span>
-
-                            </div>
-
-                            @error('weight')
-
-                                <p class="mt-1 text-sm text-red-600">
-                                    {{ $message }}
-                                </p>
-
-                            @enderror
-
-                        </div>
-
-
-                        {{-- Notes --}}
-                        <div>
-
-                            <label
-                                for="notes"
-                                class="block text-sm font-medium text-gray-700"
-                            >
-                                Notes
+                                Address
                             </label>
 
                             <textarea
-                                id="notes"
-                                name="notes"
-                                rows="4"
-                                maxlength="2000"
-                                class="mt-2 block w-full rounded-lg border-gray-300
-                                       shadow-sm focus:border-indigo-500
-                                       focus:ring-indigo-500"
-                                placeholder="Optional notes about the weighing..."
-                            >{{ old('notes') }}</textarea>
+                                id="address"
+                                name="address"
+                                rows="3"
+                                class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm
+                                       focus:border-indigo-500 focus:ring-indigo-500"
+                                placeholder="Enter complete farm address"
+                            >{{ old('address') }}</textarea>
 
-                            @error('notes')
-
+                            @error('address')
                                 <p class="mt-1 text-sm text-red-600">
                                     {{ $message }}
                                 </p>
+                            @enderror
 
+                        </div>
+
+
+                        <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
+
+
+                            {{-- Municipality --}}
+                            <div>
+
+                                <label
+                                    for="municipality"
+                                    class="block text-sm font-medium text-gray-700"
+                                >
+                                    Municipality
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="municipality"
+                                    name="municipality"
+                                    value="{{ old('municipality') }}"
+                                    maxlength="100"
+                                    placeholder="e.g. Escalante City"
+                                    class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm
+                                           focus:border-indigo-500 focus:ring-indigo-500"
+                                >
+
+                                @error('municipality')
+                                    <p class="mt-1 text-sm text-red-600">
+                                        {{ $message }}
+                                    </p>
+                                @enderror
+
+                            </div>
+
+
+                            {{-- Province --}}
+                            <div>
+
+                                <label
+                                    for="province"
+                                    class="block text-sm font-medium text-gray-700"
+                                >
+                                    Province
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="province"
+                                    name="province"
+                                    value="{{ old('province') }}"
+                                    maxlength="100"
+                                    placeholder="Enter province"
+                                    class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm
+                                           focus:border-indigo-500 focus:ring-indigo-500"
+                                >
+
+                                @error('province')
+                                    <p class="mt-1 text-sm text-red-600">
+                                        {{ $message }}
+                                    </p>
+                                @enderror
+
+                            </div>
+
+
+                            {{-- Region --}}
+                            <div>
+
+                                <label
+                                    for="region"
+                                    class="block text-sm font-medium text-gray-700"
+                                >
+                                    Region
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="region"
+                                    name="region"
+                                    value="{{ old('region') }}"
+                                    maxlength="100"
+                                    placeholder="Enter region"
+                                    class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm
+                                           focus:border-indigo-500 focus:ring-indigo-500"
+                                >
+
+                                @error('region')
+                                    <p class="mt-1 text-sm text-red-600">
+                                        {{ $message }}
+                                    </p>
+                                @enderror
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+
+
+                            {{-- Latitude --}}
+                            <div>
+
+                                <label
+                                    for="latitude"
+                                    class="block text-sm font-medium text-gray-700"
+                                >
+                                    Latitude
+                                </label>
+
+                                <input
+                                    type="number"
+                                    id="latitude"
+                                    name="latitude"
+                                    value="{{ old('latitude') }}"
+                                    step="any"
+                                    min="-90"
+                                    max="90"
+                                    placeholder="e.g. 10.8505"
+                                    class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm
+                                           focus:border-indigo-500 focus:ring-indigo-500"
+                                >
+
+                                <p class="mt-1 text-xs text-gray-500">
+                                    Must be between -90 and 90.
+                                </p>
+
+                                @error('latitude')
+                                    <p class="mt-1 text-sm text-red-600">
+                                        {{ $message }}
+                                    </p>
+                                @enderror
+
+                            </div>
+
+
+                            {{-- Longitude --}}
+                            <div>
+
+                                <label
+                                    for="longitude"
+                                    class="block text-sm font-medium text-gray-700"
+                                >
+                                    Longitude
+                            </label>
+
+                                <input
+                                    type="number"
+                                    id="longitude"
+                                    name="longitude"
+                                    value="{{ old('longitude') }}"
+                                    step="any"
+                                    min="-180"
+                                    max="180"
+                                    placeholder="e.g. 123.8854"
+                                    class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm
+                                           focus:border-indigo-500 focus:ring-indigo-500"
+                                >
+
+                                <p class="mt-1 text-xs text-gray-500">
+                                    Must be between -180 and 180.
+                                </p>
+
+                                @error('longitude')
+                                    <p class="mt-1 text-sm text-red-600">
+                                        {{ $message }}
+                                    </p>
+                                @enderror
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                {{-- Contact Information --}}
+                <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+
+                    <div class="border-b border-gray-200 px-6 py-5">
+
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            Contact Information
+                        </h3>
+
+                        <p class="mt-1 text-sm text-gray-500">
+                            Enter the farm's contact details.
+                        </p>
+
+                    </div>
+
+
+                    <div class="grid grid-cols-1 gap-5 px-6 py-6 sm:grid-cols-2">
+
+
+                        {{-- Contact Number --}}
+                        <div>
+
+                            <label
+                                for="contact_number"
+                                class="block text-sm font-medium text-gray-700"
+                            >
+                                Contact Number
+                            </label>
+
+                            <input
+                                type="text"
+                                id="contact_number"
+                                name="contact_number"
+                                value="{{ old('contact_number') }}"
+                                maxlength="30"
+                                placeholder="e.g. 09123456789"
+                                class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm
+                                       focus:border-indigo-500 focus:ring-indigo-500"
+                            >
+
+                            @error('contact_number')
+                                <p class="mt-1 text-sm text-red-600">
+                                    {{ $message }}
+                                </p>
+                            @enderror
+
+                        </div>
+
+
+                        {{-- Email --}}
+                        <div>
+
+                            <label
+                                for="email"
+                                class="block text-sm font-medium text-gray-700"
+                            >
+                                Email Address
+                            </label>
+
+                            <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                value="{{ old('email') }}"
+                                maxlength="255"
+                                placeholder="e.g. farm@example.com"
+                                class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm
+                                       focus:border-indigo-500 focus:ring-indigo-500"
+                            >
+
+                            @error('email')
+                                <p class="mt-1 text-sm text-red-600">
+                                    {{ $message }}
+                                </p>
                             @enderror
 
                         </div>
@@ -241,7 +426,7 @@
                 <div class="flex items-center justify-end gap-3">
 
                     <a
-                        href="{{ route('weight-records.index') }}"
+                        href="{{ route('farms.index') }}"
                         class="rounded-lg border border-gray-300 bg-white
                                px-4 py-2 text-sm font-semibold text-gray-700
                                shadow-sm hover:bg-gray-50"
@@ -250,252 +435,21 @@
                     </a>
 
                     <button
-                        id="save-weight-record"
                         type="submit"
                         class="rounded-lg bg-[#3368A0] px-5 py-2
                                text-sm font-semibold text-white shadow-sm
                                hover:bg-[#28557F]"
                     >
-                        Save Weight Record
+                        Register Farm
                     </button>
 
                 </div>
+
 
             </form>
 
         </div>
 
     </div>
-
-
-    {{-- ================================================================
-        OFFLINE WEIGHT RECORD SUPPORT
-    ================================================================= --}}
-
-    <script>
-
-        document.addEventListener('DOMContentLoaded', function () {
-
-            const form = document.getElementById(
-                'weight-record-form'
-            );
-
-            const button = document.getElementById(
-                'save-weight-record'
-            );
-
-            const statusBox = document.getElementById(
-                'offline-status'
-            );
-
-
-            if (!form) {
-                return;
-            }
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Display connection status
-            |--------------------------------------------------------------------------
-            */
-
-            function updateConnectionStatus() {
-
-                if (navigator.onLine) {
-
-                    statusBox.classList.add('hidden');
-
-                    return;
-                }
-
-
-                statusBox.classList.remove('hidden');
-
-                statusBox.className =
-                    'mb-6 rounded-lg border border-yellow-200 ' +
-                    'bg-yellow-50 px-4 py-3 text-sm text-yellow-800';
-
-                statusBox.textContent =
-                    'You are offline. Weight records will be saved ' +
-                    'locally and synchronized when the connection returns.';
-
-            }
-
-
-            updateConnectionStatus();
-
-
-            window.addEventListener(
-                'offline',
-                updateConnectionStatus
-            );
-
-            window.addEventListener(
-                'online',
-                updateConnectionStatus
-            );
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Form submission
-            |--------------------------------------------------------------------------
-            */
-
-            form.addEventListener(
-                'submit',
-                async function (event) {
-
-                    /*
-                     * Let the browser handle normal
-                     * validation first.
-                     */
-                    if (!form.checkValidity()) {
-
-                        return;
-                    }
-
-
-                    /*
-                     * If internet is available,
-                     * allow normal Laravel submission.
-                     */
-                    if (navigator.onLine) {
-
-                        return;
-                    }
-
-
-                    /*
-                     * Prevent normal form submission
-                     * when offline.
-                     */
-                    event.preventDefault();
-
-
-                    if (
-                        !window.SwineLocateOffline ||
-                        !window.SwineLocateOffline.addToSyncQueue
-                    ) {
-
-                        alert(
-                            'Offline storage is not available. ' +
-                            'Please reconnect to the internet and try again.'
-                        );
-
-                        return;
-                    }
-
-
-                    const formData = new FormData(form);
-
-
-                    const payload = {
-
-                        swine_id:
-                            formData.get('swine_id'),
-
-                        record_date:
-                            formData.get('record_date'),
-
-                        weight:
-                            formData.get('weight'),
-
-                        notes:
-                            formData.get('notes'),
-
-                    };
-
-
-                    /*
-                     * Disable button while saving
-                     * to IndexedDB.
-                     */
-                    button.disabled = true;
-
-                    button.textContent =
-                        'Saving Offline...';
-
-
-                    try {
-
-                        await window.SwineLocateOffline
-                            .addToSyncQueue({
-
-                                type: 'weight_record',
-
-                                endpoint:
-                                    '{{ route('weight-records.sync') }}',
-
-                                method: 'POST',
-
-                                payload: payload,
-
-                            });
-
-
-                        /*
-                         * Show success message.
-                         */
-                        statusBox.classList.remove('hidden');
-
-                        statusBox.className =
-                            'mb-6 rounded-lg border border-blue-200 ' +
-                            'bg-blue-50 px-4 py-3 text-sm text-blue-800';
-
-                        statusBox.textContent =
-                            'Weight record saved offline. ' +
-                            'It will automatically synchronize ' +
-                            'when the internet connection returns.';
-
-
-                        button.textContent =
-                            'Saved Offline';
-
-
-                        /*
-                         * Reset form after successful
-                         * local storage.
-                         */
-                        form.reset();
-
-
-                        /*
-                         * Restore default date.
-                         */
-                        document.getElementById(
-                            'record_date'
-                        ).value =
-                            '{{ now()->format('Y-m-d') }}';
-
-
-                    } catch (error) {
-
-                        console.error(
-                            'Offline weight record error:',
-                            error
-                        );
-
-
-                        alert(
-                            'Unable to save the weight record offline. ' +
-                            'Please try again.'
-                        );
-
-
-                        button.disabled = false;
-
-                        button.textContent =
-                            'Save Weight Record';
-
-                    }
-
-                }
-            );
-
-        });
-
-    </script>
 
 </x-app-layout>

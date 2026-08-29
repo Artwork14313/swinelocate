@@ -23,7 +23,7 @@
 
 
                 {{-- ==========================================================
-                    SWINE INFORMATION
+                SWINE INFORMATION
                 =========================================================== --}}
 
                 <div class="border-b border-gray-200 bg-gray-50 px-6 py-5">
@@ -48,14 +48,11 @@
 
 
                 {{-- ==========================================================
-                    FORM
+                FORM
                 =========================================================== --}}
 
-                <form
-                    method="POST"
-                    action="{{ route('swine.movements.store', $swine) }}"
-                    class="px-6 py-6"
-                >
+                <form id="swine-movement-form" method="POST" action="{{ route('swine-movements.store', $swine) }}"
+                    data-swine-id="{{ $swine->id }}">
 
                     @csrf
 
@@ -64,7 +61,7 @@
 
 
                         {{-- ==================================================
-                            CURRENT LOCATION
+                        CURRENT LOCATION
                         =================================================== --}}
 
                         <div>
@@ -93,29 +90,21 @@
 
 
                         {{-- ==================================================
-                            DESTINATION
+                        DESTINATION
                         =================================================== --}}
 
                         <div>
 
-                            <label
-                                for="to_location_id"
-                                class="block text-sm font-medium text-gray-700"
-                            >
+                            <label for="to_location_id" class="block text-sm font-medium text-gray-700">
                                 Destination Location
 
                                 <span class="text-red-500">*</span>
                             </label>
 
 
-                            <select
-                                id="to_location_id"
-                                name="to_location_id"
-                                required
-                                class="mt-2 block w-full rounded-lg border-gray-300
+                            <select id="to_location_id" name="to_location_id" required class="mt-2 block w-full rounded-lg border-gray-300
                                        shadow-sm focus:border-indigo-500
-                                       focus:ring-indigo-500"
-                            >
+                                       focus:ring-indigo-500">
 
                                 <option value="">
                                     Select destination
@@ -124,12 +113,9 @@
 
                                 @foreach ($locations as $location)
 
-                                    <option
-                                        value="{{ $location->id }}"
-                                        @selected(
-                                            old('to_location_id') == $location->id
-                                        )
-                                    >
+                                    <option value="{{ $location->id }}" @selected(
+                                        old('to_location_id') == $location->id
+                                    )>
 
                                         {{ $location->name }}
 
@@ -158,34 +144,24 @@
 
 
                         {{-- ==================================================
-                            MOVEMENT DATE
+                        MOVEMENT DATE
                         =================================================== --}}
 
                         <div>
 
-                            <label
-                                for="movement_date"
-                                class="block text-sm font-medium text-gray-700"
-                            >
+                            <label for="movement_date" class="block text-sm font-medium text-gray-700">
                                 Movement Date
 
                                 <span class="text-red-500">*</span>
                             </label>
 
 
-                            <input
-                                type="datetime-local"
-                                id="movement_date"
-                                name="movement_date"
-                                value="{{ old(
-                                    'movement_date',
-                                    now()->format('Y-m-d\TH:i')
-                                ) }}"
-                                required
-                                class="mt-2 block w-full rounded-lg border-gray-300
+                            <input type="datetime-local" id="movement_date" name="movement_date" value="{{ old(
+    'movement_date',
+    now()->format('Y-m-d\TH:i')
+) }}" required class="mt-2 block w-full rounded-lg border-gray-300
                                        shadow-sm focus:border-indigo-500
-                                       focus:ring-indigo-500"
-                            >
+                                       focus:ring-indigo-500">
 
 
                             @error('movement_date')
@@ -200,70 +176,45 @@
 
 
                         {{-- ==================================================
-                            REASON
+                        REASON
                         =================================================== --}}
 
                         <div>
 
-                            <label
-                                for="reason"
-                                class="block text-sm font-medium text-gray-700"
-                            >
+                            <label for="reason" class="block text-sm font-medium text-gray-700">
                                 Reason
                             </label>
 
 
-                            <select
-                                id="reason"
-                                name="reason"
-                                class="mt-2 block w-full rounded-lg border-gray-300
+                            <select id="reason" name="reason" class="mt-2 block w-full rounded-lg border-gray-300
                                        shadow-sm focus:border-indigo-500
-                                       focus:ring-indigo-500"
-                            >
+                                       focus:ring-indigo-500">
 
                                 <option value="">
                                     Select reason
                                 </option>
 
-                                <option
-                                    value="Growth"
-                                    @selected(old('reason') === 'Growth')
-                                >
+                                <option value="Growth" @selected(old('reason') === 'Growth')>
                                     Growth / Development
                                 </option>
 
-                                <option
-                                    value="Health"
-                                    @selected(old('reason') === 'Health')
-                                >
+                                <option value="Health" @selected(old('reason') === 'Health')>
                                     Health / Medical
                                 </option>
 
-                                <option
-                                    value="Breeding"
-                                    @selected(old('reason') === 'Breeding')
-                                >
+                                <option value="Breeding" @selected(old('reason') === 'Breeding')>
                                     Breeding
                                 </option>
 
-                                <option
-                                    value="Management"
-                                    @selected(old('reason') === 'Management')
-                                >
+                                <option value="Management" @selected(old('reason') === 'Management')>
                                     Farm Management
                                 </option>
 
-                                <option
-                                    value="Sale"
-                                    @selected(old('reason') === 'Sale')
-                                >
+                                <option value="Sale" @selected(old('reason') === 'Sale')>
                                     Sale / Transfer
                                 </option>
 
-                                <option
-                                    value="Other"
-                                    @selected(old('reason') === 'Other')
-                                >
+                                <option value="Other" @selected(old('reason') === 'Other')>
                                     Other
                                 </option>
 
@@ -282,28 +233,20 @@
 
 
                         {{-- ==================================================
-                            NOTES
+                        NOTES
                         =================================================== --}}
 
                         <div>
 
-                            <label
-                                for="notes"
-                                class="block text-sm font-medium text-gray-700"
-                            >
+                            <label for="notes" class="block text-sm font-medium text-gray-700">
                                 Notes
                             </label>
 
 
-                            <textarea
-                                id="notes"
-                                name="notes"
-                                rows="4"
-                                placeholder="Add additional information about this movement..."
-                                class="mt-2 block w-full rounded-lg border-gray-300
+                            <textarea id="notes" name="notes" rows="4"
+                                placeholder="Add additional information about this movement..." class="mt-2 block w-full rounded-lg border-gray-300
                                        shadow-sm focus:border-indigo-500
-                                       focus:ring-indigo-500"
-                            >{{ old('notes') }}</textarea>
+                                       focus:ring-indigo-500">{{ old('notes') }}</textarea>
 
 
                             @error('notes')
@@ -320,27 +263,21 @@
 
 
                     {{-- ======================================================
-                        ACTIONS
+                    ACTIONS
                     ======================================================= --}}
 
                     <div class="mt-8 flex items-center justify-end gap-3">
 
-                        <a
-                            href="{{ route('swine-movements.index') }}"
-                            class="rounded-lg border border-gray-300
+                        <a href="{{ route('swine-movements.index') }}" class="rounded-lg border border-gray-300
                                    bg-white px-4 py-2 text-sm font-medium
-                                   text-gray-700 hover:bg-gray-50"
-                        >
+                                   text-gray-700 hover:bg-gray-50">
                             Cancel
                         </a>
 
 
-                        <button
-                            type="submit"
-                            class="rounded-lg bg-[#3368A0] px-5 py-2
+                        <button type="submit" class="rounded-lg bg-[#3368A0] px-5 py-2
                                    text-sm font-semibold text-white
-                                   hover:bg-[#28557F]"
-                        >
+                                   hover:bg-[#28557F]">
                             Record Movement
                         </button>
 

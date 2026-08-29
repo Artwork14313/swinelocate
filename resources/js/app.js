@@ -2,6 +2,7 @@ import './bootstrap';
 
 import Alpine from 'alpinejs';
 import Chart from 'chart.js/auto';
+import './offline-health-records.js';
 
 import {
     openOfflineDB
@@ -9,6 +10,7 @@ import {
 
 import './offline-sync.js';
 import './offline-weight-records.js';
+import './offline-movements.js';
 
 openOfflineDB()
     .then(() => {
