@@ -48,11 +48,6 @@ Route::middleware('auth')->group(function () {
         [SwineMovementController::class, 'create']
     )->name('swine.movements.create');
 
-    Route::post(
-        '/swine/{swine}/move',
-        [SwineMovementController::class, 'store']
-    )->name('swine.movements.store');
-
     /*
  |--------------------------------------------------------------------------
  | Health History
@@ -104,34 +99,34 @@ Route::middleware('auth')->group(function () {
     )->name('growth-monitoring.index');
 
     /*
-    |--------------------------------------------------------------------------
-    | Swine Movement
-    |--------------------------------------------------------------------------
-    */
+|--------------------------------------------------------------------------
+| Swine Movement
+|--------------------------------------------------------------------------
+*/
+    Route::get(
+        '/swine/{swine}/move',
+        [SwineMovementController::class, 'create']
+    )->name('swine.movements.create');
+
+    Route::post(
+        '/swine/{swine}/move',
+        [SwineMovementController::class, 'store']
+    )->name('swine-movements.store');
+
     Route::get(
         '/swine-movements',
         [SwineMovementController::class, 'index']
     )->name('swine-movements.index');
 
     Route::get(
-        '/swine-movements/create',
-        [SwineMovementController::class, 'create']
-    )->name('swine-movements.create');
-
-    Route::post(
-        '/swine-movements',
-        [SwineMovementController::class, 'store']
-    )->name('swine-movements.store');
+        '/swine-movements/{swineMovement}',
+        [SwineMovementController::class, 'show']
+    )->name('swine-movements.show');
 
     Route::get(
         '/swine-movements/{swine}/locations',
         [SwineMovementController::class, 'locations']
     )->name('swine-movements.locations');
-
-    Route::get(
-        '/swine-movements/{swineMovement}',
-        [SwineMovementController::class, 'show']
-    )->name('swine-movements.show');
 
     /*
 |--------------------------------------------------------------------------
@@ -155,6 +150,10 @@ Offline sync
         [WeightRecordController::class, 'syncStore']
     )->name('weight-records.sync');
 
+    Route::post(
+        '/swine/sync',
+        [SwineController::class, 'syncStore']
+    )->name('swine.sync');
 
     Route::get(
         '/sync-status',

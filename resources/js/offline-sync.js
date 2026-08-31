@@ -1,5 +1,7 @@
 import {
     getAllOffline,
+    getOffline,
+    saveOffline,
     deleteOffline,
 } from './offline-db';
 
@@ -7,25 +9,33 @@ import {
 let isSynchronizing = false;
 
 
-/**
- * Get pending synchronization records.
- */
+/*
+|--------------------------------------------------------------------------
+| Get Pending Synchronization Records
+|--------------------------------------------------------------------------
+*/
+
 async function getPendingSync() {
 
-    const records = await getAllOffline(
-        'sync_queue'
-    );
+    const records =
+        await getAllOffline(
+            'sync_queue'
+        );
 
     return records.filter(
-        record => record.status === 'pending'
+        record =>
+            record.status === 'pending'
     );
 
 }
 
 
-/**
- * Remove successfully synchronized record.
- */
+/*
+|--------------------------------------------------------------------------
+| Remove Successfully Synchronized Queue Record
+|--------------------------------------------------------------------------
+*/
+
 async function removeFromSyncQueue(id) {
 
     await deleteOffline(
@@ -36,9 +46,178 @@ async function removeFromSyncQueue(id) {
 }
 
 
-/**
- * Save the latest successful synchronization time.
- */
+/*
+|--------------------------------------------------------------------------
+| Mark Local Record As Synced
+|--------------------------------------------------------------------------
+*/
+
+async function markLocalRecordAsSynced(record) {
+
+    /*
+     * Movement
+     */
+    if (record.type === 'movement') {
+
+        const localId =
+            record.payload?.local_id;
+
+        if (!localId) {
+
+            console.warn(
+                'Movement has no local_id:',
+                record
+            );
+
+            return;
+
+        }
+
+
+        const movement =
+            await getOffline(
+                'movements',
+                localId
+            );
+
+
+        if (!movement) {
+
+            console.warn(
+                'Local movement not found:',
+                localId
+            );
+
+            return;
+
+        }
+
+
+        movement.sync_status =
+            'synced';
+
+        movement.synced_at =
+            new Date().toISOString();
+
+
+        await saveOffline(
+            'movements',
+            movement
+        );
+
+
+        console.log(
+            'Movement marked as synced:',
+            localId
+        );
+
+    }
+
+
+    /*
+     * Health Record
+     */
+    else if (
+        record.type === 'health_record'
+    ) {
+
+        const localId =
+            record.payload?.local_id;
+
+        if (!localId) {
+            return;
+        }
+
+
+        const healthRecord =
+            await getOffline(
+                'health_records',
+                localId
+            );
+
+
+        if (!healthRecord) {
+            return;
+        }
+
+
+        healthRecord.sync_status =
+            'synced';
+
+        healthRecord.synced_at =
+            new Date().toISOString();
+
+
+        await saveOffline(
+            'health_records',
+            healthRecord
+        );
+
+
+        console.log(
+            'Health record marked as synced:',
+            localId
+        );
+
+    }
+
+
+    /*
+     * Weight Record
+     */
+    else if (
+        record.type === 'weight_record'
+    ) {
+
+        const localId =
+            record.payload?.local_id;
+
+        if (!localId) {
+            return;
+        }
+
+
+        const weightRecord =
+            await getOffline(
+                'weight_records',
+                localId
+            );
+
+
+        if (!weightRecord) {
+            return;
+        }
+
+
+        weightRecord.sync_status =
+            'synced';
+
+        weightRecord.synced_at =
+            new Date().toISOString();
+
+
+        await saveOffline(
+            'weight_records',
+            weightRecord
+        );
+
+
+        console.log(
+            'Weight record marked as synced:',
+            localId
+        );
+
+    }
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Save Latest Successful Synchronization Time
+|--------------------------------------------------------------------------
+*/
+
 function saveLastSync() {
 
     localStorage.setItem(
@@ -49,14 +228,16 @@ function saveLastSync() {
 }
 
 
-/**
- * Synchronize pending records with Laravel.
- */
+/*
+|--------------------------------------------------------------------------
+| Synchronize Pending Records With Laravel
+|--------------------------------------------------------------------------
+*/
+
 export async function syncPendingRecords() {
 
     /*
-     * Prevent multiple synchronization
-     * processes from running at the same time.
+     * Prevent duplicate synchronization.
      */
     if (isSynchronizing) {
 
@@ -84,6 +265,7 @@ export async function syncPendingRecords() {
 
 
     isSynchronizing = true;
+
 
     let synchronizedCount = 0;
 
@@ -116,9 +298,11 @@ export async function syncPendingRecords() {
 
 
         /*
-         * Synchronize each pending record.
+         * Process each pending record.
          */
-        for (const record of pendingRecords) {
+        for (
+            const record of pendingRecords
+        ) {
 
             try {
 
@@ -128,50 +312,97 @@ export async function syncPendingRecords() {
                 );
 
 
-                const response = await fetch(
-                    record.endpoint,
-                    {
-                        method:
-                            record.method ?? 'POST',
+                /*
+                 * Get CSRF token.
+                 */
+                const csrfToken =
+                    document
+                        .querySelector(
+                            'meta[name="csrf-token"]'
+                        )
+                        ?.getAttribute(
+                            'content'
+                        );
 
-                        headers: {
 
-                            'Content-Type':
-                                'application/json',
+                /*
+                 * Send request to Laravel.
+                 */
+                const response =
+                    await fetch(
+                        record.endpoint,
+                        {
+                            method:
+                                record.method ??
+                                'POST',
 
-                            'Accept':
-                                'application/json',
+                            headers: {
 
-                            'X-CSRF-TOKEN':
-                                document
-                                    .querySelector(
-                                        'meta[name="csrf-token"]'
-                                    )
-                                    ?.getAttribute(
-                                        'content'
-                                    ),
+                                'Content-Type':
+                                    'application/json',
 
-                        },
+                                'Accept':
+                                    'application/json',
 
-                        body: JSON.stringify(
-                            record.payload ?? {}
-                        ),
+                                'X-CSRF-TOKEN':
+                                    csrfToken,
 
-                    }
+                                'X-Requested-With':
+                                    'XMLHttpRequest',
+
+                            },
+
+                            body:
+                                JSON.stringify(
+                                    record.payload ??
+                                    {}
+                                ),
+
+                        }
+                    );
+
+
+                /*
+                 * Read response.
+                 */
+                const responseText =
+                    await response.text();
+
+
+                console.log(
+                    'Sync response:',
+                    response.status,
+                    response.url,
+                    responseText
                 );
 
 
+                /*
+                 * Laravel successfully
+                 * processed the record.
+                 */
                 if (response.ok) {
 
                     /*
-                     * Remove successfully
-                     * synchronized record.
+                     * Update local record.
+                     */
+                    await markLocalRecordAsSynced(
+                        record
+                    );
+
+
+                    /*
+                     * Remove from queue.
                      */
                     await removeFromSyncQueue(
                         record.id
                     );
 
 
+                    /*
+                     * IMPORTANT:
+                     * Increase successful count.
+                     */
                     synchronizedCount++;
 
 
@@ -180,17 +411,18 @@ export async function syncPendingRecords() {
                         record.id
                     );
 
+                }
 
-                } else {
 
-                    const errorText =
-                        await response.text();
-
+                /*
+                 * Laravel rejected the record.
+                 */
+                else {
 
                     console.error(
                         'Synchronization failed:',
                         response.status,
-                        errorText
+                        responseText
                     );
 
                 }
@@ -209,15 +441,25 @@ export async function syncPendingRecords() {
 
 
         /*
-         * Save one synchronization time
-         * for the whole synchronization session.
+         * Save synchronization time
+         * only if at least one record
+         * was successfully synchronized.
          */
-        if (synchronizedCount > 0) {
+        if (
+            synchronizedCount > 0
+        ) {
 
             saveLastSync();
 
+
             console.log(
                 `Synchronization completed. ${synchronizedCount} record(s) synchronized.`
+            );
+
+        } else {
+
+            console.log(
+                'Synchronization completed. No records were synchronized.'
             );
 
         }
@@ -232,9 +474,12 @@ export async function syncPendingRecords() {
 }
 
 
-/**
- * Internet connection restored.
- */
+/*
+|--------------------------------------------------------------------------
+| Internet Connection Restored
+|--------------------------------------------------------------------------
+*/
+
 window.addEventListener(
     'online',
     async () => {
@@ -243,15 +488,19 @@ window.addEventListener(
             'Internet connection restored.'
         );
 
+
         await syncPendingRecords();
 
     }
 );
 
 
-/**
- * Try synchronization when application loads.
- */
+/*
+|--------------------------------------------------------------------------
+| Try Synchronization When Application Loads
+|--------------------------------------------------------------------------
+*/
+
 document.addEventListener(
     'DOMContentLoaded',
     async () => {
@@ -262,9 +511,12 @@ document.addEventListener(
 );
 
 
-/**
- * Expose synchronization function.
- */
+/*
+|--------------------------------------------------------------------------
+| Expose Synchronization Function
+|--------------------------------------------------------------------------
+*/
+
 window.SwineLocateOffline = {
 
     syncPendingRecords,

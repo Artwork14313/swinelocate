@@ -53,7 +53,6 @@
 
                 <form id="swine-movement-form" method="POST" action="{{ route('swine-movements.store', $swine) }}"
                     data-swine-id="{{ $swine->id }}">
-
                     @csrf
 
 

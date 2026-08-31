@@ -4,6 +4,9 @@ import {
 } from './offline-db';
 
 
+/**
+ * Initialize offline swine movement.
+ */
 function initializeOfflineMovement() {
 
     const form = document.getElementById(
@@ -15,24 +18,13 @@ function initializeOfflineMovement() {
     }
 
 
-    /*
-     * Prevent registering the submit listener
-     * more than once.
-     */
-    if (form.dataset.offlineInitialized === 'true') {
-        return;
-    }
-
-    form.dataset.offlineInitialized = 'true';
-
-
     form.addEventListener(
         'submit',
         async function (event) {
 
             /*
-             * If online, allow Laravel to process
-             * the form normally.
+             * If online, allow Laravel
+             * to process the form normally.
              */
             if (navigator.onLine) {
                 return;
@@ -41,7 +33,7 @@ function initializeOfflineMovement() {
 
             /*
              * Offline:
-             * prevent the normal Laravel POST.
+             * stop the normal Laravel request.
              */
             event.preventDefault();
 
@@ -51,43 +43,37 @@ function initializeOfflineMovement() {
 
 
             /*
-             * Get the swine ID from the form.
-             *
-             * The Blade form should contain:
-             *
-             * data-swine-id="{{ $swine->id }}"
+             * Get swine ID from data attribute.
              */
             const swineId =
                 form.dataset.swineId;
 
 
+            /*
+             * Get movement information.
+             */
             const toLocationId =
-                formData.get(
-                    'to_location_id'
-                );
+                formData.get('to_location_id');
 
 
             const movementDate =
-                formData.get(
-                    'movement_date'
-                );
+                formData.get('movement_date');
 
 
             const reason =
-                formData.get(
-                    'reason'
-                ) || null;
+                formData.get('reason') || null;
 
 
             const notes =
-                formData.get(
-                    'notes'
-                ) || null;
+                formData.get('notes') || null;
 
 
             /*
-             * Basic validation.
+             * ----------------------------------------------------------
+             * Validation
+             * ----------------------------------------------------------
              */
+
             if (!swineId) {
 
                 alert(
@@ -119,22 +105,46 @@ function initializeOfflineMovement() {
 
 
             /*
-             * Generate one local ID.
+             * ----------------------------------------------------------
+             * Laravel synchronization endpoint
+             * ----------------------------------------------------------
              *
-             * The same ID is used for the local
-             * movement record.
+             * Controller:
+             *
+             * POST /swine/{swine}/move
+             *
+             * Example:
+             *
+             * /swine/2/move
+             *
+             * We intentionally do NOT use:
+             *
+             * /swine-movements?2
              */
-            const movementId =
-                crypto.randomUUID();
+
+            const syncEndpoint =
+                new URL(
+                    `/swine/${encodeURIComponent(swineId)}/move`,
+                    window.location.origin
+                ).toString();
+
+
+            console.log(
+                'Movement synchronization endpoint:',
+                syncEndpoint
+            );
 
 
             /*
-             * Create local movement record.
+             * ----------------------------------------------------------
+             * Create local movement record
+             * ----------------------------------------------------------
              */
+
             const movement = {
 
                 id:
-                    movementId,
+                    crypto.randomUUID(),
 
                 swine_id:
                     Number(swineId),
@@ -169,10 +179,11 @@ function initializeOfflineMovement() {
             try {
 
                 /*
-                 * ==========================================================
-                 * 1. SAVE MOVEMENT LOCALLY
-                 * ==========================================================
+                 * ------------------------------------------------------
+                 * 1. Save movement locally
+                 * ------------------------------------------------------
                  */
+
                 await saveOffline(
                     'movements',
                     movement
@@ -186,18 +197,11 @@ function initializeOfflineMovement() {
 
 
                 /*
-                 * ==========================================================
-                 * 2. ADD MOVEMENT TO SYNC QUEUE
-                 * ==========================================================
-                 *
-                 * The Laravel route already contains the
-                 * swine ID because the form action is:
-                 *
-                 * /swine-movements/{swine}
-                 *
-                 * We still include swine_id in the payload
-                 * for identification/debugging.
+                 * ------------------------------------------------------
+                 * 2. Add movement to sync queue
+                 * ------------------------------------------------------
                  */
+
                 const queueId =
                     await addToSyncQueue({
 
@@ -205,15 +209,12 @@ function initializeOfflineMovement() {
                             'movement',
 
                         endpoint:
-                            form.action,
+                            syncEndpoint,
 
                         method:
                             'POST',
 
                         payload: {
-
-                            swine_id:
-                                Number(swineId),
 
                             to_location_id:
                                 Number(toLocationId),
@@ -239,18 +240,18 @@ function initializeOfflineMovement() {
 
 
                 /*
-                 * ==========================================================
-                 * 3. INFORM USER
-                 * ==========================================================
+                 * ------------------------------------------------------
+                 * 3. Confirm local save
+                 * ------------------------------------------------------
                  */
+
                 alert(
                     'No internet connection. The swine movement was saved locally and will be synchronized when the connection returns.'
                 );
 
 
                 /*
-                 * Reset the form after successful
-                 * local storage and queue creation.
+                 * Clear the form.
                  */
                 form.reset();
 
@@ -263,13 +264,8 @@ function initializeOfflineMovement() {
                 );
 
 
-                /*
-                 * Important:
-                 * The user should know that the offline
-                 * save failed.
-                 */
                 alert(
-                    'Unable to save the swine movement offline. Please try again.'
+                    'Unable to save the swine movement offline.'
                 );
 
             }

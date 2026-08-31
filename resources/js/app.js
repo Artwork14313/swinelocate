@@ -11,6 +11,7 @@ import {
 import './offline-sync.js';
 import './offline-weight-records.js';
 import './offline-movements.js';
+import './offline-swine.js';
 
 openOfflineDB()
     .then(() => {

@@ -321,4 +321,145 @@ class SwineController extends Controller
         return view('swine.scan', compact('swine'));
     }
 
+    /**
+     * Store an offline swine registration
+     * synchronized from the browser.
+     */
+    public function syncStore(Request $request)
+    {
+        $validated = $request->validate([
+            'farm_id' => [
+                'required',
+                'exists:farms,id',
+            ],
+
+            'current_location_id' => [
+                'nullable',
+                'exists:farm_locations,id',
+            ],
+
+            'tag_number' => [
+                'required',
+                'string',
+                'max:255',
+                'unique:swine,tag_number',
+            ],
+
+            'name' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'sex' => [
+                'required',
+                'in:male,female',
+            ],
+
+            'breed' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'birth_date' => [
+                'nullable',
+                'date',
+                'before_or_equal:today',
+            ],
+
+            'acquisition_date' => [
+                'nullable',
+                'date',
+                'before_or_equal:today',
+            ],
+
+            'source' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'notes' => [
+                'nullable',
+                'string',
+            ],
+
+            'qr_token' => [
+                'required',
+                'string',
+                'max:255',
+                'unique:swine,qr_token',
+            ],
+        ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Validate Farm Location
+        |--------------------------------------------------------------------------
+        */
+
+        if (!empty($validated['current_location_id'])) {
+
+            $validLocation = FarmLocation::query()
+                ->where(
+                    'id',
+                    $validated['current_location_id']
+                )
+                ->where(
+                    'farm_id',
+                    $validated['farm_id']
+                )
+                ->exists();
+
+            if (!$validLocation) {
+
+                return response()->json([
+                    'message' =>
+                        'The selected location does not belong to the selected farm.',
+                ], 422);
+
+            }
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Set defaults
+        |--------------------------------------------------------------------------
+        */
+
+        $validated['status'] = 'active';
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Create swine
+        |--------------------------------------------------------------------------
+        */
+
+        $swine = Swine::create(
+            $validated
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Return successful synchronization response
+        |--------------------------------------------------------------------------
+        */
+
+        return response()->json([
+            'success' => true,
+
+            'message' =>
+                'Swine synchronized successfully.',
+
+            'swine_id' =>
+                $swine->id,
+
+        ], 201);
+    }
+
 }

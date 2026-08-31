@@ -51,10 +51,7 @@
 
 
                 {{-- Form --}}
-                <form
-                    method="POST"
-                    action="{{ route('swine.store') }}"
-                >
+                <form id="swine-form" method="POST" action="{{ route('swine.store') }}">
 
                     @csrf
 
@@ -64,29 +61,18 @@
 
                             {{-- Farm --}}
                             <div>
-                                <label
-                                    for="farm_id"
-                                    class="block text-sm font-medium text-gray-700"
-                                >
+                                <label for="farm_id" class="block text-sm font-medium text-gray-700">
                                     Farm <span class="text-red-500">*</span>
                                 </label>
 
-                                <select
-                                    id="farm_id"
-                                    name="farm_id"
-                                    required
-                                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                                           focus:border-indigo-500 focus:ring-indigo-500"
-                                >
+                                <select id="farm_id" name="farm_id" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
+                                           focus:border-indigo-500 focus:ring-indigo-500">
                                     <option value="">
                                         Select farm
                                     </option>
 
                                     @foreach ($farms as $farm)
-                                        <option
-                                            value="{{ $farm->id }}"
-                                            @selected(old('farm_id') == $farm->id)
-                                        >
+                                        <option value="{{ $farm->id }}" @selected(old('farm_id') == $farm->id)>
                                             {{ $farm->farm_code }} - {{ $farm->name }}
                                         </option>
                                     @endforeach
@@ -102,28 +88,19 @@
 
                             {{-- Current Location --}}
                             <div>
-                                <label
-                                    for="current_location_id"
-                                    class="block text-sm font-medium text-gray-700"
-                                >
+                                <label for="current_location_id" class="block text-sm font-medium text-gray-700">
                                     Current Location
                                 </label>
 
-                                <select
-                                    id="current_location_id"
-                                    name="current_location_id"
-                                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                                           focus:border-indigo-500 focus:ring-indigo-500"
-                                >
+                                <select id="current_location_id" name="current_location_id" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
+                                           focus:border-indigo-500 focus:ring-indigo-500">
                                     <option value="">
                                         Select location
                                     </option>
 
                                     @foreach ($locations as $location)
-                                        <option
-                                            value="{{ $location->id }}"
-                                            @selected(old('current_location_id') == $location->id)
-                                        >
+                                        <option value="{{ $location->id }}"
+                                            @selected(old('current_location_id') == $location->id)>
                                             {{ $location->location_code }} - {{ $location->name }}
                                         </option>
                                     @endforeach
@@ -143,23 +120,13 @@
 
                             {{-- Tag Number --}}
                             <div>
-                                <label
-                                    for="tag_number"
-                                    class="block text-sm font-medium text-gray-700"
-                                >
+                                <label for="tag_number" class="block text-sm font-medium text-gray-700">
                                     Tag Number <span class="text-red-500">*</span>
                                 </label>
 
-                                <input
-                                    id="tag_number"
-                                    name="tag_number"
-                                    type="text"
-                                    value="{{ old('tag_number') }}"
-                                    placeholder="Example: SW-000001"
-                                    required
-                                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                                           focus:border-indigo-500 focus:ring-indigo-500"
-                                >
+                                <input id="tag_number" name="tag_number" type="text" value="{{ old('tag_number') }}"
+                                    placeholder="Example: SW-000001" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
+                                           focus:border-indigo-500 focus:ring-indigo-500">
 
                                 <p class="mt-1 text-xs text-gray-500">
                                     Unique identification number of the swine.
@@ -202,35 +169,21 @@
 
                             {{-- Sex --}}
                             <div>
-                                <label
-                                    for="sex"
-                                    class="block text-sm font-medium text-gray-700"
-                                >
+                                <label for="sex" class="block text-sm font-medium text-gray-700">
                                     Sex <span class="text-red-500">*</span>
                                 </label>
 
-                                <select
-                                    id="sex"
-                                    name="sex"
-                                    required
-                                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                                           focus:border-indigo-500 focus:ring-indigo-500"
-                                >
+                                <select id="sex" name="sex" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
+                                           focus:border-indigo-500 focus:ring-indigo-500">
                                     <option value="">
                                         Select sex
                                     </option>
 
-                                    <option
-                                        value="male"
-                                        @selected(old('sex') === 'male')
-                                    >
+                                    <option value="male" @selected(old('sex') === 'male')>
                                         Male
                                     </option>
 
-                                    <option
-                                        value="female"
-                                        @selected(old('sex') === 'female')
-                                    >
+                                    <option value="female" @selected(old('sex') === 'female')>
                                         Female
                                     </option>
                                 </select>
@@ -245,22 +198,13 @@
 
                             {{-- Breed --}}
                             <div>
-                                <label
-                                    for="breed"
-                                    class="block text-sm font-medium text-gray-700"
-                                >
+                                <label for="breed" class="block text-sm font-medium text-gray-700">
                                     Breed
                                 </label>
 
-                                <input
-                                    id="breed"
-                                    name="breed"
-                                    type="text"
-                                    value="{{ old('breed') }}"
-                                    placeholder="Example: Large White"
-                                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                                           focus:border-indigo-500 focus:ring-indigo-500"
-                                >
+                                <input id="breed" name="breed" type="text" value="{{ old('breed') }}"
+                                    placeholder="Example: Large White" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
+                                           focus:border-indigo-500 focus:ring-indigo-500">
 
                                 @error('breed')
                                     <p class="mt-1 text-sm text-red-600">
@@ -272,21 +216,13 @@
 
                             {{-- Birth Date --}}
                             <div>
-                                <label
-                                    for="birth_date"
-                                    class="block text-sm font-medium text-gray-700"
-                                >
+                                <label for="birth_date" class="block text-sm font-medium text-gray-700">
                                     Birth Date
                                 </label>
 
-                                <input
-                                    id="birth_date"
-                                    name="birth_date"
-                                    type="date"
-                                    value="{{ old('birth_date') }}"
+                                <input id="birth_date" name="birth_date" type="date" value="{{ old('birth_date') }}"
                                     class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                                           focus:border-indigo-500 focus:ring-indigo-500"
-                                >
+                                           focus:border-indigo-500 focus:ring-indigo-500">
 
                                 @error('birth_date')
                                     <p class="mt-1 text-sm text-red-600">
@@ -298,21 +234,13 @@
 
                             {{-- Acquisition Date --}}
                             <div>
-                                <label
-                                    for="acquisition_date"
-                                    class="block text-sm font-medium text-gray-700"
-                                >
+                                <label for="acquisition_date" class="block text-sm font-medium text-gray-700">
                                     Acquisition Date
                                 </label>
 
-                                <input
-                                    id="acquisition_date"
-                                    name="acquisition_date"
-                                    type="date"
-                                    value="{{ old('acquisition_date') }}"
-                                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                                           focus:border-indigo-500 focus:ring-indigo-500"
-                                >
+                                <input id="acquisition_date" name="acquisition_date" type="date"
+                                    value="{{ old('acquisition_date') }}" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
+                                           focus:border-indigo-500 focus:ring-indigo-500">
 
                                 @error('acquisition_date')
                                     <p class="mt-1 text-sm text-red-600">
@@ -324,22 +252,13 @@
 
                             {{-- Source --}}
                             <div>
-                                <label
-                                    for="source"
-                                    class="block text-sm font-medium text-gray-700"
-                                >
+                                <label for="source" class="block text-sm font-medium text-gray-700">
                                     Source
                                 </label>
 
-                                <input
-                                    id="source"
-                                    name="source"
-                                    type="text"
-                                    value="{{ old('source') }}"
-                                    placeholder="Example: Farm breeding"
-                                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                                           focus:border-indigo-500 focus:ring-indigo-500"
-                                >
+                                <input id="source" name="source" type="text" value="{{ old('source') }}"
+                                    placeholder="Example: Farm breeding" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
+                                           focus:border-indigo-500 focus:ring-indigo-500">
 
                                 @error('source')
                                     <p class="mt-1 text-sm text-red-600">
@@ -352,21 +271,13 @@
                             {{-- Notes --}}
                             <div class="md:col-span-2">
 
-                                <label
-                                    for="notes"
-                                    class="block text-sm font-medium text-gray-700"
-                                >
+                                <label for="notes" class="block text-sm font-medium text-gray-700">
                                     Notes
                                 </label>
 
-                                <textarea
-                                    id="notes"
-                                    name="notes"
-                                    rows="4"
-                                    placeholder="Additional information about the swine..."
-                                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                                           focus:border-indigo-500 focus:ring-indigo-500"
-                                >{{ old('notes') }}</textarea>
+                                <textarea id="notes" name="notes" rows="4"
+                                    placeholder="Additional information about the swine..." class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
+                                           focus:border-indigo-500 focus:ring-indigo-500">{{ old('notes') }}</textarea>
 
                                 @error('notes')
                                     <p class="mt-1 text-sm text-red-600">
@@ -384,23 +295,17 @@
                     {{-- Form Actions --}}
                     <div class="flex justify-end gap-3 border-t border-gray-200 bg-gray-50 px-6 py-4">
 
-                        <a
-                            href="{{ route('swine.index') }}"
-                            class="rounded-lg border border-gray-300 bg-white px-4 py-2.5
+                        <a href="{{ route('swine.index') }}" class="rounded-lg border border-gray-300 bg-white px-4 py-2.5
                                    text-sm font-semibold text-gray-700
-                                   hover:bg-gray-50"
-                        >
+                                   hover:bg-gray-50">
                             Cancel
                         </a>
 
-                        <button
-                            type="submit"
-                            class="rounded-lg bg-indigo-600 px-5 py-2.5
+                        <button type="submit" class="rounded-lg bg-indigo-600 px-5 py-2.5
                                    text-sm font-semibold text-white
                                    hover:bg-indigo-700
                                    focus:outline-none focus:ring-2
-                                   focus:ring-indigo-500 focus:ring-offset-2"
-                        >
+                                   focus:ring-indigo-500 focus:ring-offset-2">
                             Register Swine
                         </button>
 

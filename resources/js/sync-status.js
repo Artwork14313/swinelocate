@@ -38,14 +38,18 @@ const syncButton =
     );
 
 
-/**
- * Update connection status.
- */
+/*
+|--------------------------------------------------------------------------
+| Connection Status
+|--------------------------------------------------------------------------
+*/
+
 function updateConnectionStatus() {
 
     if (!connectionIndicator || !connectionStatus) {
         return;
     }
+
 
     if (navigator.onLine) {
 
@@ -68,24 +72,36 @@ function updateConnectionStatus() {
 }
 
 
-/**
- * Format date.
- */
+/*
+|--------------------------------------------------------------------------
+| Date Formatting
+|--------------------------------------------------------------------------
+*/
+
 function formatDate(date) {
 
     if (!date) {
         return '—';
     }
 
-    return new Date(date).toLocaleString();
+    const parsedDate =
+        new Date(date);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+        return '—';
+    }
+
+    return parsedDate.toLocaleString();
 
 }
 
 
-/**
- * Convert internal record type
- * into a readable name.
- */
+/*
+|--------------------------------------------------------------------------
+| Record Type
+|--------------------------------------------------------------------------
+*/
+
 function formatRecordType(type) {
 
     switch (type) {
@@ -110,14 +126,18 @@ function formatRecordType(type) {
 }
 
 
-/**
- * Load pending synchronization records.
- */
+/*
+|--------------------------------------------------------------------------
+| Load Pending Records
+|--------------------------------------------------------------------------
+*/
+
 async function loadPendingRecords() {
 
     if (!pendingCount || !pendingRecords) {
         return;
     }
+
 
     try {
 
@@ -135,21 +155,27 @@ async function loadPendingRecords() {
 
 
         /*
-         * Update pending count.
-         */
+        |----------------------------------------------------------------------
+        | Pending Count
+        |----------------------------------------------------------------------
+        */
+
         pendingCount.textContent =
             pending.length;
 
 
         /*
-         * No pending records.
-         */
+        |----------------------------------------------------------------------
+        | No Pending Records
+        |----------------------------------------------------------------------
+        */
+
         if (pending.length === 0) {
 
             pendingRecords.innerHTML = `
                 <div class="px-6 py-12 text-center">
 
-                    <div class="text-3xl">
+                    <div class="text-3xl text-green-600">
                         ✓
                     </div>
 
@@ -169,8 +195,11 @@ async function loadPendingRecords() {
 
 
         /*
-         * Display pending records.
-         */
+        |----------------------------------------------------------------------
+        | Pending Records
+        |----------------------------------------------------------------------
+        */
+
         pendingRecords.innerHTML = `
 
             <div class="divide-y divide-gray-200">
@@ -179,8 +208,10 @@ async function loadPendingRecords() {
 
                     <div class="px-6 py-5">
 
-                        <div class="flex flex-col gap-3 sm:flex-row
-                                    sm:items-center sm:justify-between">
+                        <div class="flex flex-col gap-3
+                                    sm:flex-row
+                                    sm:items-center
+                                    sm:justify-between">
 
                             <div>
 
@@ -223,8 +254,10 @@ async function loadPendingRecords() {
             error
         );
 
+
         pendingCount.textContent =
             '—';
+
 
         pendingRecords.innerHTML = `
 
@@ -243,13 +276,12 @@ async function loadPendingRecords() {
 }
 
 
-/**
- * Update Last Synchronization display.
- *
- * This uses browser local storage instead of
- * sync_history because we decided that a
- * synchronization history module is unnecessary.
- */
+/*
+|--------------------------------------------------------------------------
+| Last Synchronization
+|--------------------------------------------------------------------------
+*/
+
 function loadLastSync() {
 
     if (!lastSync) {
@@ -279,10 +311,12 @@ function loadLastSync() {
 }
 
 
+/*
+|--------------------------------------------------------------------------
+| Refresh Page
+|--------------------------------------------------------------------------
+*/
 
-/**
- * Refresh Sync Status page.
- */
 async function refreshSyncStatus() {
 
     updateConnectionStatus();
@@ -294,9 +328,12 @@ async function refreshSyncStatus() {
 }
 
 
-/**
- * Manual synchronization.
- */
+/*
+|--------------------------------------------------------------------------
+| Manual Sync
+|--------------------------------------------------------------------------
+*/
+
 if (syncButton) {
 
     syncButton.addEventListener(
@@ -305,38 +342,67 @@ if (syncButton) {
 
             if (!navigator.onLine) {
 
-                alert('You are currently offline.');
+                alert(
+                    'You are currently offline.'
+                );
 
                 return;
+
             }
+
 
             if (syncButton.disabled) {
                 return;
             }
 
+
             syncButton.disabled = true;
+
 
             const originalText =
                 syncButton.textContent;
 
+
             syncButton.textContent =
                 'Synchronizing...';
 
+
+            /*
+             * Minimum animation/display time.
+             *
+             * This prevents "Synchronizing..."
+             * from disappearing too quickly when
+             * there are no pending records.
+             */
+            const minimumDelay =
+                new Promise(resolve => {
+
+                    setTimeout(
+                        resolve,
+                        1500
+                    );
+
+                });
+
+
             try {
 
-                await syncPendingRecords();
+                /*
+                 * Run synchronization and
+                 * minimum display time together.
+                 */
+                await Promise.all([
+                    syncPendingRecords(),
+                    minimumDelay
+                ]);
+
 
                 /*
-                 * Give the synchronization
-                 * a moment to finish before
-                 * refreshing the display.
+                 * Refresh IndexedDB queue
+                 * after synchronization.
                  */
-                await new Promise(
-                    resolve =>
-                        setTimeout(resolve, 300)
-                );
-
                 await refreshSyncStatus();
+
 
             } catch (error) {
 
@@ -344,6 +410,7 @@ if (syncButton) {
                     'Synchronization failed:',
                     error
                 );
+
 
                 alert(
                     'Synchronization failed. Please try again.'
@@ -363,17 +430,32 @@ if (syncButton) {
 
 }
 
+/*
+|--------------------------------------------------------------------------
+| Connection Restored
+|--------------------------------------------------------------------------
+*/
 
-/**
- * Internet connection restored.
- */
 window.addEventListener(
     'online',
     async () => {
 
         updateConnectionStatus();
 
-        await syncPendingRecords();
+        /*
+         * offline-sync.js already listens
+         * for the online event and starts
+         * synchronization.
+         *
+         * We only wait briefly and
+         * refresh this page afterward.
+         */
+
+        await new Promise(
+            resolve =>
+                setTimeout(resolve, 500)
+        );
+
 
         await refreshSyncStatus();
 
@@ -381,9 +463,12 @@ window.addEventListener(
 );
 
 
-/**
- * Internet connection lost.
- */
+/*
+|--------------------------------------------------------------------------
+| Connection Lost
+|--------------------------------------------------------------------------
+*/
+
 window.addEventListener(
     'offline',
     async () => {
@@ -396,7 +481,10 @@ window.addEventListener(
 );
 
 
-/**
- * Initial load.
- */
+/*
+|--------------------------------------------------------------------------
+| Initial Load
+|--------------------------------------------------------------------------
+*/
+
 refreshSyncStatus();
