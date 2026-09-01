@@ -33,14 +33,10 @@
 
                         <div class="mt-2 flex items-center gap-3">
 
-                            <span
-                                id="connection-indicator"
-                                class="h-3 w-3 rounded-full bg-gray-400">
+                            <span id="connection-indicator" class="h-3 w-3 rounded-full bg-gray-400">
                             </span>
 
-                            <span
-                                id="connection-status"
-                                class="text-lg font-semibold text-gray-900">
+                            <span id="connection-status" class="text-lg font-semibold text-gray-900">
                                 Checking...
                             </span>
 
@@ -50,10 +46,7 @@
 
 
                     {{-- Sync Button --}}
-                    <button
-                        type="button"
-                        id="sync-now-button"
-                        class="inline-flex items-center justify-center rounded-lg
+                    <button type="button" id="sync-now-button" class="inline-flex items-center justify-center rounded-lg
                                bg-[#3368A0] px-5 py-2.5 text-sm font-semibold
                                text-white shadow-sm hover:bg-[#28557F]">
 
@@ -67,8 +60,8 @@
 
 
             {{-- Summary --}}
-            <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-
+            {{-- Summary --}}
+            <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
 
                 {{-- Pending --}}
                 <div class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
@@ -77,14 +70,30 @@
                         Pending Synchronization
                     </p>
 
-                    <p
-                        id="pending-count"
-                        class="mt-2 text-3xl font-bold text-gray-900">
+                    <p id="pending-count" class="mt-2 text-3xl font-bold text-gray-900">
                         0
                     </p>
 
                     <p class="mt-1 text-sm text-gray-500">
                         Records waiting to be uploaded.
+                    </p>
+
+                </div>
+
+
+                {{-- Conflicts --}}
+                <div class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
+
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        Synchronization Conflicts
+                    </p>
+
+                    <p id="conflict-count" class="mt-2 text-3xl font-bold text-red-600">
+                        0
+                    </p>
+
+                    <p class="mt-1 text-sm text-gray-500">
+                        Records requiring review.
                     </p>
 
                 </div>
@@ -97,14 +106,12 @@
                         Last Synchronization
                     </p>
 
-                    <p
-                        id="last-sync"
-                        class="mt-2 text-lg font-semibold text-gray-900">
+                    <p id="last-sync" class="mt-2 text-lg font-semibold text-gray-900">
                         Not yet synchronized
                     </p>
 
                     <p class="mt-1 text-sm text-gray-500">
-                        Latest synchronization activity.
+                        Latest successful synchronization activity.
                     </p>
 
                 </div>
@@ -118,11 +125,11 @@
                 <div class="border-b border-gray-200 px-6 py-5">
 
                     <h3 class="text-lg font-semibold text-gray-900">
-                        Pending Records
+                        Synchronization Records
                     </h3>
 
                     <p class="mt-1 text-sm text-gray-500">
-                        Offline records that have not yet been synchronized.
+                        Offline records waiting for synchronization or requiring review.
                     </p>
 
                 </div>

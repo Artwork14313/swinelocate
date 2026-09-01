@@ -65,12 +65,21 @@
 
                 {{-- Form --}}
                 <form
-                    method="POST"
-                    action="{{ route('swine.update', $swine) }}"
-                >
+    method="POST"
+    action="{{ route('swine.update', $swine) }}"
+    id="swine-edit-form"
+    data-swine-id="{{ $swine->id }}"
+    data-sync-endpoint="/swine/{{ $swine->id }}/sync"
+    data-redirect-url="{{ route('swine.index') }}"
+>
 
                     @csrf
                     @method('PUT')
+                    <input
+                            type="hidden"
+                            name="original_updated_at"
+                            value="{{ $swine->updated_at?->toISOString() }}"
+                        >
 
                     <div class="px-6 py-6">
 

@@ -140,25 +140,57 @@ Route::middleware('auth')->group(function () {
     Route::get('/swine/scan/{qr_token}', [SwineController::class, 'scan'])
         ->name('swine.scan');
 
+
     /*
-|--------------------------------------------------------------------------
-Offline sync
-|--------------------------------------------------------------------------
-*/
+    |--------------------------------------------------------------------------
+    | Offline Sync
+    |--------------------------------------------------------------------------
+    */
+
+    /*
+     * Offline Weight Record Creation
+     */
     Route::post(
         '/weight-records/sync',
         [WeightRecordController::class, 'syncStore']
     )->name('weight-records.sync');
 
+
+    /*
+     * Offline Swine Creation
+     */
     Route::post(
         '/swine/sync',
         [SwineController::class, 'syncStore']
-    )->name('swine.sync');
+    )->name('swine.sync.store');
 
+
+    /*
+     * Offline Swine Update
+     */
+    Route::put(
+        '/swine/{swine}/sync',
+        [SwineController::class, 'syncUpdate']
+    )->name('swine.sync.update');
+
+
+    /*
+     * Resolve Swine Update Conflict
+     */
+    Route::put(
+        '/swine/{swine}/resolve-conflict',
+        [SwineController::class, 'resolveConflict']
+    )->name('swine.resolve-conflict');
+
+
+    /*
+     * Synchronization Status
+     */
     Route::get(
         '/sync-status',
         [SyncStatusController::class, 'index']
     )->name('sync-status.index');
+
 
 });
 
