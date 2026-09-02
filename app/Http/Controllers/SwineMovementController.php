@@ -261,11 +261,7 @@ class SwineMovementController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        DB::transaction(function () use (
-            $swine,
-            $destination,
-            $validated
-        ) {
+        DB::transaction(function () use ($swine, $destination, $validated) {
 
             /*
              * Save the swine's current location
@@ -317,6 +313,414 @@ class SwineMovementController extends Controller
             );
     }
 
+    /**
+     * Synchronize an offline swine movement.
+     *
+     * Detects whether the swine was moved by another user
+     * while this device was offline.
+     */
+    public function syncStore(Request $request)
+    {
+        $validated = $request->validate([
+            'swine_id' => [
+                'required',
+                'integer',
+                'exists:swine,id',
+            ],
+
+            'from_location_id' => [
+                'nullable',
+                'integer',
+                'exists:farm_locations,id',
+            ],
+
+            'to_location_id' => [
+                'required',
+                'integer',
+                'exists:farm_locations,id',
+            ],
+
+            'movement_date' => [
+                'required',
+                'date',
+            ],
+
+            'reason' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
+
+            'notes' => [
+                'nullable',
+                'string',
+            ],
+
+            /*
+             * Location that the device saw BEFORE
+             * creating the offline movement.
+             */
+            'original_location_id' => [
+                'nullable',
+                'integer',
+            ],
+
+            /*
+             * Used only after the user explicitly chooses
+             * "Keep Offline Version".
+             */
+            'force' => [
+                'nullable',
+                'boolean',
+            ],
+        ]);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Load Swine
+        |--------------------------------------------------------------------------
+        */
+
+        $swine = Swine::findOrFail(
+            $validated['swine_id']
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Validate Swine Status
+        |--------------------------------------------------------------------------
+        */
+
+        if ($swine->status !== 'active') {
+
+            return response()->json([
+                'success' => false,
+
+                'message' =>
+                    'Only active swine can be moved.',
+
+            ], 422);
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Validate Destination
+        |--------------------------------------------------------------------------
+        */
+
+        $destination = FarmLocation::query()
+            ->where('id', $validated['to_location_id'])
+            ->where('farm_id', $swine->farm_id)
+            ->where('status', 'active')
+            ->first();
+
+
+        if (!$destination) {
+
+            return response()->json([
+                'success' => false,
+
+                'message' =>
+                    'The selected destination is not a valid location for this farm.',
+
+            ], 422);
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | FORCE / KEEP OFFLINE VERSION
+        |--------------------------------------------------------------------------
+        |
+        | The user has explicitly chosen:
+        |
+        | "Keep Offline Version"
+        |
+        | At this point we allow the offline movement to replace
+        | the server's current location.
+        |
+        */
+
+        if ($request->boolean('force')) {
+
+            return DB::transaction(function () use ($swine, $destination, $validated) {
+
+                /*
+                 * IMPORTANT:
+                 *
+                 * The from location shown in the movement history
+                 * should be the ACTUAL current server location,
+                 * not the old offline location.
+                 */
+                $fromLocationId =
+                    $swine->current_location_id;
+
+
+                /*
+                 * Create movement history.
+                 */
+                $movement = SwineMovement::create([
+
+                    'swine_id' =>
+                        $swine->id,
+
+                    'from_location_id' =>
+                        $fromLocationId,
+
+                    'to_location_id' =>
+                        $destination->id,
+
+                    'movement_date' =>
+                        $validated['movement_date'],
+
+                    'reason' =>
+                        $validated['reason'] ?? null,
+
+                    'notes' =>
+                        $validated['notes'] ?? null,
+
+                    'recorded_by' =>
+                        auth()->id(),
+
+                ]);
+
+
+                /*
+                 * Explicitly overwrite the server location.
+                 */
+                $swine->update([
+
+                    'current_location_id' =>
+                        $destination->id,
+
+                ]);
+
+
+                return response()->json([
+
+                    'success' => true,
+
+                    'conflict' => false,
+
+                    'forced' => true,
+
+                    'movement_id' =>
+                        $movement->id,
+
+                    'swine_id' =>
+                        $swine->id,
+
+                    'message' =>
+                        'Offline movement version was saved to the server.',
+
+                ]);
+            });
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | CONFLICT DETECTION
+        |--------------------------------------------------------------------------
+        |
+        | The offline device sends the location that existed when
+        | the movement was originally created.
+        |
+        | Example:
+        |
+        | Offline original location = 2
+        | Server current location    = 3
+        |
+        | Therefore another user changed the swine.
+        |
+        */
+
+        $originalLocationId =
+            $validated['original_location_id'] ?? null;
+
+
+        if ($originalLocationId !== null) {
+
+            $serverLocationId =
+                $swine->current_location_id;
+
+
+            if (
+                (int) $serverLocationId !==
+                (int) $originalLocationId
+            ) {
+
+                return response()->json([
+
+                    'success' => false,
+
+                    'conflict' => true,
+
+                    'message' =>
+                        'This swine was moved by another user while this device was offline.',
+
+                    'swine_id' =>
+                        $swine->id,
+
+                    /*
+                     * Useful for the conflict-resolution UI.
+                     */
+                    'offline_data' => [
+
+                        'swine_id' =>
+                            $swine->id,
+
+                        'original_location_id' =>
+                            $originalLocationId,
+
+                        'from_location_id' =>
+                            $validated['from_location_id'] ?? null,
+
+                        'to_location_id' =>
+                            $destination->id,
+
+                        'movement_date' =>
+                            $validated['movement_date'],
+
+                        'reason' =>
+                            $validated['reason'] ?? null,
+
+                        'notes' =>
+                            $validated['notes'] ?? null,
+
+                    ],
+
+                    /*
+                     * Current authoritative server state.
+                     */
+                    'server_data' => [
+
+                        'swine_id' =>
+                            $swine->id,
+
+                        'current_location_id' =>
+                            $swine->current_location_id,
+
+                        'tag_number' =>
+                            $swine->tag_number,
+
+                        'status' =>
+                            $swine->status,
+
+                        'updated_at' =>
+                            $swine->updated_at?->toISOString(),
+
+                    ],
+
+                ], 409);
+            }
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | PREVENT MOVING TO CURRENT SERVER LOCATION
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            $swine->current_location_id !== null &&
+            (int) $swine->current_location_id ===
+            (int) $destination->id
+        ) {
+
+            return response()->json([
+
+                'success' => false,
+
+                'message' =>
+                    'The swine is already assigned to this location.',
+
+            ], 422);
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | NORMAL SYNCHRONIZATION
+        |--------------------------------------------------------------------------
+        |
+        | No conflict was detected.
+        | It is safe to create the movement.
+        |
+        */
+
+        return DB::transaction(function () use ($swine, $destination, $validated) {
+
+            /*
+             * Use the server's actual current location
+             * as the movement's from_location.
+             */
+            $fromLocationId =
+                $swine->current_location_id;
+
+
+            /*
+             * Create movement history.
+             */
+            $movement = SwineMovement::create([
+
+                'swine_id' =>
+                    $swine->id,
+
+                'from_location_id' =>
+                    $fromLocationId,
+
+                'to_location_id' =>
+                    $destination->id,
+
+                'movement_date' =>
+                    $validated['movement_date'],
+
+                'reason' =>
+                    $validated['reason'] ?? null,
+
+                'notes' =>
+                    $validated['notes'] ?? null,
+
+                'recorded_by' =>
+                    auth()->id(),
+
+            ]);
+
+
+            /*
+             * Update server location.
+             */
+            $swine->update([
+
+                'current_location_id' =>
+                    $destination->id,
+
+            ]);
+
+
+            return response()->json([
+
+                'success' => true,
+
+                'conflict' => false,
+
+                'movement_id' =>
+                    $movement->id,
+
+                'swine_id' =>
+                    $swine->id,
+
+                'message' =>
+                    'Offline movement synchronized successfully.',
+
+            ]);
+        });
+    }
 
     /**
      * Display a single movement record.

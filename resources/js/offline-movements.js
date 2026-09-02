@@ -4,9 +4,12 @@ import {
 } from './offline-db';
 
 
-/**
- * Initialize offline swine movement.
- */
+/*
+|--------------------------------------------------------------------------
+| Initialize Offline Swine Movement
+|--------------------------------------------------------------------------
+*/
+
 function initializeOfflineMovement() {
 
     const form = document.getElementById(
@@ -23,18 +26,27 @@ function initializeOfflineMovement() {
         async function (event) {
 
             /*
-             * If online, allow Laravel
-             * to process the form normally.
+             * ----------------------------------------------------------
+             * ONLINE
+             * ----------------------------------------------------------
+             *
+             * Let Laravel's normal form submission handle
+             * the movement.
              */
+
             if (navigator.onLine) {
                 return;
             }
 
 
             /*
-             * Offline:
-             * stop the normal Laravel request.
+             * ----------------------------------------------------------
+             * OFFLINE
+             * ----------------------------------------------------------
+             *
+             * Prevent the normal HTTP request.
              */
+
             event.preventDefault();
 
 
@@ -43,15 +55,44 @@ function initializeOfflineMovement() {
 
 
             /*
-             * Get swine ID from data attribute.
+             * ----------------------------------------------------------
+             * Get Swine ID
+             * ----------------------------------------------------------
              */
+
             const swineId =
                 form.dataset.swineId;
 
 
             /*
-             * Get movement information.
+             * ----------------------------------------------------------
+             * Get Original Location
+             * ----------------------------------------------------------
+             *
+             * IMPORTANT:
+             *
+             * This is the location the device saw BEFORE
+             * the offline movement was created.
+             *
+             * Laravel will use this value to determine
+             * whether another user moved the swine while
+             * this device was offline.
              */
+
+            const originalLocationId =
+                form.dataset.currentLocationId
+                    ? Number(
+                        form.dataset.currentLocationId
+                    )
+                    : null;
+
+
+            /*
+             * ----------------------------------------------------------
+             * Get Movement Information
+             * ----------------------------------------------------------
+             */
+
             const toLocationId =
                 formData.get('to_location_id');
 
@@ -106,52 +147,99 @@ function initializeOfflineMovement() {
 
             /*
              * ----------------------------------------------------------
-             * Laravel synchronization endpoint
+             * Prevent Same Location
+             * ----------------------------------------------------------
+             */
+
+            if (
+                originalLocationId !== null &&
+                Number(originalLocationId) ===
+                Number(toLocationId)
+            ) {
+
+                alert(
+                    'The swine is already assigned to this location.'
+                );
+
+                return;
+            }
+
+
+            /*
+             * ----------------------------------------------------------
+             * Offline Synchronization Endpoint
              * ----------------------------------------------------------
              *
-             * Controller:
+             * IMPORTANT:
              *
-             * POST /swine/{swine}/move
+             * Do NOT use:
              *
-             * Example:
+             * /swine/{swine}/move
              *
-             * /swine/2/move
+             * That is the normal online movement endpoint.
              *
-             * We intentionally do NOT use:
+             * Offline movements must use:
              *
-             * /swine-movements?2
+             * POST /swine-movements/sync
+             *
+             * which points to:
+             *
+             * SwineMovementController@syncStore
+             *
              */
 
             const syncEndpoint =
                 new URL(
-                    `/swine/${encodeURIComponent(swineId)}/move`,
+                    '/swine-movements/sync',
                     window.location.origin
                 ).toString();
 
 
             console.log(
-                'Movement synchronization endpoint:',
+                'Offline movement synchronization endpoint:',
                 syncEndpoint
             );
 
 
             /*
              * ----------------------------------------------------------
-             * Create local movement record
+             * Create Local Movement ID
+             * ----------------------------------------------------------
+             */
+
+            const localMovementId =
+                crypto.randomUUID();
+
+
+            /*
+             * ----------------------------------------------------------
+             * Create Offline Movement
              * ----------------------------------------------------------
              */
 
             const movement = {
 
                 id:
-                    crypto.randomUUID(),
+                    localMovementId,
 
                 swine_id:
                     Number(swineId),
 
-                from_location_id:
-                    null,
+                /*
+                 * Location before the offline movement.
+                 */
+                original_location_id:
+                    originalLocationId,
 
+                /*
+                 * Same value used for movement history.
+                 */
+                from_location_id:
+                    originalLocationId,
+
+                /*
+                 * Location selected while offline.
+                 */
                 to_location_id:
                     Number(toLocationId),
 
@@ -180,7 +268,7 @@ function initializeOfflineMovement() {
 
                 /*
                  * ------------------------------------------------------
-                 * 1. Save movement locally
+                 * 1. Save Movement Locally
                  * ------------------------------------------------------
                  */
 
@@ -191,14 +279,14 @@ function initializeOfflineMovement() {
 
 
                 console.log(
-                    'Movement saved locally:',
+                    'Offline movement saved locally:',
                     movement
                 );
 
 
                 /*
                  * ------------------------------------------------------
-                 * 2. Add movement to sync queue
+                 * 2. Add To Synchronization Queue
                  * ------------------------------------------------------
                  */
 
@@ -216,14 +304,55 @@ function initializeOfflineMovement() {
 
                         payload: {
 
+                            /*
+                             * Swine being moved.
+                             */
+                            swine_id:
+                                Number(swineId),
+
+
+                            /*
+                             * Local IndexedDB movement ID.
+                             */
+                            local_id:
+                                localMovementId,
+
+
+                            /*
+                             * CRITICAL:
+                             *
+                             * Location that the device saw
+                             * BEFORE going through the offline
+                             * movement.
+                             *
+                             * Laravel compares this against
+                             * the current server location.
+                             */
+                            original_location_id:
+                                originalLocationId,
+
+
+                            /*
+                             * Original movement location.
+                             */
+                            from_location_id:
+                                originalLocationId,
+
+
+                            /*
+                             * Offline destination.
+                             */
                             to_location_id:
                                 Number(toLocationId),
+
 
                             movement_date:
                                 movementDate,
 
+
                             reason:
                                 reason,
+
 
                             notes:
                                 notes
@@ -234,14 +363,14 @@ function initializeOfflineMovement() {
 
 
                 console.log(
-                    'Movement added to sync queue:',
+                    'Offline movement added to sync queue:',
                     queueId
                 );
 
 
                 /*
                  * ------------------------------------------------------
-                 * 3. Confirm local save
+                 * 3. Confirm Local Save
                  * ------------------------------------------------------
                  */
 
@@ -253,6 +382,7 @@ function initializeOfflineMovement() {
                 /*
                  * Clear the form.
                  */
+
                 form.reset();
 
 
@@ -265,7 +395,7 @@ function initializeOfflineMovement() {
 
 
                 alert(
-                    'Unable to save the swine movement offline.'
+                    'Unable to save the swine movement offline. Please check the browser console for details.'
                 );
 
             }
@@ -277,8 +407,11 @@ function initializeOfflineMovement() {
 
 
 /*
- * Initialize after DOM is ready.
- */
+|--------------------------------------------------------------------------
+| Initialize After DOM Is Ready
+|--------------------------------------------------------------------------
+*/
+
 if (
     document.readyState === 'loading'
 ) {

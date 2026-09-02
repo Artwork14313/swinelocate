@@ -25,6 +25,11 @@ const pendingCount =
         'pending-count'
     );
 
+const conflictCount =
+    document.getElementById(
+        'conflict-count'
+    );
+
 const pendingRecords =
     document.getElementById(
         'pending-records'
@@ -287,6 +292,15 @@ function formatFieldName(field) {
         current_location_id:
             'Current Location',
 
+        original_location_id:
+            'Original Location',
+
+        from_location_id:
+            'From Location',
+
+        to_location_id:
+            'Destination Location',
+
         tag_number:
             'Tag Number',
 
@@ -314,6 +328,12 @@ function formatFieldName(field) {
         qr_token:
             'QR Token',
 
+        movement_date:
+            'Movement Date',
+
+        reason:
+            'Reason',
+
         notes:
             'Notes'
 
@@ -326,34 +346,172 @@ function formatFieldName(field) {
 
 /*
 |--------------------------------------------------------------------------
-| Render Conflict
+| Render Movement Conflict
 |--------------------------------------------------------------------------
 */
-function renderConflict(record) {
 
-    const serverData =
-        getServerData(record);
+function renderMovementConflict(record) {
 
     const offlineData =
         record.payload ?? {};
 
-    const differences =
-        getDifferences(
-            offlineData,
-            serverData
-        );
+    const serverData =
+        record.server_data ??
+        getServerData(record) ??
+        {};
 
 
     /*
-     * Identify the swine involved in the conflict.
-     *
-     * Prefer the server tag number because it is
-     * the current authoritative identifier.
+     * ----------------------------------------------------------
+     * Swine Information
+     * ----------------------------------------------------------
      */
+
     const swineTag =
         serverData?.tag_number ??
         offlineData?.tag_number ??
         'Unknown Swine';
+
+
+    /*
+     * ----------------------------------------------------------
+     * Location Values
+     * ----------------------------------------------------------
+     */
+
+    const originalLocation =
+        offlineData?.original_location_id ??
+        offlineData?.from_location_id ??
+        null;
+
+
+    const offlineDestination =
+        offlineData?.to_location_id ??
+        null;
+
+
+    const serverLocation =
+        serverData?.current_location_id ??
+        null;
+
+
+    /*
+     * ----------------------------------------------------------
+     * Movement Conflict Differences
+     * ----------------------------------------------------------
+     */
+
+    const differences = [];
+
+
+    /*
+     * Original location
+     */
+
+    if (originalLocation !== null) {
+
+        differences.push({
+
+            field:
+                'original_location_id',
+
+            offline:
+                originalLocation,
+
+            server:
+                '—'
+
+        });
+
+    }
+
+
+    /*
+     * Offline destination vs server's
+     * current location.
+     *
+     * This is the important conflict.
+     */
+
+    differences.push({
+
+        field:
+            'to_location_id',
+
+        offline:
+            offlineDestination,
+
+        server:
+            serverLocation
+
+    });
+
+
+    /*
+     * Movement date
+     */
+
+    if (offlineData?.movement_date) {
+
+        differences.push({
+
+            field:
+                'movement_date',
+
+            offline:
+                offlineData.movement_date,
+
+            server:
+                '—'
+
+        });
+
+    }
+
+
+    /*
+     * Reason
+     */
+
+    if (offlineData?.reason) {
+
+        differences.push({
+
+            field:
+                'reason',
+
+            offline:
+                offlineData.reason,
+
+            server:
+                '—'
+
+        });
+
+    }
+
+
+    /*
+     * Notes
+     */
+
+    if (offlineData?.notes) {
+
+        differences.push({
+
+            field:
+                'notes',
+
+            offline:
+                offlineData.notes,
+
+            server:
+                '—'
+
+        });
+
+    }
+
 
     return `
 
@@ -361,20 +519,25 @@ function renderConflict(record) {
 
             <div class="flex flex-col gap-5">
 
+
+                <!-- Header -->
+
                 <div>
 
-                    <div class="flex w-full items-center justify-between gap-3">
+                    <div class="flex w-full items-center
+                                justify-between gap-3">
 
                         <p class="text-sm font-bold text-red-800">
 
-                            ${formatRecordType(record.type)}
+                            Swine Movement
 
                         </p>
 
 
                         <span
-                            class="inline-flex items-center rounded-full
-                                   bg-red-100 px-3 py-1 text-xs
+                            class="inline-flex items-center
+                                   rounded-full bg-red-100
+                                   px-3 py-1 text-xs
                                    font-semibold text-red-700
                                    ring-1 ring-red-200"
                         >
@@ -386,40 +549,38 @@ function renderConflict(record) {
                     </div>
 
 
+                    <!-- Swine -->
+
                     <div
-                        class="mt-4 rounded-lg border border-red-200
-                               bg-white p-4"
+                        class="mt-4 rounded-lg border
+                               border-red-200 bg-white p-4"
                     >
 
                         <p
-                            class="text-xs font-semibold uppercase
-                                   tracking-wide text-gray-500"
+                            class="text-xs font-semibold
+                                   uppercase tracking-wide
+                                   text-gray-500"
                         >
 
-                            Swine Being Edited
+                            Swine Being Moved
 
                         </p>
 
 
-                        <div class="mt-2 flex flex-wrap
-                                    items-center gap-x-6 gap-y-2">
+                        <div class="mt-2">
 
-                            <div>
+                            <p class="text-lg font-bold text-gray-900">
 
-                                <p class="text-lg font-bold text-gray-900">
+                                ${escapeHtml(swineTag)}
 
-                                    ${escapeHtml(swineTag)}
+                            </p>
 
-                                </p>
 
-                                <p class="text-xs text-gray-500">
+                            <p class="text-xs text-gray-500">
 
-                                    Tag Number
+                                Tag Number
 
-                                </p>
-
-                            </div>
-
+                            </p>
 
                         </div>
 
@@ -430,7 +591,7 @@ function renderConflict(record) {
 
                         ${escapeHtml(
         record.error_message ??
-        'This record was modified by another user while this device was offline.'
+        'This swine was moved by another user while this device was offline.'
     )}
 
                     </p>
@@ -446,175 +607,173 @@ function renderConflict(record) {
                 </div>
 
 
+                <!-- Conflicting Data -->
 
-                ${differences.length > 0
+                <div
+                    class="overflow-hidden rounded-lg
+                           border border-gray-200 bg-white"
+                >
 
-            ? `
+                    <div
+                        class="border-b border-gray-200
+                               bg-gray-50 px-4 py-3"
+                    >
 
-                            <div class="overflow-hidden rounded-lg
-                                        border border-gray-200
-                                        bg-white">
+                        <h4
+                            class="text-sm font-semibold
+                                   text-gray-900"
+                        >
 
-                                <div class="border-b border-gray-200
-                                            bg-gray-50 px-4 py-3">
+                            Conflicting Movement
 
-                                    <h4 class="text-sm font-semibold
-                                               text-gray-900">
-
-                                        Conflicting Data
-
-                                    </h4>
-
-                                    <p class="mt-1 text-xs text-gray-500">
-
-                                        Compare the values from this device
-                                        with the values currently stored
-                                        on the server.
-
-                                    </p>
-
-                                </div>
+                        </h4>
 
 
-                                <div class="overflow-x-auto">
+                        <p class="mt-1 text-xs text-gray-500">
 
-                                    <table class="min-w-full
-                                                  divide-y divide-gray-200">
+                            The swine's location was changed while
+                            this device was offline.
 
-                                        <thead class="bg-gray-50">
+                        </p>
 
-                                            <tr>
-
-                                                <th
-                                                    class="px-4 py-3 text-left
-                                                           text-xs font-semibold
-                                                           uppercase tracking-wide
-                                                           text-gray-500"
-                                                >
-                                                    Field
-                                                </th>
+                    </div>
 
 
-                                                <th
-                                                    class="px-4 py-3 text-left
-                                                           text-xs font-semibold
-                                                           uppercase tracking-wide
-                                                           text-red-600"
-                                                >
-                                                    Offline Version
-                                                </th>
+                    <div class="overflow-x-auto">
+
+                        <table
+                            class="min-w-full divide-y
+                                   divide-gray-200"
+                        >
+
+                            <thead class="bg-gray-50">
+
+                                <tr>
+
+                                    <th
+                                        class="px-4 py-3 text-left
+                                               text-xs font-semibold
+                                               uppercase tracking-wide
+                                               text-gray-500"
+                                    >
+
+                                        Field
+
+                                    </th>
 
 
-                                                <th
-                                                    class="px-4 py-3 text-left
-                                                           text-xs font-semibold
-                                                           uppercase tracking-wide
-                                                           text-green-600"
-                                                >
-                                                    Server Version
-                                                </th>
+                                    <th
+                                        class="px-4 py-3 text-left
+                                               text-xs font-semibold
+                                               uppercase tracking-wide
+                                               text-red-600"
+                                    >
 
-                                            </tr>
+                                        Offline Version
 
-                                        </thead>
+                                    </th>
 
 
-                                        <tbody
-                                            class="divide-y divide-gray-200
-                                                   bg-white"
-                                        >
+                                    <th
+                                        class="px-4 py-3 text-left
+                                               text-xs font-semibold
+                                               uppercase tracking-wide
+                                               text-green-600"
+                                    >
 
-                                            ${differences.map(
-                difference => `
+                                        Server Version
 
-                                                    <tr>
+                                    </th>
 
-                                                        <td
-                                                            class="whitespace-nowrap
-                                                                   px-4 py-3 text-sm
-                                                                   font-medium
-                                                                   text-gray-900"
-                                                        >
+                                </tr>
 
-                                                            ${formatFieldName(
-                    difference.field
-                )}
-
-                                                        </td>
+                            </thead>
 
 
-                                                        <td
-                                                            class="px-4 py-3 text-sm
-                                                                   text-red-700"
-                                                        >
-
-                                                            <div
-                                                                class="rounded-md
-                                                                       bg-red-50
-                                                                       px-3 py-2"
-                                                            >
-
-                                                                ${escapeHtml(
-                    difference.offline
-                )}
-
-                                                            </div>
-
-                                                        </td>
-
-
-                                                        <td
-                                                            class="px-4 py-3 text-sm
-                                                                   text-green-700"
-                                                        >
-
-                                                            <div
-                                                                class="rounded-md
-                                                                       bg-green-50
-                                                                       px-3 py-2"
-                                                            >
-
-                                                                ${escapeHtml(
-                    difference.server
-                )}
-
-                                                            </div>
-
-                                                        </td>
-
-                                                    </tr>
-
-                                                `
-            ).join('')}
-
-                                        </tbody>
-
-                                    </table>
-
-                                </div>
-
-                            </div>
-
-                        `
-
-            : `
-
-                            <div
-                                class="rounded-lg border border-gray-200
-                                       bg-white p-4"
+                            <tbody
+                                class="divide-y divide-gray-200
+                                       bg-white"
                             >
 
-                                <p class="text-sm text-gray-600">
+                                ${differences.map(
+        difference => `
 
-                                    No field-level differences were detected.
+                                        <tr>
 
-                                </p>
+                                            <td
+                                                class="whitespace-nowrap
+                                                       px-4 py-3 text-sm
+                                                       font-medium
+                                                       text-gray-900"
+                                            >
 
-                            </div>
+                                                ${formatFieldName(
+            difference.field
+        )}
 
-                        `
-        }
+                                            </td>
 
+
+                                            <td
+                                                class="px-4 py-3 text-sm
+                                                       text-red-700"
+                                            >
+
+                                                <div
+                                                    class="rounded-md
+                                                           bg-red-50
+                                                           px-3 py-2"
+                                                >
+
+                                                    ${escapeHtml(
+            formatMovementValue(
+                difference.field,
+                difference.offline
+            )
+        )}
+
+                                                </div>
+
+                                            </td>
+
+
+                                            <td
+                                                class="px-4 py-3 text-sm
+                                                       text-green-700"
+                                            >
+
+                                                <div
+                                                    class="rounded-md
+                                                           bg-green-50
+                                                           px-3 py-2"
+                                                >
+
+                                                    ${escapeHtml(
+            formatMovementValue(
+                difference.field,
+                difference.server
+            )
+        )}
+
+                                                </div>
+
+                                            </td>
+
+                                        </tr>
+
+                                    `
+    ).join('')}
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Resolution Buttons -->
 
                 <div
                     class="flex flex-wrap gap-3
@@ -663,6 +822,33 @@ function renderConflict(record) {
 
 }
 
+/*
+|--------------------------------------------------------------------------
+| Format Movement Conflict Values
+|--------------------------------------------------------------------------
+*/
+
+function formatMovementValue(field, value) {
+
+    if (
+        value === null ||
+        value === undefined ||
+        value === ''
+    ) {
+        return '—';
+    }
+
+
+    if (field === 'movement_date') {
+
+        return formatDate(value);
+
+    }
+
+
+    return String(value);
+
+}
 
 
 /*
@@ -671,15 +857,12 @@ function renderConflict(record) {
 |--------------------------------------------------------------------------
 */
 
-async function keepServerVersion(
-    recordId
-) {
+async function keepServerVersion(recordId) {
 
     const confirmed =
         confirm(
             'Keep the server version and discard your offline changes?'
         );
-
 
     if (!confirmed) {
         return;
@@ -688,6 +871,98 @@ async function keepServerVersion(
 
     try {
 
+        const records =
+            await getAllOffline(
+                'sync_queue'
+            );
+
+
+        const record =
+            records.find(
+                item =>
+                    Number(item.id) ===
+                    Number(recordId)
+            );
+
+
+        if (!record) {
+
+            throw new Error(
+                'Synchronization record was not found.'
+            );
+
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | If this is a movement conflict,
+        | restore the server location locally.
+        |--------------------------------------------------------------------------
+        */
+
+        if (record.type === 'movement') {
+
+            const swineId =
+                record.payload?.swine_id ??
+                record.swine_id;
+
+
+            const serverData =
+                record.server_data ??
+                getServerData(record) ??
+                {};
+
+
+            const serverLocation =
+                serverData.current_location_id;
+
+
+            if (
+                swineId &&
+                serverLocation !== undefined &&
+                serverLocation !== null
+            ) {
+
+                const localSwine =
+                    await getOffline(
+                        'swine',
+                        Number(swineId)
+                    );
+
+
+                if (localSwine) {
+
+                    localSwine.current_location_id =
+                        Number(serverLocation);
+
+                    localSwine.sync_status =
+                        'synced';
+
+                    localSwine.synced_at =
+                        new Date().toISOString();
+
+                    delete localSwine.conflict_at;
+
+
+                    await saveOffline(
+                        'swine',
+                        localSwine
+                    );
+
+                }
+
+            }
+
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Remove conflict from queue.
+        |--------------------------------------------------------------------------
+        */
+
         await deleteOffline(
             'sync_queue',
             Number(recordId)
@@ -695,11 +970,12 @@ async function keepServerVersion(
 
 
         alert(
-            'The server version was kept. The offline update was discarded.'
+            'The server version was kept. The offline movement was discarded.'
         );
 
 
         await loadPendingRecords();
+
 
     } catch (error) {
 
@@ -708,8 +984,10 @@ async function keepServerVersion(
             error
         );
 
+
         alert(
-            'Unable to resolve the conflict.'
+            'Unable to resolve the conflict.\n\n' +
+            error.message
         );
 
     }
@@ -734,6 +1012,7 @@ async function keepOfflineVersion(record) {
         return;
     }
 
+
     try {
 
         /*
@@ -744,7 +1023,7 @@ async function keepOfflineVersion(record) {
 
         const swineId =
             record.payload?.swine_id ??
-            record.payload?.id;
+            record.swine_id;
 
         if (!swineId) {
 
@@ -753,80 +1032,6 @@ async function keepOfflineVersion(record) {
             );
 
         }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Prepare Offline Data
-        |--------------------------------------------------------------------------
-        |
-        | IMPORTANT:
-        |
-        | QR token is intentionally NOT included.
-        |
-        | The QR token belongs to the original swine
-        | and must never be changed during editing
-        | or conflict resolution.
-        |
-        */
-
-        const payload = {
-
-            ...(record.payload ?? {}),
-
-            swine_id:
-                Number(swineId),
-
-            force:
-                true
-
-        };
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Remove Fields That Must Never Be Changed
-        |--------------------------------------------------------------------------
-        */
-
-        delete payload.id;
-
-        delete payload.qr_token;
-
-        delete payload.created_at;
-
-        delete payload.updated_at;
-
-        delete payload.sync_status;
-
-        delete payload.synced_at;
-
-        delete payload.conflict_at;
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Conflict Resolution Endpoint
-        |--------------------------------------------------------------------------
-        */
-
-        const endpoint =
-            `/swine/${Number(swineId)}/resolve-conflict`;
-
-
-        console.log(
-            'Keeping offline version:',
-            {
-                swineId:
-                    Number(swineId),
-
-                endpoint:
-                    endpoint,
-
-                payload:
-                    payload
-            }
-        );
 
 
         /*
@@ -847,9 +1052,335 @@ async function keepOfflineVersion(record) {
 
         /*
         |--------------------------------------------------------------------------
-        | Send Offline Changes
+        | MOVEMENT CONFLICT
         |--------------------------------------------------------------------------
+        |
+        | Movement conflicts MUST NOT use:
+        |
+        | /swine/{swine}/resolve-conflict
+        |
+        | That endpoint is for swine profile updates.
+        |
+        | Movement conflicts use:
+        |
+        | /swine-movements/sync
+        |
+        | with force = true.
+        |
         */
+
+        if (record.type === 'movement') {
+
+            const movementPayload = {
+
+                swine_id:
+                    Number(swineId),
+
+                original_location_id:
+                    record.payload?.original_location_id ??
+                    record.payload?.from_location_id ??
+                    null,
+
+                from_location_id:
+                    record.payload?.from_location_id ??
+                    record.payload?.original_location_id ??
+                    null,
+
+                to_location_id:
+                    Number(
+                        record.payload?.to_location_id
+                    ),
+
+                movement_date:
+                    record.payload?.movement_date,
+
+                reason:
+                    record.payload?.reason ?? null,
+
+                notes:
+                    record.payload?.notes ?? null,
+
+                force:
+                    true
+
+            };
+
+
+            /*
+             * Validate destination.
+             */
+
+            if (!movementPayload.to_location_id) {
+
+                throw new Error(
+                    'Offline destination location is missing.'
+                );
+
+            }
+
+
+            /*
+             * Validate movement date.
+             */
+
+            if (!movementPayload.movement_date) {
+
+                throw new Error(
+                    'Offline movement date is missing.'
+                );
+
+            }
+
+
+            /*
+             * Movement synchronization endpoint.
+             */
+
+            const endpoint =
+                '/swine-movements/sync';
+
+
+            console.log(
+                'Keeping offline movement version:',
+                {
+                    swineId:
+                        Number(swineId),
+
+                    endpoint:
+                        endpoint,
+
+                    payload:
+                        movementPayload
+                }
+            );
+
+
+            /*
+             * Send movement resolution.
+             */
+
+            const response =
+                await fetch(
+                    endpoint,
+                    {
+
+                        method:
+                            'POST',
+
+                        headers: {
+
+                            'Content-Type':
+                                'application/json',
+
+                            'Accept':
+                                'application/json',
+
+                            'X-CSRF-TOKEN':
+                                csrfToken,
+
+                            'X-Requested-With':
+                                'XMLHttpRequest'
+
+                        },
+
+                        body:
+                            JSON.stringify(
+                                movementPayload
+                            )
+
+                    }
+                );
+
+
+            const responseText =
+                await response.text();
+
+
+            console.log(
+                'Movement conflict resolution response:',
+                response.status,
+                responseText
+            );
+
+
+            /*
+             * Check response.
+             */
+
+            if (!response.ok) {
+
+                throw new Error(
+                    responseText ||
+                    `Server returned HTTP ${response.status}.`
+                );
+
+            }
+
+
+            /*
+             * Parse response if possible.
+             */
+
+            let responseData = null;
+
+            try {
+
+                responseData =
+                    JSON.parse(responseText);
+
+            } catch (error) {
+
+                responseData = null;
+
+            }
+
+
+            if (
+                responseData &&
+                responseData.success === false
+            ) {
+
+                throw new Error(
+                    responseData.message ||
+                    'Unable to save the offline movement version.'
+                );
+
+            }
+
+
+            /*
+             * Remove the conflict from
+             * the synchronization queue.
+             */
+
+            await deleteOffline(
+                'sync_queue',
+                Number(record.id)
+            );
+
+
+            /*
+             * Update local swine location.
+             *
+             * The offline destination is now
+             * the authoritative location.
+             */
+
+            const localSwine =
+                await getOffline(
+                    'swine',
+                    Number(swineId)
+                );
+
+
+            if (localSwine) {
+
+                localSwine.current_location_id =
+                    Number(
+                        movementPayload.to_location_id
+                    );
+
+                localSwine.sync_status =
+                    'synced';
+
+                localSwine.synced_at =
+                    new Date().toISOString();
+
+                delete localSwine.conflict_at;
+
+
+                await saveOffline(
+                    'swine',
+                    localSwine
+                );
+
+            }
+
+
+            /*
+             * Success.
+             */
+
+            alert(
+                'The offline movement version was successfully saved to the server.'
+            );
+
+
+            await loadPendingRecords();
+
+
+            return;
+
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | SWINE UPDATE CONFLICT
+        |--------------------------------------------------------------------------
+        |
+        | Everything below is for normal swine-update conflicts.
+        |
+        */
+
+        const payload = {
+
+            ...(record.payload ?? {}),
+
+            swine_id:
+                Number(swineId),
+
+            force:
+                true
+
+        };
+
+
+        /*
+         * QR token must never be changed.
+         */
+
+        delete payload.qr_token;
+
+        delete payload.id;
+
+        delete payload.created_at;
+
+        delete payload.updated_at;
+
+        delete payload.sync_status;
+
+        delete payload.synced_at;
+
+        delete payload.conflict_at;
+
+
+        /*
+         * Swine update conflict endpoint.
+         */
+
+        const endpoint =
+            `/swine/${Number(swineId)}/resolve-conflict`;
+
+
+        console.log(
+            'Keeping offline swine version:',
+            {
+                swineId:
+                    Number(swineId),
+
+                endpoint:
+                    endpoint,
+
+                payload:
+                    payload
+            }
+        );
+
+
+        /*
+         * Send swine update resolution.
+         */
 
         const response =
             await fetch(
@@ -887,17 +1418,11 @@ async function keepOfflineVersion(record) {
 
 
         console.log(
-            'Conflict resolution response:',
+            'Swine conflict resolution response:',
             response.status,
             responseText
         );
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Check Response
-        |--------------------------------------------------------------------------
-        */
 
         if (!response.ok) {
 
@@ -910,10 +1435,8 @@ async function keepOfflineVersion(record) {
 
 
         /*
-        |--------------------------------------------------------------------------
-        | Remove Conflict Queue
-        |--------------------------------------------------------------------------
-        */
+         * Remove conflict queue record.
+         */
 
         await deleteOffline(
             'sync_queue',
@@ -922,10 +1445,8 @@ async function keepOfflineVersion(record) {
 
 
         /*
-        |--------------------------------------------------------------------------
-        | Mark Local Swine As Synced
-        |--------------------------------------------------------------------------
-        */
+         * Mark local swine as synced.
+         */
 
         const localSwine =
             await getOffline(
@@ -944,6 +1465,7 @@ async function keepOfflineVersion(record) {
 
             delete localSwine.conflict_at;
 
+
             await saveOffline(
                 'swine',
                 localSwine
@@ -951,12 +1473,6 @@ async function keepOfflineVersion(record) {
 
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Success
-        |--------------------------------------------------------------------------
-        */
 
         alert(
             'The offline version was successfully saved to the server.'
@@ -1102,12 +1618,33 @@ async function loadPendingRecords() {
 
 
         /*
-         * Pending count represents all records
-         * that still require synchronization or
-         * conflict resolution.
+|--------------------------------------------------------------------------
+| Update Separate Counters
+|--------------------------------------------------------------------------
+*/
+
+        /*
+         * Pending card only counts records
+         * that are actually waiting to sync.
          */
-        pendingCount.textContent =
-            pending.length + conflicts.length;
+        if (pendingCount) {
+
+            pendingCount.textContent =
+                pending.length;
+
+        }
+
+
+        /*
+         * Conflict card only counts records
+         * that require conflict resolution.
+         */
+        if (conflictCount) {
+
+            conflictCount.textContent =
+                conflicts.length;
+
+        }
 
 
         /*
@@ -1355,8 +1892,17 @@ async function loadPendingRecords() {
                         <div>
 
                             ${conflicts.map(
-                    record =>
-                        renderConflict(record)
+                    record => {
+
+                        if (record.type === 'movement') {
+
+                            return renderMovementConflict(record);
+
+                        }
+
+                        return renderConflict(record);
+
+                    }
                 ).join('')}
 
                         </div>

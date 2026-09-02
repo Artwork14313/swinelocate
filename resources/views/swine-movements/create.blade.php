@@ -51,12 +51,12 @@
                 FORM
                 =========================================================== --}}
 
-                <form id="swine-movement-form" method="POST" action="{{ route('swine-movements.store', $swine) }}"
-                    data-swine-id="{{ $swine->id }}">
+                <form method="POST" action="{{ route('swine-movements.store', $swine) }}" id="swine-movement-form"
+                    data-swine-id="{{ $swine->id }}" data-current-location-id="{{ $swine->current_location_id }}">
                     @csrf
 
 
-                    <div class="space-y-6">
+                    <div class="space-y-6 px-6">
 
 
                         {{-- ==================================================
@@ -65,7 +65,7 @@
 
                         <div>
 
-                            <label class="block text-sm font-medium text-gray-700">
+                            <label class="block text-sm font-medium text-gray-700 mt-3">
                                 Current Location
                             </label>
 
@@ -265,7 +265,7 @@
                     ACTIONS
                     ======================================================= --}}
 
-                    <div class="mt-8 flex items-center justify-end gap-3">
+                    <div class="my-6 flex items-center justify-end gap-3 px-6 ">
 
                         <a href="{{ route('swine-movements.index') }}" class="rounded-lg border border-gray-300
                                    bg-white px-4 py-2 text-sm font-medium

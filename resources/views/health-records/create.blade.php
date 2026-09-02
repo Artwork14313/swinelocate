@@ -410,7 +410,7 @@
 
 
                     {{-- Health Status --}}
-                    <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+                    <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200 mt-6">
 
                         <div class="border-b border-gray-200 px-6 py-5">
 
@@ -470,7 +470,7 @@
 
 
                     {{-- Additional Notes --}}
-                    <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+                    <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200 mt-6">
 
                         <div class="border-b border-gray-200 px-6 py-5">
 
@@ -500,7 +500,7 @@
 
 
                     {{-- Actions --}}
-                    <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                    <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end py-4 px-4">
 
                         <a href="{{ route('health-records.index') }}" class="inline-flex justify-center rounded-lg border border-gray-300
                                bg-white px-5 py-2.5 text-sm font-semibold text-gray-700
