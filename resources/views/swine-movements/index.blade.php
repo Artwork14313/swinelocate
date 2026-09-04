@@ -210,26 +210,26 @@
 
                 @if ($movements->isEmpty())
 
-                    {{-- Empty State --}}
+                            {{-- Empty State --}}
 
-                    <div class="px-6 py-12 text-center">
+                            <div class="px-6 py-12 text-center">
 
-                        <p class="text-sm font-semibold text-gray-900">
-                            No movement records found.
-                        </p>
+                                <p class="text-sm font-semibold text-gray-900">
+                                    No movement records found.
+                                </p>
 
-                        <p class="mt-1 text-sm text-gray-500">
-                            No swine movements have been recorded yet.
-                        </p>
+                                <p class="mt-1 text-sm text-gray-500">
+                                    No swine movements have been recorded yet.
+                                </p>
 
-                        <a href="{{ route('swine-movements.create') }}" class="mt-4 inline-flex rounded-lg
-                                                           bg-[#3368A0] px-4 py-2
-                                                           text-sm font-semibold text-white
-                                                           hover:bg-[#28557F]">
-                            Record First Movement
-                        </a>
+                                <a href="{{ route('swine.index') }}" class="mt-4 inline-flex rounded-lg
+                       bg-[#3368A0] px-4 py-2
+                       text-sm font-semibold text-white
+                       hover:bg-[#28557F]">
+                                    Select Swine to Move
+                                </a>
 
-                    </div>
+                            </div>
 
                 @else
 
@@ -244,44 +244,50 @@
                                 <tr>
 
                                     <th class="px-6 py-3 text-left text-xs
-                                                                       font-semibold uppercase
-                                                                       tracking-wider text-gray-500">
+                                                                                           font-semibold uppercase
+                                                                                           tracking-wider text-gray-500">
                                         Date
                                     </th>
 
                                     <th class="px-6 py-3 text-left text-xs
-                                                                       font-semibold uppercase
-                                                                       tracking-wider text-gray-500">
+                                                                                           font-semibold uppercase
+                                                                                           tracking-wider text-gray-500">
                                         Swine
                                     </th>
 
                                     <th class="px-6 py-3 text-left text-xs
-                                                                       font-semibold uppercase
-                                                                       tracking-wider text-gray-500">
+                                                                                           font-semibold uppercase
+                                                                                           tracking-wider text-gray-500">
                                         From
                                     </th>
 
                                     <th class="px-6 py-3 text-left text-xs
-                                                                       font-semibold uppercase
-                                                                       tracking-wider text-gray-500">
+                                                                                           font-semibold uppercase
+                                                                                           tracking-wider text-gray-500">
                                         To
                                     </th>
 
                                     <th class="px-6 py-3 text-left text-xs
-                                                                       font-semibold uppercase
-                                                                       tracking-wider text-gray-500">
+                                                                                           font-semibold uppercase
+                                                                                           tracking-wider text-gray-500">
                                         Reason
                                     </th>
 
                                     <th class="px-6 py-3 text-left text-xs
-                                                                       font-semibold uppercase
-                                                                       tracking-wider text-gray-500">
+                               font-semibold uppercase
+                               tracking-wider text-gray-500">
                                         Recorded By
                                     </th>
 
+                                    <th class="px-6 py-3 text-left text-xs
+                               font-semibold uppercase
+                               tracking-wider text-gray-500">
+                                        Status
+                                    </th>
+
                                     <th class="px-6 py-3 text-right text-xs
-                                                                       font-semibold uppercase
-                                                                       tracking-wider text-gray-500">
+                               font-semibold uppercase
+                               tracking-wider text-gray-500">
                                         Action
                                     </th>
 
@@ -317,7 +323,7 @@
 
                                                                 <a href="{{ route('swine.show', $movement->swine) }}"
                                                                     class="text-sm font-semibold text-[#3368A0]
-                                                                                                                                                                                                                               hover:underline">
+                                                                                                                                                                                                                                                                                                                           hover:underline">
                                                                     {{ $movement->swine?->tag_number ?? '—' }}
                                                                 </a>
 
@@ -362,9 +368,9 @@
 
                                                                     <span
                                                                         class="inline-flex rounded-full
-                                                                                                                                                                                                                                                             bg-gray-100 px-2.5 py-1
-                                                                                                                                                                                                                                                             text-xs font-medium
-                                                                                                                                                                                                                                                             text-gray-700">
+                                                                                                                                                                                                                                                                                                                                                                     bg-gray-100 px-2.5 py-1
+                                                                                                                                                                                                                                                                                                                                                                     text-xs font-medium
+                                                                                                                                                                                                                                                                                                                                                                     text-gray-700">
                                                                         {{ $movement->reason }}
                                                                     </span>
 
@@ -389,6 +395,66 @@
 
                                                             </td>
 
+                                                            {{-- Status --}}
+
+                                                            <td class="whitespace-nowrap px-6 py-4">
+
+                                                                @if ($movement->status === 'completed')
+
+                                                                    <span
+                                                                        class="inline-flex items-center rounded-full
+                                                                                                                                                        bg-green-100 px-2.5 py-1
+                                                                                                                                                        text-xs font-semibold text-green-700">
+
+                                                                        Completed
+
+                                                                    </span>
+
+                                                                @elseif ($movement->status === 'superseded')
+
+                                                                    <span
+                                                                        class="inline-flex items-center rounded-full
+                                                                                                                                                        bg-yellow-100 px-2.5 py-1
+                                                                                                                                                        text-xs font-semibold text-yellow-700">
+
+                                                                        Superseded
+
+                                                                    </span>
+
+                                                                    @if ($movement->conflict_resolution === 'offline_version_kept')
+
+                                                                        <p class="mt-1 text-xs text-gray-500">
+                                                                            Offline version kept
+                                                                        </p>
+
+                                                                    @endif
+
+                                                                @elseif ($movement->status === 'cancelled')
+
+                                                                    <span
+                                                                        class="inline-flex items-center rounded-full
+                                                                                                                                                        bg-red-100 px-2.5 py-1
+                                                                                                                                                        text-xs font-semibold text-red-700">
+
+                                                                        Cancelled
+
+                                                                    </span>
+
+                                                                @else
+
+                                                                    <span
+                                                                        class="inline-flex items-center rounded-full
+                                                                                                                                                        bg-gray-100 px-2.5 py-1
+                                                                                                                                                        text-xs font-semibold text-gray-700">
+
+                                                                        {{ ucfirst($movement->status ?? 'Unknown') }}
+
+                                                                    </span>
+
+                                                                @endif
+
+                                                            </td>
+
 
                                                             {{-- Action --}}
 
@@ -399,11 +465,11 @@
                                         $movement
                                     ) }}"
                                                                     class="inline-flex rounded-lg
-                                                                                                                                                                                                                               border border-gray-300
-                                                                                                                                                                                                                               bg-white px-3 py-2
-                                                                                                                                                                                                                               text-sm font-medium
-                                                                                                                                                                                                                               text-gray-700
-                                                                                                                                                                                                                               hover:bg-gray-50">
+                                                                                                                                                                                                                                                                                                                           border border-gray-300
+                                                                                                                                                                                                                                                                                                                           bg-white px-3 py-2
+                                                                                                                                                                                                                                                                                                                           text-sm font-medium
+                                                                                                                                                                                                                                                                                                                           text-gray-700
+                                                                                                                                                                                                                                                                                                                           hover:bg-gray-50">
                                                                     View Details
                                                                 </a>
 
@@ -450,8 +516,8 @@
 
                                                     <span
                                                         class="rounded-full bg-gray-100
-                                                                                                                                                                                                     px-2.5 py-1 text-xs
-                                                                                                                                                                                                     font-medium text-gray-700">
+                                                                                                                                                                                                                                                                                     px-2.5 py-1 text-xs
+                                                                                                                                                                                                                                                                                     font-medium text-gray-700">
                                                         {{ $movement->reason }}
                                                     </span>
 
@@ -490,22 +556,80 @@
                                             </div>
 
 
-                                            <div class="mt-4 flex items-center justify-between">
+                                            <div class="mt-4 flex items-center justify-between gap-4">
 
-                                                <p class="text-xs text-gray-500">
-                                                    By:
-                                                    <span class="font-medium text-gray-700">
-                                                        {{ $movement->recordedBy?->name ?? 'Unknown' }}
-                                                    </span>
-                                                </p>
+                                                <div>
+
+                                                    <p class="text-xs text-gray-500">
+                                                        By:
+                                                        <span class="font-medium text-gray-700">
+                                                            {{ $movement->recordedBy?->name ?? 'Unknown' }}
+                                                        </span>
+                                                    </p>
+
+
+                                                    <div class="mt-2">
+
+                                                        @if ($movement->status === 'completed')
+
+                                                            <span class="inline-flex items-center rounded-full
+                                                                                     bg-green-100 px-2.5 py-1
+                                                                                     text-xs font-semibold text-green-700">
+
+                                                                Completed
+
+                                                            </span>
+
+                                                        @elseif ($movement->status === 'superseded')
+
+                                                            <span class="inline-flex items-center rounded-full
+                                                                                     bg-yellow-100 px-2.5 py-1
+                                                                                     text-xs font-semibold text-yellow-700">
+
+                                                                Superseded
+
+                                                            </span>
+
+                                                            @if ($movement->conflict_resolution === 'offline_version_kept')
+
+                                                                <p class="mt-1 text-xs text-gray-500">
+                                                                    Offline version kept
+                                                                </p>
+
+                                                            @endif
+
+                                                        @elseif ($movement->status === 'cancelled')
+
+                                                            <span class="inline-flex items-center rounded-full
+                                                                                     bg-red-100 px-2.5 py-1
+                                                                                     text-xs font-semibold text-red-700">
+
+                                                                Cancelled
+
+                                                            </span>
+
+                                                        @else
+
+                                                            <span class="inline-flex items-center rounded-full
+                                                                                     bg-gray-100 px-2.5 py-1
+                                                                                     text-xs font-semibold text-gray-700">
+
+                                                                {{ ucfirst($movement->status ?? 'Unknown') }}
+
+                                                            </span>
+
+                                                        @endif
+
+                                                    </div>
+
+                                                </div>
 
 
                                                 <a href="{{ route(
                                 'swine-movements.show',
                                 $movement
-                            ) }}"
-                                                    class="text-sm font-medium text-[#3368A0]
-                                                                                                                                                                       hover:underline">
+                            ) }}" class="text-sm font-medium text-[#3368A0]
+                                                       hover:underline">
                                                     View Details
                                                 </a>
 

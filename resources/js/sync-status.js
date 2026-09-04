@@ -5,172 +5,131 @@ import {
     deleteOffline
 } from './offline-db';
 
-import {
-    syncPendingRecords
-} from './offline-sync';
+
+// ============================================================
+// CONSTANTS
+// ============================================================
+
+const SYNC_QUEUE_STORE = 'sync_queue';
+const SWINE_STORE = 'swine';
 
 
-const connectionIndicator =
-    document.getElementById(
-        'connection-indicator'
-    );
-
-const connectionStatus =
-    document.getElementById(
-        'connection-status'
-    );
-
-const pendingCount =
-    document.getElementById(
-        'pending-count'
-    );
-
-const conflictCount =
-    document.getElementById(
-        'conflict-count'
-    );
-
-const pendingRecords =
-    document.getElementById(
-        'pending-records'
-    );
-
-const lastSync =
-    document.getElementById(
-        'last-sync'
-    );
-
-const syncButton =
-    document.getElementById(
-        'sync-now-button'
-    );
-
-
-/*
-|--------------------------------------------------------------------------
-| Connection Status
-|--------------------------------------------------------------------------
-*/
+// ============================================================
+// CONNECTION STATUS
+// ============================================================
 
 function updateConnectionStatus() {
 
-    if (!connectionIndicator || !connectionStatus) {
-        return;
-    }
+    const statusElement =
+        document.getElementById('connection-status');
+
+    const indicatorElement =
+        document.getElementById('connection-indicator');
+
+
+    if (!statusElement) return;
+
 
     if (navigator.onLine) {
 
-        connectionIndicator.className =
-            'h-3 w-3 rounded-full bg-green-500';
+        statusElement.textContent = 'Online';
 
-        connectionStatus.textContent =
-            'Online';
+        statusElement.classList.remove(
+            'text-red-600',
+            'text-gray-900'
+        );
+
+        statusElement.classList.add(
+            'text-green-600'
+        );
+
+
+        if (indicatorElement) {
+
+            indicatorElement.classList.remove(
+                'bg-red-500',
+                'bg-gray-400'
+            );
+
+            indicatorElement.classList.add(
+                'bg-green-500'
+            );
+        }
 
     } else {
 
-        connectionIndicator.className =
-            'h-3 w-3 rounded-full bg-red-500';
+        statusElement.textContent = 'Offline';
 
-        connectionStatus.textContent =
-            'Offline';
+        statusElement.classList.remove(
+            'text-green-600',
+            'text-gray-900'
+        );
 
+        statusElement.classList.add(
+            'text-red-600'
+        );
+
+
+        if (indicatorElement) {
+
+            indicatorElement.classList.remove(
+                'bg-green-500',
+                'bg-gray-400'
+            );
+
+            indicatorElement.classList.add(
+                'bg-red-500'
+            );
+        }
     }
-
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Format Date
-|--------------------------------------------------------------------------
-*/
+// ============================================================
+// LAST SYNC
+// ============================================================
 
-function formatDate(date) {
+function updateLastSync() {
 
-    if (!date) {
-        return '—';
-    }
+    const element =
+        document.getElementById('last-sync');
 
-    return new Date(date).toLocaleString();
+    if (!element) return;
 
+
+    element.textContent =
+        new Date().toLocaleString();
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Record Type
-|--------------------------------------------------------------------------
-*/
+// ============================================================
+// CSRF TOKEN
+// ============================================================
 
-function formatRecordType(type) {
+function getCsrfToken() {
 
-    switch (type) {
-
-        case 'weight_record':
-            return 'Weight Record';
-
-        case 'health_record':
-            return 'Health Record';
-
-        case 'movement':
-            return 'Swine Movement';
-
-        case 'swine':
-            return 'Swine Record';
-
-        case 'swine_update':
-            return 'Swine Update';
-
-        default:
-            return type ?? 'Unknown Record';
-
-    }
-
+    return document
+        .querySelector('meta[name="csrf-token"]')
+        ?.getAttribute('content');
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Escape HTML
-|--------------------------------------------------------------------------
-*/
+// ============================================================
+// PARSE SERVER RESPONSE
+// ============================================================
 
-function escapeHtml(value) {
+function parseServerResponse(record) {
 
-    if (value === null || value === undefined) {
-        return '—';
-    }
-
-    return String(value)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Parse Server Response
-|--------------------------------------------------------------------------
-*/
-
-function getServerData(record) {
-
-    if (!record.server_response) {
+    if (!record?.server_response) {
         return null;
     }
 
+
     try {
 
-        const response =
-            typeof record.server_response === 'string'
-                ? JSON.parse(record.server_response)
-                : record.server_response;
-
-        return response.server_data ?? null;
+        return typeof record.server_response === 'string'
+            ? JSON.parse(record.server_response)
+            : record.server_response;
 
     } catch (error) {
 
@@ -180,995 +139,185 @@ function getServerData(record) {
         );
 
         return null;
-
     }
-
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Get Offline Value
-|--------------------------------------------------------------------------
-*/
+// ============================================================
+// GET SERVER DATA
+// ============================================================
 
-function getOfflineValue(
-    payload,
-    field
-) {
+function getServerData(record) {
 
-    if (!payload) {
-        return null;
-    }
+    const response =
+        parseServerResponse(record);
 
-    return payload[field] ?? null;
 
+    return (
+        record?.server_data ??
+        response?.server_data ??
+        null
+    );
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Compare Offline and Server Data
-|--------------------------------------------------------------------------
-*/
+// ============================================================
+// GET SERVER MOVEMENT ID
+// ============================================================
 
-function getDifferences(
-    offlineData,
-    serverData
-) {
+function getServerMovementId(record) {
 
-    if (!offlineData || !serverData) {
-        return [];
-    }
+    const response =
+        parseServerResponse(record);
 
 
-    const fields = [
-
-        'farm_id',
-
-        'current_location_id',
-
-        'tag_number',
-
-        'name',
-
-        'sex',
-
-        'breed',
-
-        'birth_date',
-
-        'acquisition_date',
-
-        'source',
-
-        'status',
-
-        'notes'
-
-    ];
-
-
-    return fields
-        .filter(field => {
-
-            const offline =
-                offlineData[field] ?? null;
-
-            const server =
-                serverData[field] ?? null;
-
-            return String(offline) !== String(server);
-
-        })
-        .map(field => ({
-
-            field: field,
-
-            offline:
-                offlineData[field] ?? null,
-
-            server:
-                serverData[field] ?? null
-
-        }));
-
+    return (
+        record?.server_movement_id ??
+        response?.server_movement_id ??
+        response?.server_data?.movement_id ??
+        response?.server_data?.id ??
+        null
+    );
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Human-readable Field Name
-|--------------------------------------------------------------------------
-*/
-
-function formatFieldName(field) {
-
-    const names = {
-
-        farm_id:
-            'Farm',
-
-        current_location_id:
-            'Current Location',
-
-        original_location_id:
-            'Original Location',
-
-        from_location_id:
-            'From Location',
-
-        to_location_id:
-            'Destination Location',
-
-        tag_number:
-            'Tag Number',
-
-        name:
-            'Name',
-
-        sex:
-            'Sex',
-
-        breed:
-            'Breed',
-
-        birth_date:
-            'Birth Date',
-
-        acquisition_date:
-            'Acquisition Date',
-
-        source:
-            'Source',
-
-        status:
-            'Status',
-
-        qr_token:
-            'QR Token',
-
-        movement_date:
-            'Movement Date',
-
-        reason:
-            'Reason',
-
-        notes:
-            'Notes'
-
-    };
-
-    return names[field] ?? field;
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Render Movement Conflict
-|--------------------------------------------------------------------------
-*/
-
-function renderMovementConflict(record) {
-
-    const offlineData =
-        record.payload ?? {};
-
-    const serverData =
-        record.server_data ??
-        getServerData(record) ??
-        {};
-
-
-    /*
-     * ----------------------------------------------------------
-     * Swine Information
-     * ----------------------------------------------------------
-     */
-
-    const swineTag =
-        serverData?.tag_number ??
-        offlineData?.tag_number ??
-        'Unknown Swine';
-
-
-    /*
-     * ----------------------------------------------------------
-     * Location Values
-     * ----------------------------------------------------------
-     */
-
-    const originalLocation =
-        offlineData?.original_location_id ??
-        offlineData?.from_location_id ??
-        null;
-
-
-    const offlineDestination =
-        offlineData?.to_location_id ??
-        null;
-
-
-    const serverLocation =
-        serverData?.current_location_id ??
-        null;
-
-
-    /*
-     * ----------------------------------------------------------
-     * Movement Conflict Differences
-     * ----------------------------------------------------------
-     */
-
-    const differences = [];
-
-
-    /*
-     * Original location
-     */
-
-    if (originalLocation !== null) {
-
-        differences.push({
-
-            field:
-                'original_location_id',
-
-            offline:
-                originalLocation,
-
-            server:
-                '—'
-
-        });
-
-    }
-
-
-    /*
-     * Offline destination vs server's
-     * current location.
-     *
-     * This is the important conflict.
-     */
-
-    differences.push({
-
-        field:
-            'to_location_id',
-
-        offline:
-            offlineDestination,
-
-        server:
-            serverLocation
-
-    });
-
-
-    /*
-     * Movement date
-     */
-
-    if (offlineData?.movement_date) {
-
-        differences.push({
-
-            field:
-                'movement_date',
-
-            offline:
-                offlineData.movement_date,
-
-            server:
-                '—'
-
-        });
-
-    }
-
-
-    /*
-     * Reason
-     */
-
-    if (offlineData?.reason) {
-
-        differences.push({
-
-            field:
-                'reason',
-
-            offline:
-                offlineData.reason,
-
-            server:
-                '—'
-
-        });
-
-    }
-
-
-    /*
-     * Notes
-     */
-
-    if (offlineData?.notes) {
-
-        differences.push({
-
-            field:
-                'notes',
-
-            offline:
-                offlineData.notes,
-
-            server:
-                '—'
-
-        });
-
-    }
-
-
-    return `
-
-        <div class="border-b border-red-200 bg-red-50 px-6 py-6">
-
-            <div class="flex flex-col gap-5">
-
-
-                <!-- Header -->
-
-                <div>
-
-                    <div class="flex w-full items-center
-                                justify-between gap-3">
-
-                        <p class="text-sm font-bold text-red-800">
-
-                            Swine Movement
-
-                        </p>
-
-
-                        <span
-                            class="inline-flex items-center
-                                   rounded-full bg-red-100
-                                   px-3 py-1 text-xs
-                                   font-semibold text-red-700
-                                   ring-1 ring-red-200"
-                        >
-
-                            Conflict
-
-                        </span>
-
-                    </div>
-
-
-                    <!-- Swine -->
-
-                    <div
-                        class="mt-4 rounded-lg border
-                               border-red-200 bg-white p-4"
-                    >
-
-                        <p
-                            class="text-xs font-semibold
-                                   uppercase tracking-wide
-                                   text-gray-500"
-                        >
-
-                            Swine Being Moved
-
-                        </p>
-
-
-                        <div class="mt-2">
-
-                            <p class="text-lg font-bold text-gray-900">
-
-                                ${escapeHtml(swineTag)}
-
-                            </p>
-
-
-                            <p class="text-xs text-gray-500">
-
-                                Tag Number
-
-                            </p>
-
-                        </div>
-
-                    </div>
-
-
-                    <p class="mt-4 text-sm text-red-700">
-
-                        ${escapeHtml(
-        record.error_message ??
-        'This swine was moved by another user while this device was offline.'
-    )}
-
-                    </p>
-
-
-                    <p class="mt-1 text-xs text-gray-500">
-
-                        Conflict detected:
-                        ${formatDate(record.conflict_at)}
-
-                    </p>
-
-                </div>
-
-
-                <!-- Conflicting Data -->
-
-                <div
-                    class="overflow-hidden rounded-lg
-                           border border-gray-200 bg-white"
-                >
-
-                    <div
-                        class="border-b border-gray-200
-                               bg-gray-50 px-4 py-3"
-                    >
-
-                        <h4
-                            class="text-sm font-semibold
-                                   text-gray-900"
-                        >
-
-                            Conflicting Movement
-
-                        </h4>
-
-
-                        <p class="mt-1 text-xs text-gray-500">
-
-                            The swine's location was changed while
-                            this device was offline.
-
-                        </p>
-
-                    </div>
-
-
-                    <div class="overflow-x-auto">
-
-                        <table
-                            class="min-w-full divide-y
-                                   divide-gray-200"
-                        >
-
-                            <thead class="bg-gray-50">
-
-                                <tr>
-
-                                    <th
-                                        class="px-4 py-3 text-left
-                                               text-xs font-semibold
-                                               uppercase tracking-wide
-                                               text-gray-500"
-                                    >
-
-                                        Field
-
-                                    </th>
-
-
-                                    <th
-                                        class="px-4 py-3 text-left
-                                               text-xs font-semibold
-                                               uppercase tracking-wide
-                                               text-red-600"
-                                    >
-
-                                        Offline Version
-
-                                    </th>
-
-
-                                    <th
-                                        class="px-4 py-3 text-left
-                                               text-xs font-semibold
-                                               uppercase tracking-wide
-                                               text-green-600"
-                                    >
-
-                                        Server Version
-
-                                    </th>
-
-                                </tr>
-
-                            </thead>
-
-
-                            <tbody
-                                class="divide-y divide-gray-200
-                                       bg-white"
-                            >
-
-                                ${differences.map(
-        difference => `
-
-                                        <tr>
-
-                                            <td
-                                                class="whitespace-nowrap
-                                                       px-4 py-3 text-sm
-                                                       font-medium
-                                                       text-gray-900"
-                                            >
-
-                                                ${formatFieldName(
-            difference.field
-        )}
-
-                                            </td>
-
-
-                                            <td
-                                                class="px-4 py-3 text-sm
-                                                       text-red-700"
-                                            >
-
-                                                <div
-                                                    class="rounded-md
-                                                           bg-red-50
-                                                           px-3 py-2"
-                                                >
-
-                                                    ${escapeHtml(
-            formatMovementValue(
-                difference.field,
-                difference.offline
-            )
-        )}
-
-                                                </div>
-
-                                            </td>
-
-
-                                            <td
-                                                class="px-4 py-3 text-sm
-                                                       text-green-700"
-                                            >
-
-                                                <div
-                                                    class="rounded-md
-                                                           bg-green-50
-                                                           px-3 py-2"
-                                                >
-
-                                                    ${escapeHtml(
-            formatMovementValue(
-                difference.field,
-                difference.server
-            )
-        )}
-
-                                                </div>
-
-                                            </td>
-
-                                        </tr>
-
-                                    `
-    ).join('')}
-
-                            </tbody>
-
-                        </table>
-
-                    </div>
-
-                </div>
-
-
-                <!-- Resolution Buttons -->
-
-                <div
-                    class="flex flex-wrap gap-3
-                           border-t border-red-200 pt-4"
-                >
-
-                    <button
-                        type="button"
-                        class="keep-offline-button inline-flex
-                               items-center rounded-lg
-                               bg-indigo-600 px-4 py-2.5
-                               text-sm font-semibold text-white
-                               shadow-sm hover:bg-indigo-700
-                               disabled:opacity-50"
-                        data-id="${record.id}"
-                    >
-
-                        Keep Offline Version
-
-                    </button>
-
-
-                    <button
-                        type="button"
-                        class="keep-server-button inline-flex
-                               items-center rounded-lg
-                               border border-gray-300
-                               bg-white px-4 py-2.5
-                               text-sm font-semibold text-gray-700
-                               shadow-sm hover:bg-gray-50
-                               disabled:opacity-50"
-                        data-id="${record.id}"
-                    >
-
-                        Keep Server Version
-
-                    </button>
-
-                </div>
-
-            </div>
-
-        </div>
-
-    `;
-
-}
-
-/*
-|--------------------------------------------------------------------------
-| Format Movement Conflict Values
-|--------------------------------------------------------------------------
-*/
-
-function formatMovementValue(field, value) {
+// ============================================================
+// LOCATION LABEL
+// ============================================================
+
+function locationLabel(locationId) {
 
     if (
-        value === null ||
-        value === undefined ||
-        value === ''
+        locationId === null ||
+        locationId === undefined ||
+        locationId === ''
     ) {
-        return '—';
+        return 'Not specified';
     }
 
 
-    if (field === 'movement_date') {
-
-        return formatDate(value);
-
-    }
-
-
-    return String(value);
-
+    return `Location ${locationId}`;
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Keep Server Version
-|--------------------------------------------------------------------------
-*/
+// ============================================================
+// ACTUAL SYNCHRONIZATION
+// ============================================================
 
-async function keepServerVersion(recordId) {
+async function syncPendingRecords() {
 
-    const confirmed =
-        confirm(
-            'Keep the server version and discard your offline changes?'
+    if (!navigator.onLine) {
+
+        console.log(
+            'Synchronization skipped because device is offline.'
         );
 
-    if (!confirmed) {
-        return;
+        return {
+            successful: 0,
+            conflicts: 0,
+            failed: 0
+        };
     }
 
 
-    try {
-
-        const records =
-            await getAllOffline(
-                'sync_queue'
-            );
+    console.log(
+        'Checking IndexedDB sync queue...'
+    );
 
 
-        const record =
-            records.find(
-                item =>
-                    Number(item.id) ===
-                    Number(recordId)
-            );
-
-
-        if (!record) {
-
-            throw new Error(
-                'Synchronization record was not found.'
-            );
-
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | If this is a movement conflict,
-        | restore the server location locally.
-        |--------------------------------------------------------------------------
-        */
-
-        if (record.type === 'movement') {
-
-            const swineId =
-                record.payload?.swine_id ??
-                record.swine_id;
-
-
-            const serverData =
-                record.server_data ??
-                getServerData(record) ??
-                {};
-
-
-            const serverLocation =
-                serverData.current_location_id;
-
-
-            if (
-                swineId &&
-                serverLocation !== undefined &&
-                serverLocation !== null
-            ) {
-
-                const localSwine =
-                    await getOffline(
-                        'swine',
-                        Number(swineId)
-                    );
-
-
-                if (localSwine) {
-
-                    localSwine.current_location_id =
-                        Number(serverLocation);
-
-                    localSwine.sync_status =
-                        'synced';
-
-                    localSwine.synced_at =
-                        new Date().toISOString();
-
-                    delete localSwine.conflict_at;
-
-
-                    await saveOffline(
-                        'swine',
-                        localSwine
-                    );
-
-                }
-
-            }
-
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Remove conflict from queue.
-        |--------------------------------------------------------------------------
-        */
-
-        await deleteOffline(
-            'sync_queue',
-            Number(recordId)
+    const records =
+        await getAllOffline(
+            SYNC_QUEUE_STORE
         );
 
 
-        alert(
-            'The server version was kept. The offline movement was discarded.'
+    console.log(
+        'All sync queue records:',
+        records
+    );
+
+
+    const pendingRecords =
+        records.filter(
+            record =>
+                record.status === 'pending'
         );
 
 
-        await loadPendingRecords();
+    console.log(
+        'Pending records found:',
+        pendingRecords.length
+    );
 
 
-    } catch (error) {
+    if (pendingRecords.length === 0) {
 
-        console.error(
-            'Unable to keep server version:',
-            error
+        console.log(
+            'No pending records to synchronize.'
         );
 
-
-        alert(
-            'Unable to resolve the conflict.\n\n' +
-            error.message
-        );
-
-    }
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Keep Offline Version
-|--------------------------------------------------------------------------
-*/
-
-async function keepOfflineVersion(record) {
-
-    const confirmed =
-        confirm(
-            'Keep the offline version and overwrite the current server version?'
-        );
-
-    if (!confirmed) {
-        return;
+        return {
+            successful: 0,
+            conflicts: 0,
+            failed: 0
+        };
     }
 
 
-    try {
-
-        /*
-        |--------------------------------------------------------------------------
-        | Get Swine ID
-        |--------------------------------------------------------------------------
-        */
-
-        const swineId =
-            record.payload?.swine_id ??
-            record.swine_id;
-
-        if (!swineId) {
-
-            throw new Error(
-                'Swine ID is missing from the offline record.'
-            );
-
-        }
+    const csrfToken =
+        getCsrfToken();
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | CSRF Token
-        |--------------------------------------------------------------------------
-        */
+    if (!csrfToken) {
 
-        const csrfToken =
-            document
-                .querySelector(
-                    'meta[name="csrf-token"]'
-                )
-                ?.getAttribute(
-                    'content'
-                );
+        throw new Error(
+            'CSRF token was not found. Please refresh the page.'
+        );
+    }
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | MOVEMENT CONFLICT
-        |--------------------------------------------------------------------------
-        |
-        | Movement conflicts MUST NOT use:
-        |
-        | /swine/{swine}/resolve-conflict
-        |
-        | That endpoint is for swine profile updates.
-        |
-        | Movement conflicts use:
-        |
-        | /swine-movements/sync
-        |
-        | with force = true.
-        |
-        */
-
-        if (record.type === 'movement') {
-
-            const movementPayload = {
-
-                swine_id:
-                    Number(swineId),
-
-                original_location_id:
-                    record.payload?.original_location_id ??
-                    record.payload?.from_location_id ??
-                    null,
-
-                from_location_id:
-                    record.payload?.from_location_id ??
-                    record.payload?.original_location_id ??
-                    null,
-
-                to_location_id:
-                    Number(
-                        record.payload?.to_location_id
-                    ),
-
-                movement_date:
-                    record.payload?.movement_date,
-
-                reason:
-                    record.payload?.reason ?? null,
-
-                notes:
-                    record.payload?.notes ?? null,
-
-                force:
-                    true
-
-            };
+    let successfulSync = 0;
+    let conflictCount = 0;
+    let failedCount = 0;
 
 
-            /*
-             * Validate destination.
-             */
+    for (const record of pendingRecords) {
 
-            if (!movementPayload.to_location_id) {
-
-                throw new Error(
-                    'Offline destination location is missing.'
-                );
-
-            }
-
-
-            /*
-             * Validate movement date.
-             */
-
-            if (!movementPayload.movement_date) {
-
-                throw new Error(
-                    'Offline movement date is missing.'
-                );
-
-            }
-
-
-            /*
-             * Movement synchronization endpoint.
-             */
-
-            const endpoint =
-                '/swine-movements/sync';
-
+        try {
 
             console.log(
-                'Keeping offline movement version:',
-                {
-                    swineId:
-                        Number(swineId),
-
-                    endpoint:
-                        endpoint,
-
-                    payload:
-                        movementPayload
-                }
+                'Synchronizing queue record:',
+                record.id,
+                record
             );
 
 
-            /*
-             * Send movement resolution.
-             */
+            // ------------------------------------------------
+            // MARK AS SYNCING
+            // ------------------------------------------------
+
+            record.status =
+                'syncing';
+
+
+            await saveOffline(
+                SYNC_QUEUE_STORE,
+                record
+            );
+
+
+            // ------------------------------------------------
+            // SEND TO LARAVEL
+            // ------------------------------------------------
 
             const response =
                 await fetch(
-                    endpoint,
+                    record.endpoint,
                     {
-
                         method:
-                            'POST',
+                            record.method ?? 'POST',
 
                         headers: {
-
                             'Content-Type':
                                 'application/json',
 
@@ -1180,14 +329,12 @@ async function keepOfflineVersion(record) {
 
                             'X-Requested-With':
                                 'XMLHttpRequest'
-
                         },
 
                         body:
                             JSON.stringify(
-                                movementPayload
+                                record.payload ?? {}
                             )
-
                     }
                 );
 
@@ -1196,202 +343,945 @@ async function keepOfflineVersion(record) {
                 await response.text();
 
 
-            console.log(
-                'Movement conflict resolution response:',
-                response.status,
-                responseText
-            );
+            let result = null;
 
-
-            /*
-             * Check response.
-             */
-
-            if (!response.ok) {
-
-                throw new Error(
-                    responseText ||
-                    `Server returned HTTP ${response.status}.`
-                );
-
-            }
-
-
-            /*
-             * Parse response if possible.
-             */
-
-            let responseData = null;
 
             try {
 
-                responseData =
-                    JSON.parse(responseText);
+                result =
+                    responseText
+                        ? JSON.parse(responseText)
+                        : null;
 
             } catch (error) {
 
-                responseData = null;
-
+                console.error(
+                    'Unable to parse synchronization response:',
+                    responseText
+                );
             }
 
 
-            if (
-                responseData &&
-                responseData.success === false
-            ) {
+            console.log(
+                'Synchronization response:',
+                {
+                    queueId: record.id,
+                    httpStatus: response.status,
+                    ok: response.ok,
+                    result
+                }
+            );
 
-                throw new Error(
-                    responseData.message ||
-                    'Unable to save the offline movement version.'
+
+            // =================================================
+            // CONFLICT
+            // =================================================
+
+            if (response.status === 409) {
+
+                record.status =
+                    'conflict';
+
+
+                record.conflict_at =
+                    new Date().toISOString();
+
+
+                record.error_message =
+                    result?.message ??
+                    'Synchronization conflict detected.';
+
+
+                record.server_response =
+                    responseText;
+
+
+                record.server_data =
+                    result?.server_data ??
+                    null;
+
+
+                record.server_movement_id =
+                    result?.server_movement_id ??
+                    result?.server_data?.movement_id ??
+                    result?.server_data?.id ??
+                    null;
+
+
+                await saveOffline(
+                    SYNC_QUEUE_STORE,
+                    record
                 );
 
+
+                conflictCount++;
+
+
+                console.warn(
+                    'Movement synchronization conflict:',
+                    {
+                        queueId: record.id,
+                        serverMovementId:
+                            record.server_movement_id,
+                        serverData:
+                            record.server_data
+                    }
+                );
+
+
+                continue;
             }
 
 
-            /*
-             * Remove the conflict from
-             * the synchronization queue.
-             */
+            // =================================================
+            // OTHER SERVER ERROR
+            // =================================================
+
+            if (!response.ok) {
+
+                record.status =
+                    'pending';
+
+
+                record.error_message =
+                    result?.message ??
+                    `Server returned HTTP ${response.status}.`;
+
+
+                record.last_attempt_at =
+                    new Date().toISOString();
+
+
+                await saveOffline(
+                    SYNC_QUEUE_STORE,
+                    record
+                );
+
+
+                failedCount++;
+
+
+                console.error(
+                    'Synchronization failed:',
+                    {
+                        queueId: record.id,
+                        status: response.status,
+                        result
+                    }
+                );
+
+
+                continue;
+            }
+
+
+            // =================================================
+            // SUCCESS
+            // =================================================
+
+            console.log(
+                'Synchronization successful:',
+                record.id,
+                result
+            );
+
+
+            // ------------------------------------------------
+            // UPDATE LOCAL MOVEMENT/SWINE
+            // ------------------------------------------------
+
+            if (
+                record.type ===
+                'movement'
+            ) {
+
+                const swineId =
+                    record.payload?.swine_id;
+
+
+                const destinationId =
+                    record.payload?.to_location_id;
+
+
+                if (
+                    swineId &&
+                    destinationId
+                ) {
+
+                    const localSwine =
+                        await getOffline(
+                            SWINE_STORE,
+                            Number(swineId)
+                        );
+
+
+                    if (localSwine) {
+
+                        localSwine.current_location_id =
+                            Number(destinationId);
+
+
+                        localSwine.sync_status =
+                            'synced';
+
+
+                        await saveOffline(
+                            SWINE_STORE,
+                            localSwine
+                        );
+
+
+                        console.log(
+                            'Local swine location updated:',
+                            {
+                                swineId,
+                                destinationId
+                            }
+                        );
+                    }
+                }
+
+
+                // ------------------------------------------------
+                // MARK LOCAL MOVEMENT AS SYNCED
+                // ------------------------------------------------
+
+                const localMovementId =
+                    record.payload?.local_id;
+
+
+                if (localMovementId) {
+
+                    const localMovement =
+                        await getOffline(
+                            'movements',
+                            localMovementId
+                        );
+
+
+                    if (localMovement) {
+
+                        localMovement.sync_status =
+                            'synced';
+
+
+                        localMovement.server_id =
+                            result?.movement?.id ??
+                            result?.movement_id ??
+                            result?.id ??
+                            null;
+
+
+                        await saveOffline(
+                            'movements',
+                            localMovement
+                        );
+                    }
+                }
+            }
+
+
+            // ------------------------------------------------
+            // REMOVE SUCCESSFULLY SYNCHRONIZED QUEUE ITEM
+            // ------------------------------------------------
 
             await deleteOffline(
-                'sync_queue',
+                SYNC_QUEUE_STORE,
                 Number(record.id)
             );
 
 
-            /*
-             * Update local swine location.
-             *
-             * The offline destination is now
-             * the authoritative location.
-             */
-
-            const localSwine =
-                await getOffline(
-                    'swine',
-                    Number(swineId)
-                );
+            successfulSync++;
 
 
-            if (localSwine) {
+        } catch (error) {
 
-                localSwine.current_location_id =
-                    Number(
-                        movementPayload.to_location_id
-                    );
-
-                localSwine.sync_status =
-                    'synced';
-
-                localSwine.synced_at =
-                    new Date().toISOString();
-
-                delete localSwine.conflict_at;
-
-
-                await saveOffline(
-                    'swine',
-                    localSwine
-                );
-
-            }
-
-
-            /*
-             * Success.
-             */
-
-            alert(
-                'The offline movement version was successfully saved to the server.'
+            console.error(
+                'Error synchronizing queue record:',
+                record.id,
+                error
             );
 
 
-            await loadPendingRecords();
+            record.status =
+                'pending';
 
 
-            return;
+            record.error_message =
+                error?.message ??
+                'Unable to synchronize record.';
 
+
+            record.last_attempt_at =
+                new Date().toISOString();
+
+
+            await saveOffline(
+                SYNC_QUEUE_STORE,
+                record
+            );
+
+
+            failedCount++;
         }
+    }
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | SWINE UPDATE CONFLICT
-        |--------------------------------------------------------------------------
-        |
-        | Everything below is for normal swine-update conflicts.
-        |
-        */
+    if (successfulSync > 0) {
 
-        const payload = {
-
-            ...(record.payload ?? {}),
-
-            swine_id:
-                Number(swineId),
-
-            force:
-                true
-
-        };
+        updateLastSync();
+    }
 
 
-        /*
-         * QR token must never be changed.
-         */
-
-        delete payload.qr_token;
-
-        delete payload.id;
-
-        delete payload.created_at;
-
-        delete payload.updated_at;
-
-        delete payload.sync_status;
-
-        delete payload.synced_at;
-
-        delete payload.conflict_at;
+    console.log(
+        'Synchronization summary:',
+        {
+            successful: successfulSync,
+            conflicts: conflictCount,
+            failed: failedCount
+        }
+    );
 
 
-        /*
-         * Swine update conflict endpoint.
-         */
+    return {
+        successful: successfulSync,
+        conflicts: conflictCount,
+        failed: failedCount
+    };
+}
 
-        const endpoint =
-            `/swine/${Number(swineId)}/resolve-conflict`;
+
+// ============================================================
+// MOVEMENT CONFLICT
+// ============================================================
+
+function renderMovementConflict(
+    record,
+    container
+) {
+
+    const payload =
+        record.payload ?? {};
 
 
-        console.log(
-            'Keeping offline swine version:',
-            {
-                swineId:
-                    Number(swineId),
+    const serverData =
+        getServerData(record);
 
-                endpoint:
-                    endpoint,
 
-                payload:
-                    payload
-            }
+    const serverMovementId =
+        getServerMovementId(record);
+
+
+    const offlineDestination =
+        payload.to_location_id;
+
+
+    const serverDestination =
+        serverData?.to_location_id ??
+        serverData?.current_location_id;
+
+
+    const wrapper =
+        document.createElement('div');
+
+
+    wrapper.className =
+        'border border-red-300 bg-red-50 rounded-xl p-5 mb-4';
+
+
+    wrapper.innerHTML = `
+
+        <div class="flex flex-col gap-4">
+
+            <div class="flex flex-col sm:flex-row
+                        sm:items-start sm:justify-between gap-3">
+
+                <div>
+
+                    <div class="flex items-center gap-2">
+
+                        <span class="inline-flex items-center
+                                     rounded-full bg-red-100
+                                     px-2.5 py-1 text-xs
+                                     font-semibold text-red-700">
+
+                            Conflict
+
+                        </span>
+
+                        <span class="text-sm font-semibold
+                                     text-gray-900">
+
+                            Swine Movement
+
+                        </span>
+
+                    </div>
+
+                    <p class="mt-2 text-sm text-gray-600">
+
+                        This swine was moved by another user
+                        while this device was offline.
+
+                    </p>
+
+                </div>
+
+                <div class="text-xs text-gray-500">
+
+                    Queue ID:
+
+                    <span class="font-semibold">
+                        ${record.id}
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <!-- Versions -->
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+
+                <!-- Offline Version -->
+
+                <div class="rounded-lg bg-white
+                            border border-blue-200 p-4">
+
+                    <div class="flex items-center
+                                justify-between mb-3">
+
+                        <h4 class="font-semibold text-blue-700">
+                            Offline Version
+                        </h4>
+
+                        <span class="text-xs font-medium
+                                     rounded-full bg-blue-100
+                                     px-2 py-1 text-blue-700">
+
+                            Local
+
+                        </span>
+
+                    </div>
+
+
+                    <div class="space-y-2 text-sm">
+
+                        <div class="flex justify-between gap-3">
+                            <span class="text-gray-500">
+                                Swine ID
+                            </span>
+
+                            <span class="font-medium text-gray-900">
+                                ${payload.swine_id ?? '-'}
+                            </span>
+                        </div>
+
+
+                        <div class="flex justify-between gap-3">
+                            <span class="text-gray-500">
+                                From
+                            </span>
+
+                            <span class="font-medium text-gray-900">
+                                ${locationLabel(
+        payload.from_location_id ??
+        payload.original_location_id
+    )}
+                            </span>
+                        </div>
+
+
+                        <div class="flex justify-between gap-3">
+                            <span class="text-gray-500">
+                                To
+                            </span>
+
+                            <span class="font-medium text-blue-700">
+                                ${locationLabel(
+        offlineDestination
+    )}
+                            </span>
+                        </div>
+
+
+                        <div class="flex justify-between gap-3">
+                            <span class="text-gray-500">
+                                Movement Date
+                            </span>
+
+                            <span class="font-medium text-gray-900">
+                                ${payload.movement_date ?? '-'}
+                            </span>
+                        </div>
+
+
+                        <div class="flex justify-between gap-3">
+                            <span class="text-gray-500">
+                                Reason
+                            </span>
+
+                            <span class="font-medium text-gray-900">
+                                ${payload.reason ?? 'Not specified'}
+                            </span>
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Server Version -->
+
+                <div class="rounded-lg bg-white
+                            border border-gray-300 p-4">
+
+                    <div class="flex items-center
+                                justify-between mb-3">
+
+                        <h4 class="font-semibold text-gray-700">
+                            Server Version
+                        </h4>
+
+                        <span class="text-xs font-medium
+                                     rounded-full bg-gray-100
+                                     px-2 py-1 text-gray-700">
+
+                            Online
+
+                        </span>
+
+                    </div>
+
+
+                    <div class="space-y-2 text-sm">
+
+                        <div class="flex justify-between gap-3">
+                            <span class="text-gray-500">
+                                Swine ID
+                            </span>
+
+                            <span class="font-medium text-gray-900">
+                                ${serverData?.swine_id ??
+        payload.swine_id ??
+        '-'}
+                            </span>
+                        </div>
+
+
+                        <div class="flex justify-between gap-3">
+                            <span class="text-gray-500">
+                                From
+                            </span>
+
+                            <span class="font-medium text-gray-900">
+                                ${locationLabel(
+            serverData?.from_location_id
+        )}
+                            </span>
+                        </div>
+
+
+                        <div class="flex justify-between gap-3">
+                            <span class="text-gray-500">
+                                To
+                            </span>
+
+                            <span class="font-medium text-gray-700">
+                                ${locationLabel(
+            serverDestination
+        )}
+                            </span>
+                        </div>
+
+
+                        <div class="flex justify-between gap-3">
+                            <span class="text-gray-500">
+                                Movement Date
+                            </span>
+
+                            <span class="font-medium text-gray-900">
+                                ${serverData?.movement_date ?? '-'}
+                            </span>
+                        </div>
+
+
+                        <div class="flex justify-between gap-3">
+                            <span class="text-gray-500">
+                                Reason
+                            </span>
+
+                            <span class="font-medium text-gray-900">
+                                ${serverData?.reason ??
+        'Not specified'}
+                            </span>
+                        </div>
+
+
+                        <div class="flex justify-between gap-3">
+                            <span class="text-gray-500">
+                                Server Movement ID
+                            </span>
+
+                            <span class="font-semibold text-gray-900">
+                                ${serverMovementId ?? '-'}
+                            </span>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- Actions -->
+
+            <div class="border-t border-red-200 pt-4">
+
+                <p class="text-xs text-gray-500 mb-3">
+
+                    Choose which movement should become
+                    the accepted version in the system.
+
+                </p>
+
+
+                <div class="flex flex-col sm:flex-row gap-3">
+
+                    <button
+                        type="button"
+                        class="keep-server-btn inline-flex
+                               items-center justify-center rounded-lg
+                               bg-gray-700 px-4 py-2.5
+                               text-sm font-semibold text-white
+                               hover:bg-gray-800"
+                        data-record-id="${record.id}"
+                    >
+                        Keep Server Version
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="keep-offline-btn inline-flex
+                               items-center justify-center rounded-lg
+                               bg-[#3368A0] px-4 py-2.5
+                               text-sm font-semibold text-white
+                               hover:bg-[#28557F]"
+                        data-record-id="${record.id}"
+                    >
+                        Keep Offline Version
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+    `;
+
+
+    container.appendChild(wrapper);
+}
+
+
+// ============================================================
+// NORMAL PENDING RECORD
+// ============================================================
+
+function renderPendingRecord(
+    record,
+    container
+) {
+
+    const wrapper =
+        document.createElement('div');
+
+
+    wrapper.className =
+        'border border-gray-200 rounded-xl p-5 mb-4 bg-white';
+
+
+    const payload =
+        record.payload ?? {};
+
+
+    wrapper.innerHTML = `
+
+        <div class="flex flex-col sm:flex-row
+                    sm:items-center sm:justify-between gap-3">
+
+            <div>
+
+                <div class="flex items-center gap-2">
+
+                    <span class="inline-flex items-center
+                                 rounded-full bg-yellow-100
+                                 px-2.5 py-1 text-xs
+                                 font-semibold text-yellow-700">
+
+                        Pending
+
+                    </span>
+
+
+                    <span class="font-semibold text-gray-900">
+
+                        ${record.type ?? 'Record'}
+
+                    </span>
+
+                </div>
+
+
+                <p class="mt-2 text-sm text-gray-500">
+
+                    Waiting for synchronization with the server.
+
+                </p>
+
+
+                <p class="mt-1 text-xs text-gray-400">
+
+                    Created:
+                    ${record.created_at ?? '-'}
+
+                </p>
+
+            </div>
+
+
+            <div class="text-sm text-gray-500">
+
+                Queue ID:
+
+                <span class="font-semibold text-gray-700">
+                    ${record.id}
+                </span>
+
+            </div>
+
+        </div>
+    `;
+
+
+    container.appendChild(wrapper);
+}
+
+
+// ============================================================
+// UPDATE COUNTS
+// ============================================================
+
+function updateCounts(records) {
+
+    const pendingCount =
+        records.filter(
+            record =>
+                record.status === 'pending'
+        ).length;
+
+
+    const conflictCount =
+        records.filter(
+            record =>
+                record.status === 'conflict'
+        ).length;
+
+
+    const pendingElement =
+        document.getElementById(
+            'pending-count'
         );
 
 
-        /*
-         * Send swine update resolution.
-         */
+    const conflictElement =
+        document.getElementById(
+            'conflict-count'
+        );
+
+
+    if (pendingElement) {
+
+        pendingElement.textContent =
+            pendingCount;
+    }
+
+
+    if (conflictElement) {
+
+        conflictElement.textContent =
+            conflictCount;
+    }
+}
+
+
+// ============================================================
+// KEEP SERVER VERSION
+// ============================================================
+
+async function keepServerVersion(recordId) {
+
+    if (!navigator.onLine) {
+
+        alert(
+            'You are currently offline. Please reconnect before keeping the server version.'
+        );
+
+        return;
+    }
+
+
+    const confirmed =
+        confirm(
+            'Keep the server version?\n\n' +
+            'The server movement will remain the accepted version and the offline movement will be discarded.'
+        );
+
+
+    if (!confirmed) {
+        return;
+    }
+
+
+    try {
+
+        const record =
+            await getOffline(
+                SYNC_QUEUE_STORE,
+                Number(recordId)
+            );
+
+
+        if (!record) {
+
+            alert(
+                'The synchronization record could not be found.'
+            );
+
+            return;
+        }
+
+
+        const serverMovementId =
+            getServerMovementId(record);
+
+
+        if (!serverMovementId) {
+
+            alert(
+                'The server movement ID is missing.'
+            );
+
+            return;
+        }
+
+
+        const serverData =
+            getServerData(record);
+
+
+        if (!serverData) {
+
+            alert(
+                'The server movement data is missing.'
+            );
+
+            return;
+        }
+
+
+        const toLocationId =
+            serverData.to_location_id ??
+            serverData.current_location_id ??
+            null;
+
+
+        if (!toLocationId) {
+
+            alert(
+                'The server destination location is missing.'
+            );
+
+            console.error(
+                'Missing server destination:',
+                serverData
+            );
+
+            return;
+        }
+
+
+        const csrfToken =
+            getCsrfToken();
+
+
+        if (!csrfToken) {
+
+            alert(
+                'CSRF token was not found. Please refresh the page.'
+            );
+
+            return;
+        }
+
+
+        const endpoint =
+            `/swine-movements/${serverMovementId}/resolve-conflict`;
+
+
+        const resolvePayload = {
+
+            resolution:
+                'keep_online',
+
+            server_movement_id:
+                Number(serverMovementId),
+
+            swine_id:
+                Number(
+                    serverData.swine_id ??
+                    record.payload?.swine_id
+                ),
+
+            from_location_id:
+                serverData.from_location_id ??
+                null,
+
+            to_location_id:
+                Number(toLocationId),
+
+            movement_date:
+                serverData.movement_date ??
+                record.payload?.movement_date,
+
+            reason:
+                serverData.reason ??
+                null,
+
+            notes:
+                serverData.notes ??
+                null
+        };
+
+
+        console.log(
+            'Keeping server movement:',
+            resolvePayload
+        );
+
 
         const response =
             await fetch(
                 endpoint,
                 {
-
-                    method:
-                        'PUT',
+                    method: 'PUT',
 
                     headers: {
-
                         'Content-Type':
                             'application/json',
 
@@ -1403,12 +1293,12 @@ async function keepOfflineVersion(record) {
 
                         'X-Requested-With':
                             'XMLHttpRequest'
-
                     },
 
                     body:
-                        JSON.stringify(payload)
-
+                        JSON.stringify(
+                            resolvePayload
+                        )
                 }
             );
 
@@ -1417,65 +1307,92 @@ async function keepOfflineVersion(record) {
             await response.text();
 
 
+        let result = null;
+
+
+        try {
+
+            result =
+                responseText
+                    ? JSON.parse(responseText)
+                    : null;
+
+        } catch (error) {
+
+            console.error(
+                'Invalid server response:',
+                responseText
+            );
+        }
+
+
         console.log(
-            'Swine conflict resolution response:',
-            response.status,
-            responseText
+            'Keep Server Version response:',
+            {
+                status: response.status,
+                result
+            }
         );
 
 
         if (!response.ok) {
 
             throw new Error(
-                responseText ||
+                result?.message ??
                 `Server returned HTTP ${response.status}.`
             );
-
         }
 
 
-        /*
-         * Remove conflict queue record.
-         */
+        // ----------------------------------------------------
+        // UPDATE LOCAL SWINE
+        // ----------------------------------------------------
+
+        const swineId =
+            record.payload?.swine_id ??
+            serverData.swine_id;
+
+
+        if (swineId) {
+
+            const localSwine =
+                await getOffline(
+                    SWINE_STORE,
+                    Number(swineId)
+                );
+
+
+            if (localSwine) {
+
+                localSwine.current_location_id =
+                    Number(toLocationId);
+
+
+                localSwine.sync_status =
+                    'synced';
+
+
+                await saveOffline(
+                    SWINE_STORE,
+                    localSwine
+                );
+            }
+        }
+
+
+        // ----------------------------------------------------
+        // REMOVE OFFLINE QUEUE RECORD
+        // ----------------------------------------------------
 
         await deleteOffline(
-            'sync_queue',
-            Number(record.id)
+            SYNC_QUEUE_STORE,
+            Number(recordId)
         );
 
 
-        /*
-         * Mark local swine as synced.
-         */
-
-        const localSwine =
-            await getOffline(
-                'swine',
-                Number(swineId)
-            );
-
-
-        if (localSwine) {
-
-            localSwine.sync_status =
-                'synced';
-
-            localSwine.synced_at =
-                new Date().toISOString();
-
-            delete localSwine.conflict_at;
-
-
-            await saveOffline(
-                'swine',
-                localSwine
-            );
-
-        }
-
-
         alert(
-            'The offline version was successfully saved to the server.'
+            'The server version was kept successfully.\n\n' +
+            'The offline movement was discarded.'
         );
 
 
@@ -1485,190 +1402,407 @@ async function keepOfflineVersion(record) {
     } catch (error) {
 
         console.error(
-            'Unable to keep offline version:',
+            'Keep Server Version error:',
             error
         );
 
 
         alert(
-            'Unable to save the offline version to the server.\n\n' +
+            'Unable to keep the server version.\n\n' +
             error.message
         );
-
     }
-
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Attach Conflict Buttons
-|--------------------------------------------------------------------------
-*/
+// ============================================================
+// KEEP OFFLINE VERSION
+// ============================================================
 
-async function attachConflictButtons() {
+async function keepOfflineVersion(recordId) {
 
-    const records =
-        await getAllOffline(
-            'sync_queue'
+    if (!navigator.onLine) {
+
+        alert(
+            'You are currently offline. Please reconnect before resolving this conflict.'
         );
 
-
-    const conflicts =
-        records.filter(
-            record =>
-                record.status === 'conflict'
-        );
-
-
-    document
-        .querySelectorAll(
-            '.keep-server-button'
-        )
-        .forEach(button => {
-
-            button.addEventListener(
-                'click',
-                async () => {
-
-                    button.disabled = true;
-
-                    await keepServerVersion(
-                        button.dataset.id
-                    );
-
-                }
-            );
-
-        });
-
-
-    document
-        .querySelectorAll(
-            '.keep-offline-button'
-        )
-        .forEach(button => {
-
-            button.addEventListener(
-                'click',
-                async () => {
-
-                    const record =
-                        conflicts.find(
-                            item =>
-                                String(item.id) ===
-                                String(button.dataset.id)
-                        );
-
-
-                    if (!record) {
-                        return;
-                    }
-
-
-                    button.disabled = true;
-
-                    await keepOfflineVersion(
-                        record
-                    );
-
-                }
-            );
-
-        });
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Load Pending / Conflict Records
-|--------------------------------------------------------------------------
-*/
-
-async function loadPendingRecords() {
-
-    if (!pendingCount || !pendingRecords) {
         return;
     }
+
+
+    const confirmed =
+        confirm(
+            'Keep the offline version?\n\n' +
+            'The server movement will be marked as superseded and the offline movement will become the accepted version.'
+        );
+
+
+    if (!confirmed) {
+        return;
+    }
+
+
+    try {
+
+        const record =
+            await getOffline(
+                SYNC_QUEUE_STORE,
+                Number(recordId)
+            );
+
+
+        if (!record) {
+
+            alert(
+                'The synchronization record could not be found.'
+            );
+
+            return;
+        }
+
+
+        const payload =
+            record.payload ?? {};
+
+
+        const swineId =
+            payload.swine_id;
+
+
+        const serverMovementId =
+            getServerMovementId(record);
+
+
+        if (!swineId) {
+
+            alert(
+                'The swine ID is missing.'
+            );
+
+            return;
+        }
+
+
+        if (!serverMovementId) {
+
+            alert(
+                'The server movement ID is missing.'
+            );
+
+            return;
+        }
+
+
+        if (!payload.to_location_id) {
+
+            alert(
+                'The offline destination location is missing.'
+            );
+
+            return;
+        }
+
+
+        const csrfToken =
+            getCsrfToken();
+
+
+        if (!csrfToken) {
+
+            alert(
+                'CSRF token was not found. Please refresh the page.'
+            );
+
+            return;
+        }
+
+
+        const syncPayload = {
+
+            swine_id:
+                Number(swineId),
+
+            local_id:
+                payload.local_id ??
+                record.id,
+
+            original_location_id:
+                payload.original_location_id ??
+                null,
+
+            from_location_id:
+                payload.from_location_id ??
+                payload.original_location_id ??
+                null,
+
+            to_location_id:
+                Number(payload.to_location_id),
+
+            movement_date:
+                payload.movement_date,
+
+            reason:
+                payload.reason ??
+                null,
+
+            notes:
+                payload.notes ??
+                null,
+
+            server_movement_id:
+                Number(serverMovementId),
+
+            force:
+                true
+        };
+
+
+        console.log(
+            'Keeping offline movement:',
+            syncPayload
+        );
+
+
+        const response =
+            await fetch(
+                '/swine-movements/sync',
+                {
+                    method: 'POST',
+
+                    headers: {
+                        'Content-Type':
+                            'application/json',
+
+                        'Accept':
+                            'application/json',
+
+                        'X-CSRF-TOKEN':
+                            csrfToken,
+
+                        'X-Requested-With':
+                            'XMLHttpRequest'
+                    },
+
+                    body:
+                        JSON.stringify(
+                            syncPayload
+                        )
+                }
+            );
+
+
+        const responseText =
+            await response.text();
+
+
+        let result = null;
+
+
+        try {
+
+            result =
+                responseText
+                    ? JSON.parse(responseText)
+                    : null;
+
+        } catch (error) {
+
+            console.error(
+                'Invalid server response:',
+                responseText
+            );
+        }
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                result?.message ??
+                `Server returned HTTP ${response.status}.`
+            );
+        }
+
+
+        const localSwine =
+            await getOffline(
+                SWINE_STORE,
+                Number(swineId)
+            );
+
+
+        if (localSwine) {
+
+            localSwine.current_location_id =
+                Number(payload.to_location_id);
+
+
+            localSwine.sync_status =
+                'synced';
+
+
+            await saveOffline(
+                SWINE_STORE,
+                localSwine
+            );
+        }
+
+
+        await deleteOffline(
+            SYNC_QUEUE_STORE,
+            Number(recordId)
+        );
+
+
+        alert(
+            'The offline movement version was successfully saved.\n\n' +
+            'The online movement was marked as superseded.'
+        );
+
+
+        await loadPendingRecords();
+
+
+    } catch (error) {
+
+        console.error(
+            'Keep Offline Version error:',
+            error
+        );
+
+
+        alert(
+            'Unable to keep the offline version.\n\n' +
+            error.message
+        );
+    }
+}
+
+
+// ============================================================
+// ATTACH CONFLICT BUTTONS
+// ============================================================
+
+function attachConflictButtons() {
+
+    document
+        .querySelectorAll('.keep-server-btn')
+        .forEach(button => {
+
+            button.addEventListener(
+                'click',
+                async function () {
+
+                    const recordId =
+                        this.dataset.recordId;
+
+
+                    this.disabled =
+                        true;
+
+
+                    await keepServerVersion(
+                        recordId
+                    );
+
+
+                    this.disabled =
+                        false;
+                }
+            );
+        });
+
+
+    document
+        .querySelectorAll('.keep-offline-btn')
+        .forEach(button => {
+
+            button.addEventListener(
+                'click',
+                async function () {
+
+                    const recordId =
+                        this.dataset.recordId;
+
+
+                    this.disabled =
+                        true;
+
+
+                    await keepOfflineVersion(
+                        recordId
+                    );
+
+
+                    this.disabled =
+                        false;
+                }
+            );
+        });
+}
+
+
+// ============================================================
+// LOAD RECORDS
+// ============================================================
+
+async function loadPendingRecords() {
 
     try {
 
         const records =
             await getAllOffline(
-                'sync_queue'
+                SYNC_QUEUE_STORE
             );
 
 
-        /*
-         * Separate records by status.
-         */
-        const pending =
-            records.filter(
-                record =>
-                    record.status === 'pending'
+        console.log(
+            'Sync queue records:',
+            records
+        );
+
+
+        updateCounts(records);
+
+
+        const container =
+            document.getElementById(
+                'pending-records'
             );
 
 
-        const conflicts =
+        if (!container) {
+
+            console.error(
+                '#pending-records was not found.'
+            );
+
+            return;
+        }
+
+
+        container.innerHTML = '';
+
+
+        const visibleRecords =
             records.filter(
                 record =>
+                    record.status === 'pending' ||
                     record.status === 'conflict'
             );
 
 
-        /*
-|--------------------------------------------------------------------------
-| Update Separate Counters
-|--------------------------------------------------------------------------
-*/
+        if (visibleRecords.length === 0) {
 
-        /*
-         * Pending card only counts records
-         * that are actually waiting to sync.
-         */
-        if (pendingCount) {
+            container.innerHTML = `
 
-            pendingCount.textContent =
-                pending.length;
+                <div class="px-6 py-10 text-center">
 
-        }
+                    <p class="text-sm text-gray-500">
 
+                        No pending synchronization
+                        records or conflicts.
 
-        /*
-         * Conflict card only counts records
-         * that require conflict resolution.
-         */
-        if (conflictCount) {
-
-            conflictCount.textContent =
-                conflicts.length;
-
-        }
-
-
-        /*
-         * No pending records and no conflicts.
-         */
-        if (
-            pending.length === 0 &&
-            conflicts.length === 0
-        ) {
-
-            pendingRecords.innerHTML = `
-
-                <div class="px-6 py-12 text-center">
-
-                    <div class="text-3xl">
-                        ✓
-                    </div>
-
-                    <p class="mt-3 text-sm font-medium text-gray-900">
-                        No pending records
-                    </p>
-
-                    <p class="mt-1 text-sm text-gray-500">
-                        All offline records have been synchronized.
                     </p>
 
                 </div>
@@ -1676,265 +1810,38 @@ async function loadPendingRecords() {
             `;
 
             return;
-
         }
 
 
-        /*
-         * Build Pending section.
-         */
-        const pendingSection =
-            pending.length > 0
-
-                ? `
-
-                    <div>
-
-                        <!-- Pending Header -->
-
-                        <div
-                            class="flex items-center justify-between
-                                   border-b border-yellow-200
-                                   bg-yellow-50 px-6 py-4"
-                        >
-
-                            <div>
-
-                                <h3
-                                    class="text-sm font-bold
-                                           text-yellow-800"
-                                >
-
-                                    Pending Synchronization
-
-                                </h3>
-
-                                <p
-                                    class="mt-1 text-xs
-                                           text-yellow-700"
-                                >
-
-                                    These records are waiting to be
-                                    synchronized with the server.
-
-                                </p>
-
-                            </div>
-
-
-                            <span
-                                class="inline-flex items-center
-                                       rounded-full
-                                       bg-yellow-100
-                                       px-3 py-1
-                                       text-xs font-semibold
-                                       text-yellow-700
-                                       ring-1 ring-yellow-200"
-                            >
-
-                                ${pending.length}
-
-                            </span>
-
-                        </div>
-
-
-                        <!-- Pending Records -->
-
-                        <div class="divide-y divide-gray-200">
-
-                            ${pending.map(
-                    record => `
-
-                                    <div class="px-6 py-5">
-
-                                        <div
-                                            class="flex flex-col gap-3
-                                                   sm:flex-row
-                                                   sm:items-center
-                                                   sm:justify-between"
-                                        >
-
-                                            <div>
-
-                                                <p
-                                                    class="text-sm
-                                                           font-semibold
-                                                           text-gray-900"
-                                                >
-
-                                                    ${formatRecordType(
-                        record.type
-                    )}
-
-                                                </p>
-
-
-                                                <p
-                                                    class="mt-1 text-xs
-                                                           text-gray-500"
-                                                >
-
-                                                    Created:
-                                                    ${formatDate(
-                        record.created_at
-                    )}
-
-                                                </p>
-
-                                            </div>
-
-
-                                            <span
-                                                class="inline-flex w-fit
-                                                       items-center
-                                                       rounded-full
-                                                       bg-yellow-100
-                                                       px-3 py-1
-                                                       text-xs
-                                                       font-semibold
-                                                       text-yellow-700
-                                                       ring-1
-                                                       ring-yellow-200"
-                                            >
-
-                                                Pending
-
-                                            </span>
-
-                                        </div>
-
-                                    </div>
-
-                                `
-                ).join('')}
-
-                        </div>
-
-                    </div>
-
-                `
-
-                : '';
-
-
-        /*
-         * Build Conflict section.
-         *
-         * IMPORTANT:
-         * Conflicts are intentionally placed in their
-         * own section and are NOT rendered inside the
-         * Pending section.
-         */
-        const conflictSection =
-            conflicts.length > 0
-
-                ? `
-
-                    <div
-                        class="border-t-4 border-red-500"
-                    >
-
-                        <!-- Conflict Header -->
-
-                        <div
-                            class="flex items-center justify-between
-                                   bg-red-50
-                                   border-b border-red-200
-                                   px-6 py-4"
-                        >
-
-                            <div>
-
-                                <h3
-                                    class="text-sm font-bold
-                                           text-red-800"
-                                >
-
-                                    Conflict Resolution Required
-
-                                </h3>
-
-
-                                <p
-                                    class="mt-1 text-xs
-                                           text-red-700"
-                                >
-
-                                    These records were modified on
-                                    another device while this device
-                                    was offline.
-
-                                </p>
-
-                            </div>
-
-
-                            <span
-                                class="inline-flex items-center
-                                       rounded-full
-                                       bg-red-100
-                                       px-3 py-1
-                                       text-xs font-semibold
-                                       text-red-700
-                                       ring-1 ring-red-200"
-                            >
-
-                                ${conflicts.length}
-
-                            </span>
-
-                        </div>
-
-
-                        <!-- Conflict Records -->
-
-                        <div>
-
-                            ${conflicts.map(
-                    record => {
-
-                        if (record.type === 'movement') {
-
-                            return renderMovementConflict(record);
-
-                        }
-
-                        return renderConflict(record);
-
-                    }
-                ).join('')}
-
-                        </div>
-
-                    </div>
-
-                `
-
-                : '';
-
-
-        /*
-         * Render the two sections separately.
-         */
-        pendingRecords.innerHTML = `
-
-            <div>
-
-                ${pendingSection}
-
-                ${conflictSection}
-
-            </div>
-
-        `;
-
-
-        /*
-         * Attach Keep Server / Keep Offline buttons
-         * only after conflict elements exist in DOM.
-         */
-        await attachConflictButtons();
+        visibleRecords
+            .sort(
+                (a, b) =>
+                    Number(b.id) -
+                    Number(a.id)
+            )
+            .forEach(record => {
+
+                if (
+                    record.status === 'conflict' &&
+                    record.type === 'movement'
+                ) {
+
+                    renderMovementConflict(
+                        record,
+                        container
+                    );
+
+                } else {
+
+                    renderPendingRecord(
+                        record,
+                        container
+                    );
+                }
+            });
+
+
+        attachConflictButtons();
 
 
     } catch (error) {
@@ -1945,206 +1852,255 @@ async function loadPendingRecords() {
         );
 
 
-        pendingCount.textContent =
-            '—';
+        const container =
+            document.getElementById(
+                'pending-records'
+            );
 
 
-        pendingRecords.innerHTML = `
+        if (container) {
 
-            <div class="px-6 py-10 text-center">
+            container.innerHTML = `
 
-                <p class="text-sm text-red-600">
+                <div class="px-6 py-10 text-center">
 
-                    Unable to load offline records.
+                    <p class="text-sm text-red-600">
 
-                </p>
+                        Unable to load synchronization records.
 
-            </div>
+                    </p>
 
-        `;
+                    <p class="mt-1 text-xs text-gray-500">
 
+                        Check the browser console for details.
+
+                    </p>
+
+                </div>
+
+            `;
+        }
     }
-
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Last Synchronization
-|--------------------------------------------------------------------------
-*/
+// ============================================================
+// MANUAL SYNC
+// ============================================================
 
-function loadLastSync() {
+async function performSync() {
 
-    if (!lastSync) {
+    if (!navigator.onLine) {
+
+        alert(
+            'There is currently no internet connection.'
+        );
+
+        await loadPendingRecords();
+
         return;
     }
 
 
-    const savedLastSync =
-        localStorage.getItem(
-            'swine_locate_last_sync'
+    const button =
+        document.getElementById(
+            'sync-now-button'
         );
 
 
-    if (!savedLastSync) {
+    if (button) {
 
-        lastSync.textContent =
-            'Not yet synchronized';
+        button.disabled =
+            true;
 
-        return;
-
+        button.textContent =
+            'Synchronizing...';
     }
 
 
-    lastSync.textContent =
-        formatDate(savedLastSync);
+    try {
 
+        const result =
+            await syncPendingRecords();
+
+
+        await loadPendingRecords();
+
+
+        if (
+            result &&
+            result.conflicts > 0
+        ) {
+
+            console.warn(
+                'Synchronization completed with conflicts:',
+                result.conflicts
+            );
+        }
+
+
+    } catch (error) {
+
+        console.error(
+            'Synchronization error:',
+            error
+        );
+
+
+        alert(
+            'Synchronization failed.\n\n' +
+            error.message
+        );
+
+
+    } finally {
+
+        if (button) {
+
+            button.disabled =
+                false;
+
+            button.textContent =
+                'Sync Now';
+        }
+    }
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Refresh
-|--------------------------------------------------------------------------
-*/
+// ============================================================
+// INITIALIZATION
+// ============================================================
 
-async function refreshSyncStatus() {
+async function initializeSyncStatus() {
 
     updateConnectionStatus();
 
-    loadLastSync();
+
+    // --------------------------------------------------------
+    // Load existing records first
+    // --------------------------------------------------------
 
     await loadPendingRecords();
 
-}
+
+    // --------------------------------------------------------
+    // IMPORTANT:
+    // If page loads while ONLINE, immediately synchronize.
+    // --------------------------------------------------------
+
+    if (navigator.onLine) {
+
+        console.log(
+            'Page loaded while online. Checking pending records...'
+        );
 
 
-/*
-|--------------------------------------------------------------------------
-| Manual Sync
-|--------------------------------------------------------------------------
-*/
+        try {
 
-if (syncButton) {
+            await syncPendingRecords();
 
-    syncButton.addEventListener(
-        'click',
+            await loadPendingRecords();
+
+        } catch (error) {
+
+            console.error(
+                'Initial automatic synchronization failed:',
+                error
+            );
+        }
+    }
+
+
+    // --------------------------------------------------------
+    // INTERNET RESTORED
+    // --------------------------------------------------------
+
+    window.addEventListener(
+        'online',
         async () => {
 
-            if (!navigator.onLine) {
-
-                alert(
-                    'You are currently offline.'
-                );
-
-                return;
-
-            }
+            console.log(
+                'Internet connection restored.'
+            );
 
 
-            if (syncButton.disabled) {
-                return;
-            }
-
-
-            syncButton.disabled = true;
-
-
-            const originalText =
-                syncButton.textContent;
-
-
-            syncButton.textContent =
-                'Synchronizing...';
+            updateConnectionStatus();
 
 
             try {
 
                 await syncPendingRecords();
 
-
-                await new Promise(
-                    resolve =>
-                        setTimeout(
-                            resolve,
-                            700
-                        )
-                );
-
-
-                await refreshSyncStatus();
-
+                await loadPendingRecords();
 
             } catch (error) {
 
                 console.error(
-                    'Synchronization failed:',
+                    'Automatic synchronization failed:',
                     error
                 );
-
-
-                alert(
-                    'Synchronization failed. Please try again.'
-                );
-
-            } finally {
-
-                syncButton.disabled = false;
-
-                syncButton.textContent =
-                    originalText;
-
             }
-
         }
     );
 
+
+    // --------------------------------------------------------
+    // INTERNET LOST
+    // --------------------------------------------------------
+
+    window.addEventListener(
+        'offline',
+        async () => {
+
+            console.log(
+                'Device is now offline.'
+            );
+
+
+            updateConnectionStatus();
+
+
+            await loadPendingRecords();
+        }
+    );
+
+
+    // --------------------------------------------------------
+    // MANUAL SYNC BUTTON
+    // --------------------------------------------------------
+
+    const syncButton =
+        document.getElementById(
+            'sync-now-button'
+        );
+
+
+    if (syncButton) {
+
+        syncButton.addEventListener(
+            'click',
+            performSync
+        );
+    }
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Online Event
-|--------------------------------------------------------------------------
-*/
+// ============================================================
+// START
+// ============================================================
 
-window.addEventListener(
-    'online',
-    async () => {
+if (
+    document.readyState ===
+    'loading'
+) {
 
-        updateConnectionStatus();
+    document.addEventListener(
+        'DOMContentLoaded',
+        initializeSyncStatus
+    );
 
-        await syncPendingRecords();
+} else {
 
-        await refreshSyncStatus();
+    initializeSyncStatus();
 
-    }
-);
-
-
-/*
-|--------------------------------------------------------------------------
-| Offline Event
-|--------------------------------------------------------------------------
-*/
-
-window.addEventListener(
-    'offline',
-    async () => {
-
-        updateConnectionStatus();
-
-        await loadPendingRecords();
-
-    }
-);
-
-
-/*
-|--------------------------------------------------------------------------
-| Initial Load
-|--------------------------------------------------------------------------
-*/
-
-refreshSyncStatus();
+}
