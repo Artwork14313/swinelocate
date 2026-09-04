@@ -504,22 +504,9 @@ class SwineMovementController extends Controller
         | KEEP OFFLINE VERSION
         |--------------------------------------------------------------------------
         |
-        | User selected:
+        | This happens only when the user explicitly chooses:
         |
         | "Keep Offline Version"
-        |
-        | Example:
-        |
-        | Server movement:
-        |     73: PEN-003 -> PEN-002
-        |
-        | Offline movement:
-        |     PEN-002 -> PEN-001
-        |
-        | Result:
-        |
-        |     73 = superseded / offline
-        |     74 = completed / offline
         |
         |--------------------------------------------------------------------------
         */
@@ -530,17 +517,15 @@ class SwineMovementController extends Controller
 
                 /*
                 |--------------------------------------------------------------------------
-                | Lock Swine Record
-                |--------------------------------------------------------------------------
-                |
-                | Prevent another request from changing the swine location while
-                | this conflict is being resolved.
-                |
+                | Lock Swine
                 |--------------------------------------------------------------------------
                 */
 
                 $swine = Swine::query()
-                    ->where('id', $swine->id)
+                    ->where(
+                        'id',
+                        $swine->id
+                    )
                     ->lockForUpdate()
                     ->firstOrFail();
 
@@ -575,7 +560,7 @@ class SwineMovementController extends Controller
 
                 /*
                 |--------------------------------------------------------------------------
-                | Fallback
+                | Fallback Server Movement
                 |--------------------------------------------------------------------------
                 */
 
@@ -604,7 +589,7 @@ class SwineMovementController extends Controller
 
                 /*
                 |--------------------------------------------------------------------------
-                | Get Server Movement ID
+                | Server Movement ID
                 |--------------------------------------------------------------------------
                 */
 
@@ -651,12 +636,6 @@ class SwineMovementController extends Controller
 
                 if ($existingOfflineMovement) {
 
-                    /*
-                    |------------------------------------------------------------------
-                    | Make sure the swine is at the accepted offline destination.
-                    |------------------------------------------------------------------
-                    */
-
                     $swine->update([
 
                         'current_location_id' =>
@@ -697,7 +676,7 @@ class SwineMovementController extends Controller
 
                 /*
                 |--------------------------------------------------------------------------
-                | Get Current Authoritative Server Location
+                | Current Server Location
                 |--------------------------------------------------------------------------
                 */
 
@@ -708,13 +687,6 @@ class SwineMovementController extends Controller
                 /*
                 |--------------------------------------------------------------------------
                 | Mark Server Movement as Superseded
-                |--------------------------------------------------------------------------
-                |
-                | IMPORTANT:
-                |
-                | Use the query builder directly here so the database receives
-                | the exact status and conflict resolution values.
-                |
                 |--------------------------------------------------------------------------
                 */
 
@@ -747,11 +719,6 @@ class SwineMovementController extends Controller
                 /*
                 |--------------------------------------------------------------------------
                 | Create Accepted Offline Movement
-                |--------------------------------------------------------------------------
-                |
-                | The accepted offline movement begins from the current SERVER
-                | location, not the stale offline location.
-                |
                 |--------------------------------------------------------------------------
                 */
 
@@ -796,7 +763,7 @@ class SwineMovementController extends Controller
 
                 /*
                 |--------------------------------------------------------------------------
-                | Update Current Swine Location
+                | Update Current Location
                 |--------------------------------------------------------------------------
                 */
 
@@ -814,72 +781,6 @@ class SwineMovementController extends Controller
                             now(),
 
                     ]);
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Verify Database Values
-                |--------------------------------------------------------------------------
-                |
-                | This is intentionally checked before returning success.
-                |
-                |--------------------------------------------------------------------------
-                */
-
-                $acceptedMovement =
-                    DB::table('swine_movements')
-                        ->where(
-                            'id',
-                            $movementId
-                        )
-                        ->first();
-
-
-                $supersededMovement = null;
-
-                if ($serverMovementId) {
-
-                    $supersededMovement =
-                        DB::table('swine_movements')
-                            ->where(
-                                'id',
-                                $serverMovementId
-                            )
-                            ->first();
-                }
-
-
-                /*
-                |--------------------------------------------------------------------------
-                | Safety Verification
-                |--------------------------------------------------------------------------
-                */
-
-                if (
-                    !$acceptedMovement ||
-                    $acceptedMovement->status !== 'completed' ||
-                    $acceptedMovement->conflict_resolution !== 'offline'
-                ) {
-
-                    throw new \RuntimeException(
-                        'The accepted offline movement could not be saved correctly.'
-                    );
-                }
-
-
-                if ($serverMovementId) {
-
-                    if (
-                        !$supersededMovement ||
-                        $supersededMovement->status !== 'superseded' ||
-                        $supersededMovement->conflict_resolution !== 'offline'
-                    ) {
-
-                        throw new \RuntimeException(
-                            'The online movement could not be marked as superseded.'
-                        );
-                    }
-                }
 
 
                 /*
@@ -918,6 +819,155 @@ class SwineMovementController extends Controller
 
         /*
         |--------------------------------------------------------------------------
+        | NORMAL SYNCHRONIZATION
+        |--------------------------------------------------------------------------
+        */
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | IMPORTANT: CHECK FOR SAME MOVEMENT FIRST
+        |--------------------------------------------------------------------------
+        |
+        | This prevents an existing movement in server history from being
+        | incorrectly treated as a conflict.
+        |
+        | Example:
+        |
+        | Offline:
+        |     Location 1 -> Location 3
+        |
+        | Server:
+        |     Location 1 -> Location 3
+        |
+        | This is NOT a conflict.
+        |
+        |--------------------------------------------------------------------------
+        */
+
+        $offlineFromLocationId =
+            $validated['from_location_id']
+            ?? $validated['original_location_id']
+            ?? null;
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Find Identical Server Movement
+        |--------------------------------------------------------------------------
+        */
+
+        $sameMovementQuery = SwineMovement::query()
+            ->where(
+                'swine_id',
+                $swine->id
+            )
+            ->where(
+                'to_location_id',
+                $destination->id
+            )
+            ->where(
+                'status',
+                '!=',
+                'superseded'
+            );
+
+
+        if ($offlineFromLocationId !== null) {
+
+            $sameMovementQuery->where(
+                'from_location_id',
+                $offlineFromLocationId
+            );
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | Match Movement Date
+        |--------------------------------------------------------------------------
+        |
+        | The offline browser may send local time while the database stores UTC.
+        | Carbon handles the timezone conversion when the date is parsed.
+        |
+        |--------------------------------------------------------------------------
+        */
+
+        $offlineMovementDate =
+            \Carbon\Carbon::parse(
+                $validated['movement_date']
+            );
+
+
+        $sameMovementQuery->whereBetween(
+            'movement_date',
+            [
+                $offlineMovementDate->copy()->subSeconds(5),
+                $offlineMovementDate->copy()->addSeconds(5),
+            ]
+        );
+
+
+        $sameMovement =
+            $sameMovementQuery
+                ->latest('id')
+                ->first();
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | SAME MOVEMENT ALREADY EXISTS
+        |--------------------------------------------------------------------------
+        */
+
+        if ($sameMovement) {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Make Sure Current Location Matches
+            |--------------------------------------------------------------------------
+            */
+
+            if (
+                (int) $swine->current_location_id !==
+                (int) $sameMovement->to_location_id
+            ) {
+
+                $swine->update([
+
+                    'current_location_id' =>
+                        $sameMovement->to_location_id,
+
+                ]);
+            }
+
+
+            return response()->json([
+
+                'success' =>
+                    true,
+
+                'conflict' =>
+                    false,
+
+                'already_applied' =>
+                    true,
+
+                'movement_id' =>
+                    $sameMovement->id,
+
+                'swine_id' =>
+                    $swine->id,
+
+                'message' =>
+                    'This movement was already synchronized on the server.',
+
+            ]);
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
         | CONFLICT DETECTION
         |--------------------------------------------------------------------------
         */
@@ -934,7 +984,7 @@ class SwineMovementController extends Controller
 
             /*
             |--------------------------------------------------------------------------
-            | Detect Location Conflict
+            | Server Location Changed
             |--------------------------------------------------------------------------
             */
 
@@ -945,7 +995,7 @@ class SwineMovementController extends Controller
 
                 /*
                 |--------------------------------------------------------------------------
-                | Find Movement That Changed Server Location
+                | Find Latest Movement That Changed Server Location
                 |--------------------------------------------------------------------------
                 */
 
