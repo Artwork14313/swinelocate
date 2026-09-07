@@ -191,7 +191,8 @@
                         $statusClasses = 'bg-yellow-100 text-yellow-700';
                         $statusIcon = '◷';
 
-                        $daysUntilDue = now()->diffInDays($nextVaccination->next_due_date);
+                        $daysUntilDue = (int) round(now()->diffInDays($nextVaccination->next_due_date));
+
 
                         $vaccinationMessage =
                             'Vaccination is due in ' .

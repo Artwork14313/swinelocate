@@ -1,66 +1,589 @@
 <x-app-layout>
+    <div class="py-6">
+        <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
 
-    <x-slot name="header">
-        <div>
-            <h2 class="text-2xl font-bold text-gray-900">
-                Swine Traceability
-            </h2>
+            {{-- Page Header --}}
+            <div class="mb-6">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">
+                            Swine Traceability
+                        </h1>
 
-            <p class="mt-1 text-sm text-gray-500">
-                QR-based swine identification and movement history
-            </p>
-        </div>
-    </x-slot>
+                        <p class="mt-1 text-sm text-gray-600">
+                            QR-based swine identification and traceability record
+                        </p>
+                    </div>
+
+                    <div>
+                        <a
+                            href="{{ route('qr.scanner') }}"
+                            class="inline-flex items-center rounded-lg bg-gray-800 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-700"
+                        >
+                            Scan Another QR
+                        </a>
+                    </div>
+                </div>
+            </div>
 
 
-    <div class="py-8">
+            {{-- Swine Identification Card --}}
+            <div class="mb-6 overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
 
-        <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+                <div class="border-b border-gray-200 bg-gray-50 px-5 py-4">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 
-            {{-- Swine Information --}}
-            <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                Swine Identification
+                            </p>
 
-                {{-- Header --}}
-                <div class="border-b border-gray-200 px-6 py-6 text-center">
+                            <h2 class="mt-1 text-2xl font-bold text-gray-900">
+                                {{ $swine->tag_number }}
+                            </h2>
 
-                    <p class="text-sm font-medium text-indigo-600">
-                        SwineLocate Traceability Record
+                            @if($swine->name)
+                                <p class="text-sm text-gray-600">
+                                    {{ $swine->name }}
+                                </p>
+                            @endif
+                        </div>
+
+                        <div>
+                            @php
+                                $status = strtolower($swine->status ?? 'unknown');
+                            @endphp
+
+                            @if($status === 'active')
+                                <span class="inline-flex rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+                                    Active
+                                </span>
+                            @elseif($status === 'sold')
+                                <span class="inline-flex rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+                                    Sold
+                                </span>
+                            @elseif($status === 'deceased')
+                                <span class="inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
+                                    Deceased
+                                </span>
+                            @else
+                                <span class="inline-flex rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+                                    {{ ucfirst($swine->status ?? 'Unknown') }}
+                                </span>
+                            @endif
+                        </div>
+
+                    </div>
+                </div>
+
+
+                {{-- Basic Information --}}
+                <div class="grid grid-cols-1 gap-5 p-5 sm:grid-cols-2 lg:grid-cols-3">
+
+                    <div>
+                        <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                            Tag Number
+                        </p>
+                        <p class="mt-1 font-semibold text-gray-900">
+                            {{ $swine->tag_number }}
+                        </p>
+                    </div>
+
+                    <div>
+                        <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                            Sex
+                        </p>
+                        <p class="mt-1 font-semibold text-gray-900">
+                            {{ $swine->sex ? ucfirst($swine->sex) : '—' }}
+                        </p>
+                    </div>
+
+                    <div>
+                        <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                            Breed
+                        </p>
+                        <p class="mt-1 font-semibold text-gray-900">
+                            {{ $swine->breed ?: '—' }}
+                        </p>
+                    </div>
+
+                    <div>
+                        <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                            Farm
+                        </p>
+                        <p class="mt-1 font-semibold text-gray-900">
+                            {{ $swine->farm->name ?? '—' }}
+                        </p>
+                    </div>
+
+                    <div>
+                        <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                            Birth Date
+                        </p>
+                        <p class="mt-1 font-semibold text-gray-900">
+                            {{ $swine->birth_date?->format('M d, Y') ?? '—' }}
+                        </p>
+                    </div>
+
+                    <div>
+                        <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                            Acquisition Date
+                        </p>
+                        <p class="mt-1 font-semibold text-gray-900">
+                            {{ $swine->acquisition_date?->format('M d, Y') ?? '—' }}
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+
+
+            {{-- Current Location --}}
+            <div class="mb-6 rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+
+                <div class="flex items-start gap-4">
+
+                    <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="h-6 w-6"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                            />
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
+                        </svg>
+                    </div>
+
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            Current Location
+                        </p>
+
+                        <p class="mt-1 text-lg font-bold text-gray-900">
+                            {{ $swine->currentLocation->name ?? 'No location assigned' }}
+                        </p>
+
+                        @if($swine->currentLocation)
+                            <p class="mt-1 text-sm text-gray-500">
+                                {{ $swine->currentLocation->location_type ?? 'Farm Location' }}
+                            </p>
+                        @endif
+                    </div>
+
+                </div>
+            </div>
+
+
+            {{-- Traceability Summary --}}
+            <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+
+                {{-- Movements --}}
+                <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+                    <p class="text-sm font-medium text-gray-500">
+                        Total Movements
                     </p>
 
-                    <h1 class="mt-2 text-3xl font-bold text-gray-900">
-                        {{ $swine->tag_number }}
-                    </h1>
+                    <p class="mt-2 text-3xl font-bold text-gray-900">
+                        {{ $swine->movements->count() }}
+                    </p>
+                </div>
 
-                    @if ($swine->name)
 
-                        <p class="mt-1 text-gray-500">
-                            {{ $swine->name }}
-                        </p>
+                {{-- Health Records --}}
+                <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+                    <p class="text-sm font-medium text-gray-500">
+                        Health Records
+                    </p>
+
+                    <p class="mt-2 text-3xl font-bold text-gray-900">
+                        {{ $swine->healthRecords->count() }}
+                    </p>
+                </div>
+
+
+                {{-- Weight Records --}}
+                <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+                    <p class="text-sm font-medium text-gray-500">
+                        Weight Records
+                    </p>
+
+                    <p class="mt-2 text-3xl font-bold text-gray-900">
+                        {{ $swine->weightRecords->count() }}
+                    </p>
+                </div>
+
+            </div>
+
+
+            {{-- Health Status --}}
+            <div class="mb-6 rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+
+                <div class="border-b border-gray-200 px-5 py-4">
+                    <h2 class="text-lg font-bold text-gray-900">
+                        Health Status
+                    </h2>
+
+                    <p class="mt-1 text-sm text-gray-500">
+                        Latest recorded health condition of the swine
+                    </p>
+                </div>
+
+                <div class="p-5">
+
+                    @php
+                        $latestHealth = $swine->healthRecords
+                            ->sortByDesc('record_date')
+                            ->first();
+                    @endphp
+
+                    @if($latestHealth)
+
+                        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+
+                            <div>
+                                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                    Health Status
+                                </p>
+
+                                @php
+                                    $healthStatus = strtolower($latestHealth->health_status ?? 'unknown');
+                                @endphp
+
+                                <div class="mt-2">
+                                    @if($healthStatus === 'healthy')
+                                        <span class="inline-flex rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+                                            Healthy
+                                        </span>
+                                    @elseif(in_array($healthStatus, ['sick', 'ill', 'critical']))
+                                        <span class="inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
+                                            {{ ucfirst($latestHealth->health_status) }}
+                                        </span>
+                                    @else
+                                        <span class="inline-flex rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+                                            {{ ucfirst($latestHealth->health_status ?? 'Unknown') }}
+                                        </span>
+                                    @endif
+                                </div>
+                            </div>
+
+
+                            <div>
+                                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                    Record Date
+                                </p>
+
+                                <p class="mt-1 font-semibold text-gray-900">
+                                    {{ $latestHealth->record_date?->format('M d, Y') ?? '—' }}
+                                </p>
+                            </div>
+
+
+                            <div>
+                                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                    Record Type
+                                </p>
+
+                                <p class="mt-1 font-semibold text-gray-900">
+                                    {{ $latestHealth->record_type ?: '—' }}
+                                </p>
+                            </div>
+
+
+                            <div>
+                                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                    Diagnosis
+                                </p>
+
+                                <p class="mt-1 font-semibold text-gray-900">
+                                    {{ $latestHealth->diagnosis ?: 'None recorded' }}
+                                </p>
+                            </div>
+
+
+                            <div>
+                                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                    Treatment
+                                </p>
+
+                                <p class="mt-1 font-semibold text-gray-900">
+                                    {{ $latestHealth->treatment ?: 'None recorded' }}
+                                </p>
+                            </div>
+
+                        </div>
+
+                        @if($latestHealth->observations || $latestHealth->veterinary_assessment || $latestHealth->notes)
+
+                            <div class="mt-5 border-t border-gray-100 pt-5">
+
+                                <div class="grid grid-cols-1 gap-5 md:grid-cols-3">
+
+                                    @if($latestHealth->observations)
+                                        <div>
+                                            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                                Observations
+                                            </p>
+
+                                            <p class="mt-1 text-sm leading-6 text-gray-700">
+                                                {{ $latestHealth->observations }}
+                                            </p>
+                                        </div>
+                                    @endif
+
+                                    @if($latestHealth->veterinary_assessment)
+                                        <div>
+                                            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                                Veterinary Assessment
+                                            </p>
+
+                                            <p class="mt-1 text-sm leading-6 text-gray-700">
+                                                {{ $latestHealth->veterinary_assessment }}
+                                            </p>
+                                        </div>
+                                    @endif
+
+                                    @if($latestHealth->notes)
+                                        <div>
+                                            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                                Notes
+                                            </p>
+
+                                            <p class="mt-1 text-sm leading-6 text-gray-700">
+                                                {{ $latestHealth->notes }}
+                                            </p>
+                                        </div>
+                                    @endif
+
+                                </div>
+
+                            </div>
+
+                        @endif
+
+                    @else
+
+                        <div class="py-6 text-center">
+                            <p class="text-sm text-gray-500">
+                                No health records available for this swine.
+                            </p>
+                        </div>
 
                     @endif
 
                 </div>
+            </div>
 
 
-                {{-- Current Location --}}
-                <div class="px-6 pt-6">
+            {{-- Vaccination History --}}
+<div class="mb-6 rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
 
-                    <div class="rounded-xl bg-indigo-50 p-5">
+    <div class="border-b border-gray-200 px-5 py-4">
+        <h2 class="text-lg font-bold text-gray-900">
+            Vaccination History
+        </h2>
 
-                        <p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">
-                            Current Location
-                        </p>
+        <p class="mt-1 text-sm text-gray-500">
+            Vaccinations recorded through the health records module
+        </p>
+    </div>
 
-                        <p class="mt-2 text-xl font-bold text-gray-900">
-                            {{ $swine->currentLocation?->name ?? 'No location assigned' }}
-                        </p>
+    <div class="p-5">
 
-                        @if ($swine->currentLocation?->location_code)
+        @php
+            $vaccinations = $swine->healthRecords
+                ->filter(function ($record) {
+                    return strtolower($record->record_type ?? '') === 'vaccination';
+                })
+                ->sortByDesc('record_date');
+        @endphp
 
-                            <p class="mt-1 font-mono text-sm text-indigo-700">
-                                {{ $swine->currentLocation->location_code }}
+        @if($vaccinations->count())
+
+            <div class="space-y-4">
+
+                @foreach($vaccinations as $vaccination)
+
+                    <div class="rounded-lg border border-gray-200 p-4">
+
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+
+                            <div>
+                                <h3 class="font-semibold text-gray-900">
+                                    {{ $vaccination->vaccine_name ?: 'Unnamed Vaccine' }}
+                                </h3>
+
+                                <p class="mt-1 text-sm text-gray-500">
+                                    Vaccination
+                                </p>
+                            </div>
+
+                            @php
+                                $dueDate = $vaccination->next_due_date;
+                                $today = now()->startOfDay();
+                            @endphp
+
+                            @if($dueDate)
+
+                                @if($dueDate->lt($today))
+
+                                    <span class="inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
+                                        Overdue
+                                    </span>
+
+                                @elseif($dueDate->lte($today->copy()->addDays(7)))
+
+                                    <span class="inline-flex rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700">
+                                        Due Soon
+                                    </span>
+
+                                @else
+
+                                    <span class="inline-flex rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+                                        Up to Date
+                                    </span>
+
+                                @endif
+
+                            @endif
+
+                        </div>
+
+
+                        <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
+                            {{-- Date Administered --}}
+                            <div>
+                                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                    Date Administered
+                                </p>
+
+                                <p class="mt-1 text-sm font-semibold text-gray-900">
+                                    {{ $vaccination->record_date?->format('M d, Y') ?? '—' }}
+                                </p>
+                            </div>
+
+
+                            {{-- Dose --}}
+                            <div>
+                                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                    Dose
+                                </p>
+
+                                <p class="mt-1 text-sm font-semibold text-gray-900">
+                                    {{ $vaccination->dose ?: '—' }}
+                                </p>
+                            </div>
+
+
+                            {{-- Batch Number --}}
+                            <div>
+                                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                    Batch Number
+                                </p>
+
+                                <p class="mt-1 text-sm font-semibold text-gray-900">
+                                    {{ $vaccination->batch_number ?: '—' }}
+                                </p>
+                            </div>
+
+
+                            {{-- Next Due Date --}}
+                            <div>
+                                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                    Next Due Date
+                                </p>
+
+                                <p class="mt-1 text-sm font-semibold text-gray-900">
+                                    {{ $vaccination->next_due_date?->format('M d, Y') ?? '—' }}
+                                </p>
+                            </div>
+
+                        </div>
+
+
+                        @if($vaccination->notes)
+
+                            <div class="mt-4 border-t border-gray-100 pt-4">
+
+                                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                    Notes
+                                </p>
+
+                                <p class="mt-1 text-sm leading-6 text-gray-700">
+                                    {{ $vaccination->notes }}
+                                </p>
+
+                            </div>
+
+                        @endif
+
+                    </div>
+
+                @endforeach
+
+            </div>
+
+        @else
+
+            <div class="py-6 text-center">
+
+                <p class="text-sm text-gray-500">
+                    No vaccination records available for this swine.
+                </p>
+
+            </div>
+
+        @endif
+
+    </div>
+
+</div>
+
+
+            {{-- Growth / Weight History --}}
+            <div class="mb-6 rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+
+                <div class="border-b border-gray-200 px-5 py-4">
+
+                    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+
+                        <div>
+                            <h2 class="text-lg font-bold text-gray-900">
+                                Growth & Weight History
+                            </h2>
+
+                            <p class="text-sm text-gray-500">
+                                Recorded weight measurements over time
                             </p>
+                        </div>
 
+                        @php
+                            $latestWeight = $swine->weightRecords
+                                ->sortByDesc('record_date')
+                                ->first();
+                        @endphp
+
+                        @if($latestWeight)
+                            <div class="mt-2 sm:mt-0 sm:text-right">
+                                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                    Latest Weight
+                                </p>
+
+                                <p class="text-xl font-bold text-gray-900">
+                                    {{ number_format((float) $latestWeight->weight, 2) }} kg
+                                </p>
+                            </div>
                         @endif
 
                     </div>
@@ -68,234 +591,191 @@
                 </div>
 
 
-                {{-- Basic Information --}}
-                <div class="px-6 py-6">
+                <div class="p-5">
 
-                    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                    @if($swine->weightRecords->count())
 
-                        {{-- Tag --}}
-                        <div>
-                            <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
-                                Tag Number
-                            </p>
+                        <div class="overflow-x-auto">
 
-                            <p class="mt-1 font-semibold text-gray-900">
-                                {{ $swine->tag_number }}
+                            <table class="min-w-full divide-y divide-gray-200">
+
+                                <thead>
+                                    <tr>
+                                        <th class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                            Date
+                                        </th>
+
+                                        <th class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                            Weight
+                                        </th>
+
+                                        <th class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                            Notes
+                                        </th>
+                                    </tr>
+                                </thead>
+
+                                <tbody class="divide-y divide-gray-100">
+
+                                    @foreach($swine->weightRecords->sortByDesc('record_date') as $weight)
+
+                                        <tr>
+
+                                            <td class="whitespace-nowrap px-3 py-3 text-sm text-gray-700">
+                                                {{ $weight->record_date?->format('M d, Y') ?? '—' }}
+                                            </td>
+
+                                            <td class="whitespace-nowrap px-3 py-3 text-sm font-semibold text-gray-900">
+                                                {{ number_format((float) $weight->weight, 2) }} kg
+                                            </td>
+
+                                            <td class="px-3 py-3 text-sm text-gray-600">
+                                                {{ $weight->notes ?: '—' }}
+                                            </td>
+
+                                        </tr>
+
+                                    @endforeach
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    @else
+
+                        <div class="py-6 text-center">
+                            <p class="text-sm text-gray-500">
+                                No weight records available for this swine.
                             </p>
                         </div>
 
-
-                        {{-- Status --}}
-                        <div>
-                            <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
-                                Status
-                            </p>
-
-                            <p class="mt-1 font-semibold
-                                {{ $swine->status === 'active'
-                                    ? 'text-green-600'
-                                    : 'text-gray-700' }}">
-                                {{ ucfirst($swine->status) }}
-                            </p>
-                        </div>
-
-
-                        {{-- Sex --}}
-                        <div>
-                            <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
-                                Sex
-                            </p>
-
-                            <p class="mt-1 text-gray-900">
-                                {{ ucfirst($swine->sex) }}
-                            </p>
-                        </div>
-
-
-                        {{-- Breed --}}
-                        <div>
-                            <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
-                                Breed
-                            </p>
-
-                            <p class="mt-1 text-gray-900">
-                                {{ $swine->breed ?: '—' }}
-                            </p>
-                        </div>
-
-
-                        {{-- Farm --}}
-                        <div>
-                            <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
-                                Farm
-                            </p>
-
-                            <p class="mt-1 text-gray-900">
-                                {{ $swine->farm?->name ?? '—' }}
-                            </p>
-                        </div>
-
-
-                        {{-- Birth Date --}}
-                        <div>
-                            <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
-                                Birth Date
-                            </p>
-
-                            <p class="mt-1 text-gray-900">
-                                {{ $swine->birth_date?->format('F d, Y') ?? '—' }}
-                            </p>
-                        </div>
-
-
-                        {{-- Acquisition Date --}}
-                        <div>
-                            <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
-                                Acquisition Date
-                            </p>
-
-                            <p class="mt-1 text-gray-900">
-                                {{ $swine->acquisition_date?->format('F d, Y') ?? '—' }}
-                            </p>
-                        </div>
-
-                    </div>
+                    @endif
 
                 </div>
+            </div>
 
 
-                {{-- Traceability Summary --}}
-                <div class="border-t border-gray-200 px-6 py-6">
+            {{-- Movement / Traceability History --}}
+            <div class="mb-6 rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
 
-                    <h3 class="text-lg font-semibold text-gray-900">
-                        Traceability Summary
-                    </h3>
+                <div class="border-b border-gray-200 px-5 py-4">
 
-                    <div class="mt-4 grid grid-cols-2 gap-4">
-
-                        <div class="rounded-xl bg-gray-50 p-4">
-
-                            <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
-                                Total Movements
-                            </p>
-
-                            <p class="mt-2 text-2xl font-bold text-gray-900">
-                                {{ $swine->movements->count() }}
-                            </p>
-
-                        </div>
-
-
-                        <div class="rounded-xl bg-gray-50 p-4">
-
-                            <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
-                                Last Movement
-                            </p>
-
-                            @if ($swine->movements->isNotEmpty())
-
-                                <p class="mt-2 text-sm font-bold text-gray-900">
-                                    {{ $swine->movements->first()->movement_date->format('M d, Y') }}
-                                </p>
-
-                            @else
-
-                                <p class="mt-2 text-sm font-medium text-gray-500">
-                                    No movement
-                                </p>
-
-                            @endif
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                {{-- Movement History --}}
-                <div class="border-t border-gray-200 px-6 py-6">
-
-                    <h3 class="text-lg font-semibold text-gray-900">
-                        Movement History
-                    </h3>
+                    <h2 class="text-lg font-bold text-gray-900">
+                        Movement & Traceability History
+                    </h2>
 
                     <p class="mt-1 text-sm text-gray-500">
-                        Recorded location movements of this swine.
+                        Recorded movement of the swine between farm locations
                     </p>
 
+                </div>
 
-                    @if ($swine->movements->isNotEmpty())
 
-                        <div class="mt-5 space-y-4">
+                <div class="p-5">
 
-                            @foreach ($swine->movements as $movement)
+                    @if($swine->movements->count())
 
-                                <div class="rounded-xl border border-gray-200 p-4">
+                        <div class="space-y-4">
 
-                                    {{-- Date --}}
-                                    <div class="flex items-center justify-between">
+                            @foreach($swine->movements->sortByDesc('movement_date') as $movement)
 
-                                        <p class="text-sm font-semibold text-gray-900">
-                                            {{ $movement->movement_date->format('M d, Y') }}
-                                        </p>
+                                <div class="relative rounded-lg border border-gray-200 p-4">
 
-                                        <p class="text-xs text-gray-500">
-                                            {{ $movement->movement_date->format('h:i A') }}
-                                        </p>
+                                    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+
+                                        <div>
+
+                                            <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                                Movement Date
+                                            </p>
+
+                                            <p class="mt-1 font-semibold text-gray-900">
+                                                {{ $movement->movement_date?->format('M d, Y h:i A') ?? '—' }}
+                                            </p>
+
+                                        </div>
+
+
+                                        @php
+                                            $movementStatus = strtolower($movement->status ?? 'completed');
+                                        @endphp
+
+                                        @if($movementStatus === 'completed')
+
+                                            <span class="inline-flex rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+                                                Completed
+                                            </span>
+
+                                        @elseif($movementStatus === 'superseded')
+
+                                            <span class="inline-flex rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+                                                Superseded
+                                            </span>
+
+                                        @elseif($movementStatus === 'conflict')
+
+                                            <span class="inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
+                                                Conflict
+                                            </span>
+
+                                        @else
+
+                                            <span class="inline-flex rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700">
+                                                {{ ucfirst($movement->status ?? 'Pending') }}
+                                            </span>
+
+                                        @endif
 
                                     </div>
 
 
-                                    {{-- From / To --}}
-                                    <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                                    {{-- Movement Route --}}
+                                    <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3 md:items-center">
 
-                                        {{-- From --}}
-                                        <div>
+                                        <div class="rounded-lg bg-gray-50 p-3">
 
                                             <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
                                                 From
                                             </p>
 
                                             <p class="mt-1 font-semibold text-gray-900">
-                                                {{ $movement->fromLocation?->name ?? 'Initial Location' }}
+                                                {{ $movement->fromLocation->name ?? 'Initial Location' }}
                                             </p>
 
-                                            @if ($movement->fromLocation?->location_code)
+                                        </div>
 
-                                                <p class="mt-1 font-mono text-xs text-gray-500">
-                                                    {{ $movement->fromLocation->location_code }}
-                                                </p>
 
-                                            @endif
+                                        <div class="hidden justify-center md:flex">
+
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                class="h-6 w-6 text-gray-400"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                                stroke-width="2"
+                                            >
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    d="M17 8l4 4m0 0l-4 4m4-4H3"
+                                                />
+                                            </svg>
 
                                         </div>
 
 
-                                        {{-- Arrow --}}
-                                        <div class="flex items-center justify-center text-xl font-bold text-indigo-600">
-                                            →
-                                        </div>
+                                        <div class="rounded-lg bg-blue-50 p-3">
 
-
-                                        {{-- To --}}
-                                        <div>
-
-                                            <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                            <p class="text-xs font-medium uppercase tracking-wide text-blue-600">
                                                 To
                                             </p>
 
                                             <p class="mt-1 font-semibold text-gray-900">
-                                                {{ $movement->toLocation?->name ?? 'Unknown' }}
+                                                {{ $movement->toLocation->name ?? 'Unknown Location' }}
                                             </p>
-
-                                            @if ($movement->toLocation?->location_code)
-
-                                                <p class="mt-1 font-mono text-xs text-gray-500">
-                                                    {{ $movement->toLocation->location_code }}
-                                                </p>
-
-                                            @endif
 
                                         </div>
 
@@ -303,16 +783,52 @@
 
 
                                     {{-- Reason --}}
-                                    @if ($movement->reason)
+                                    @if($movement->reason)
+
+                                        <div class="mt-4">
+
+                                            <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                                Reason
+                                            </p>
+
+                                            <p class="mt-1 text-sm text-gray-700">
+                                                {{ $movement->reason }}
+                                            </p>
+
+                                        </div>
+
+                                    @endif
+
+
+                                    {{-- Notes --}}
+                                    @if($movement->notes)
+
+                                        <div class="mt-3">
+
+                                            <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                                Notes
+                                            </p>
+
+                                            <p class="mt-1 text-sm text-gray-700">
+                                                {{ $movement->notes }}
+                                            </p>
+
+                                        </div>
+
+                                    @endif
+
+
+                                    {{-- Conflict Resolution --}}
+                                    @if($movement->conflict_resolution)
 
                                         <div class="mt-4 border-t border-gray-100 pt-3">
 
-                                            <p class="text-xs text-gray-500">
-                                                Reason:
+                                            <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                                Conflict Resolution
+                                            </p>
 
-                                                <span class="font-medium text-gray-700">
-                                                    {{ $movement->reason }}
-                                                </span>
+                                            <p class="mt-1 text-sm font-semibold text-gray-700">
+                                                {{ ucfirst($movement->conflict_resolution) }}
                                             </p>
 
                                         </div>
@@ -327,14 +843,10 @@
 
                     @else
 
-                        <div class="mt-5 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-6 text-center">
+                        <div class="py-6 text-center">
 
-                            <p class="text-sm font-medium text-gray-700">
-                                No movement history available.
-                            </p>
-
-                            <p class="mt-1 text-xs text-gray-500">
-                                This swine has not been transferred between locations.
+                            <p class="text-sm text-gray-500">
+                                No movement history available for this swine.
                             </p>
 
                         </div>
@@ -342,35 +854,53 @@
                     @endif
 
                 </div>
+            </div>
 
 
-                {{-- QR Token --}}
-                <div class="border-t border-gray-200 bg-gray-50 px-6 py-5 text-center">
+            {{-- QR Information --}}
+            <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
 
-                    <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
-                        QR Identification Token
-                    </p>
+                <div class="border-b border-gray-200 px-5 py-4">
 
-                    <p class="mt-1 break-all font-mono text-xs text-gray-600">
-                        {{ $swine->qr_token }}
+                    <h2 class="text-lg font-bold text-gray-900">
+                        QR Identification
+                    </h2>
+
+                    <p class="mt-1 text-sm text-gray-500">
+                        Unique QR identifier assigned to this swine
                     </p>
 
                 </div>
 
 
-                {{-- Footer --}}
-                <div class="border-t border-gray-200 px-6 py-4 text-center">
+                <div class="p-5">
 
-                    <p class="text-xs text-gray-400">
-                        Powered by SwineLocate
-                    </p>
+                    <div class="rounded-lg bg-gray-50 p-4">
+
+                        <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                            QR Token
+                        </p>
+
+                        <p class="mt-2 break-all font-mono text-sm font-semibold text-gray-900">
+                            {{ $swine->qr_token }}
+                        </p>
+
+                    </div>
 
                 </div>
 
             </div>
 
+
+            {{-- Footer --}}
+            <div class="py-6 text-center">
+
+                <p class="text-xs text-gray-500">
+                    SwineLocate — QR-Based Swine Traceability and Management
+                </p>
+
+            </div>
+
         </div>
-
     </div>
-
 </x-app-layout>
