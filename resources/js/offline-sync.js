@@ -1,18 +1,51 @@
-
 import {
     getAllOffline,
     getOffline,
     saveOffline,
-    deleteOffline,
+    deleteOffline
 } from './offline-db';
 
+import {
+    getCsrfToken
+} from './offline-utils';
 
+
+/*
+|--------------------------------------------------------------------------
+| Synchronization Lock
+|--------------------------------------------------------------------------
+|
+| Only one synchronization process may run at a time.
+|
+*/
 let isSynchronizing = false;
 
 
 /*
 |--------------------------------------------------------------------------
-| Get Pending Synchronization Records
+| Sync Queue Store
+|--------------------------------------------------------------------------
+*/
+
+const SYNC_QUEUE_STORE =
+    'sync_queue';
+
+const SWINE_STORE =
+    'swine';
+
+const HEALTH_RECORD_STORE =
+    'health_records';
+
+const WEIGHT_RECORD_STORE =
+    'weight_records';
+
+const MOVEMENT_STORE =
+    'movements';
+
+
+/*
+|--------------------------------------------------------------------------
+| Get Pending Queue Records
 |--------------------------------------------------------------------------
 */
 
@@ -20,30 +53,13 @@ async function getPendingSync() {
 
     const records =
         await getAllOffline(
-            'sync_queue'
+            SYNC_QUEUE_STORE
         );
 
     return records.filter(
         record =>
             record.status === 'pending'
     );
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Remove Successfully Synchronized Queue Record
-|--------------------------------------------------------------------------
-*/
-
-async function removeFromSyncQueue(id) {
-
-    await deleteOffline(
-        'sync_queue',
-        id
-    );
-
 }
 
 
@@ -54,345 +70,232 @@ async function removeFromSyncQueue(id) {
 */
 
 async function updateQueueStatus(
-    id,
+    record,
     status,
-    extra = {}
+    additionalData = {}
 ) {
 
-    const record =
-        await getOffline(
-            'sync_queue',
-            id
-        );
+    await saveOffline(
+        SYNC_QUEUE_STORE,
+        {
+            ...record,
+            status,
+            ...additionalData
+        }
+    );
+}
 
-    if (!record) {
 
-        console.warn(
-            'Sync queue record not found:',
-            id
+/*
+|--------------------------------------------------------------------------
+| Mark Local Record as Synced
+|--------------------------------------------------------------------------
+*/
+
+async function markLocalRecordAsSynced(
+    record,
+    responseData
+) {
+
+    const payload =
+        record.payload || {};
+
+
+    /*
+     * Weight record
+     */
+    if (
+        record.type ===
+        'weight_record'
+    ) {
+
+        const localId =
+            payload.local_id;
+
+        if (!localId) {
+            return;
+        }
+
+
+        const localRecord =
+            await getOffline(
+                WEIGHT_RECORD_STORE,
+                localId
+            );
+
+        if (!localRecord) {
+            return;
+        }
+
+
+        await saveOffline(
+            WEIGHT_RECORD_STORE,
+            {
+                ...localRecord,
+
+                sync_status:
+                    'synced',
+
+                synced_at:
+                    new Date().toISOString(),
+
+                server_id:
+                    responseData
+                        ?.weight_record_id
+                        ?? null
+
+            }
         );
 
         return;
-
-    }
-
-
-    record.status = status;
-
-    Object.assign(
-        record,
-        extra
-    );
-
-
-    await saveOffline(
-        'sync_queue',
-        record
-    );
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Find Local Swine
-|--------------------------------------------------------------------------
-|
-| A locally-created swine may have a UUID as its IndexedDB key,
-| while an existing server swine normally has a numeric database ID.
-|
-| Therefore, do not assume that:
-|
-| getOffline('swine', Number(swineId))
-|
-| will always work.
-|
-*/
-
-async function findLocalSwine(swineId) {
-
-    if (!swineId) {
-        return null;
     }
 
 
     /*
-     * First try the normal numeric ID.
+     * Health record
      */
-    const numericId =
-        Number(swineId);
+    if (
+        record.type ===
+        'health_record'
+    ) {
 
+        const localId =
+            payload.local_id;
 
-    if (!Number.isNaN(numericId)) {
-
-        const direct =
-            await getOffline(
-                'swine',
-                numericId
-            );
-
-        if (direct) {
-            return direct;
+        if (!localId) {
+            return;
         }
 
-    }
+
+        const localRecord =
+            await getOffline(
+                HEALTH_RECORD_STORE,
+                localId
+            );
+
+        if (!localRecord) {
+            return;
+        }
 
 
-    /*
-     * If not found, search all local swine.
-     */
-    const swineRecords =
-        await getAllOffline(
-            'swine'
+        await saveOffline(
+            HEALTH_RECORD_STORE,
+            {
+                ...localRecord,
+
+                sync_status:
+                    'synced',
+
+                synced_at:
+                    new Date().toISOString(),
+
+                server_id:
+                    responseData
+                        ?.health_record_id
+                        ?? null
+
+            }
         );
 
+        return;
+    }
 
-    return swineRecords.find(
-        swine =>
-            String(swine.id) ===
-                String(swineId)
-            ||
-            String(swine.swine_id) ===
-                String(swineId)
-    ) ?? null;
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Mark Local Record As Synced
-|--------------------------------------------------------------------------
-*/
-
-async function markLocalRecordAsSynced(record) {
 
     /*
      * Movement
      */
     if (
-        record.type === 'movement'
+        record.type ===
+        'swine_movement'
     ) {
 
         const localId =
-            record.payload?.local_id;
-
-        if (!localId) {
-
-            console.warn(
-                'Movement has no local_id:',
-                record
-            );
-
-            return;
-        }
-
-
-        const movement =
-            await getOffline(
-                'movements',
-                localId
-            );
-
-        if (!movement) {
-
-            console.warn(
-                'Local movement not found:',
-                localId
-            );
-
-            return;
-        }
-
-
-        movement.sync_status =
-            'synced';
-
-        movement.synced_at =
-            new Date().toISOString();
-
-
-        await saveOffline(
-            'movements',
-            movement
-        );
-
-
-        console.log(
-            'Movement marked as synced:',
-            localId
-        );
-
-        return;
-
-    }
-
-
-    /*
-     * Health Record
-     */
-    if (
-        record.type === 'health_record'
-    ) {
-
-        const localId =
-            record.payload?.local_id;
+            payload.local_id;
 
         if (!localId) {
             return;
         }
 
 
-        const healthRecord =
+        const localRecord =
             await getOffline(
-                'health_records',
+                MOVEMENT_STORE,
                 localId
             );
 
-        if (!healthRecord) {
+        if (!localRecord) {
             return;
         }
 
 
-        healthRecord.sync_status =
-            'synced';
-
-        healthRecord.synced_at =
-            new Date().toISOString();
-
-
         await saveOffline(
-            'health_records',
-            healthRecord
-        );
+            MOVEMENT_STORE,
+            {
+                ...localRecord,
 
+                sync_status:
+                    'synced',
 
-        console.log(
-            'Health record marked as synced:',
-            localId
+                synced_at:
+                    new Date().toISOString(),
+
+                server_id:
+                    responseData
+                        ?.movement_id
+                        ?? null
+
+            }
         );
 
         return;
-
     }
 
 
     /*
-     * Weight Record
+     * Swine update
      */
     if (
-        record.type === 'weight_record'
+        record.type ===
+        'swine_update'
     ) {
 
         const localId =
-            record.payload?.local_id;
+            payload.local_id;
 
         if (!localId) {
             return;
         }
 
 
-        const weightRecord =
+        const localSwine =
             await getOffline(
-                'weight_records',
+                SWINE_STORE,
                 localId
             );
 
-        if (!weightRecord) {
+        if (!localSwine) {
             return;
         }
-
-
-        weightRecord.sync_status =
-            'synced';
-
-        weightRecord.synced_at =
-            new Date().toISOString();
 
 
         await saveOffline(
-            'weight_records',
-            weightRecord
-        );
+            SWINE_STORE,
+            {
+                ...localSwine,
 
+                sync_status:
+                    'synced',
 
-        console.log(
-            'Weight record marked as synced:',
-            localId
-        );
+                synced_at:
+                    new Date().toISOString(),
 
-        return;
+                conflict:
+                    false,
 
-    }
+                conflict_data:
+                    null
 
-
-    /*
-     * Swine Update
-     */
-    if (
-        record.type === 'swine_update'
-    ) {
-
-        const swineId =
-            record.payload?.swine_id ??
-            record.payload?.id;
-
-
-        if (!swineId) {
-
-            console.warn(
-                'Swine update has no swine ID:',
-                record
-            );
-
-            return;
-
-        }
-
-
-        const swine =
-            await findLocalSwine(
-                swineId
-            );
-
-
-        if (!swine) {
-
-            console.warn(
-                'Local swine not found:',
-                swineId
-            );
-
-            return;
-
-        }
-
-
-        swine.sync_status =
-            'synced';
-
-        swine.synced_at =
-            new Date().toISOString();
-
-
-        /*
-         * Remove conflict information if
-         * this record was previously conflicted.
-         */
-        delete swine.conflict_at;
-
-        delete swine.conflict_data;
-
-
-        await saveOffline(
-            'swine',
-            swine
-        );
-
-
-        console.log(
-            'Swine update marked as synced:',
-            swineId
+            }
         );
 
     }
@@ -402,127 +305,33 @@ async function markLocalRecordAsSynced(record) {
 
 /*
 |--------------------------------------------------------------------------
-| Mark Local Swine As Conflict
-|--------------------------------------------------------------------------
-*/
-
-async function markSwineAsConflict(
-    record,
-    serverData = null
-) {
-
-    if (
-        record.type !== 'swine_update'
-    ) {
-        return;
-    }
-
-
-    const swineId =
-        record.payload?.swine_id ??
-        record.payload?.id;
-
-
-    if (!swineId) {
-
-        console.warn(
-            'Cannot mark swine conflict because swine ID is missing:',
-            record
-        );
-
-        return;
-
-    }
-
-
-    const swine =
-        await findLocalSwine(
-            swineId
-        );
-
-
-    if (!swine) {
-
-        console.warn(
-            'Cannot mark local swine as conflict. Local record not found:',
-            swineId
-        );
-
-        return;
-
-    }
-
-
-    swine.sync_status =
-        'conflict';
-
-    swine.conflict_at =
-        new Date().toISOString();
-
-
-    /*
-     * Save the server version locally.
-     *
-     * This allows the Sync Status page to display
-     * offline values versus server values.
-     */
-    if (serverData) {
-
-        swine.conflict_data = {
-
-            server:
-                serverData,
-
-            offline:
-                {
-                    ...record.payload
-                }
-
-        };
-
-    }
-
-
-    await saveOffline(
-        'swine',
-        swine
-    );
-
-
-    console.log(
-        'Local swine marked as conflict:',
-        swineId
-    );
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Save Latest Successful Synchronization Time
-|--------------------------------------------------------------------------
-*/
-
-function saveLastSync() {
-
-    localStorage.setItem(
-        'swine_locate_last_sync',
-        new Date().toISOString()
-    );
-
-}
-
-
-/*
-|--------------------------------------------------------------------------
-| Synchronize Pending Records With Laravel
+| Synchronize Pending Records
 |--------------------------------------------------------------------------
 */
 
 export async function syncPendingRecords() {
 
+    if (navigator.locks?.request) {
+
+        return navigator.locks.request(
+            'swine-locate-sync',
+            { ifAvailable: true },
+            lock => lock
+                ? syncPendingRecordsInternal()
+                : 0
+        );
+
+    }
+
+    return syncPendingRecordsInternal();
+}
+
+
+async function syncPendingRecordsInternal() {
+
     /*
-     * Prevent duplicate synchronization.
+     * Prevent two synchronization processes
+     * from running simultaneously.
      */
     if (isSynchronizing) {
 
@@ -536,7 +345,7 @@ export async function syncPendingRecords() {
 
 
     /*
-     * Do not synchronize while offline.
+     * Don't synchronize while offline.
      */
     if (!navigator.onLine) {
 
@@ -551,15 +360,11 @@ export async function syncPendingRecords() {
 
     isSynchronizing = true;
 
+
     let synchronizedCount = 0;
 
 
     try {
-
-        console.log(
-            'Checking for pending offline records...'
-        );
-
 
         const pendingRecords =
             await getPendingSync();
@@ -578,98 +383,81 @@ export async function syncPendingRecords() {
         }
 
 
+        const csrfToken =
+            getCsrfToken();
+
+
+        if (!csrfToken) {
+
+            console.error(
+                'CSRF token not found.'
+            );
+
+            return;
+
+        }
+
+
         console.log(
-            `Found ${pendingRecords.length} pending record(s).`
+            `Starting synchronization of ${pendingRecords.length} record(s).`
         );
 
 
         /*
-         * Process every pending record.
+         * Process one queue record at a time.
+         *
+         * This is intentional.
+         *
+         * It prevents multiple requests from
+         * being sent simultaneously from this
+         * synchronization engine.
          */
         for (
-            const record of pendingRecords
+            const record
+            of pendingRecords
         ) {
+
+            /*
+             * Make sure the device is still online.
+             */
+            if (!navigator.onLine) {
+
+                console.log(
+                    'Connection lost during synchronization.'
+                );
+
+                break;
+
+            }
+
+
+            /*
+             * Mark the queue record as syncing.
+             */
+            await updateQueueStatus(
+                record,
+                'syncing'
+            );
+
 
             try {
 
+                const payload =
+                    record.payload || {};
+
+
                 console.log(
-                    'Synchronizing:',
+                    'Synchronizing record:',
                     record
                 );
 
 
-                /*
-                 * Get CSRF token.
-                 */
-                const csrfToken =
-                    document
-                        .querySelector(
-                            'meta[name="csrf-token"]'
-                        )
-                        ?.getAttribute(
-                            'content'
-                        );
-
-
-                /*
-                 * Make sure payload exists.
-                 */
-                const payload =
-                    record.payload ?? {};
-
-
-                /*
-                 * IMPORTANT:
-                 *
-                 * Swine updates require swine_id.
-                 *
-                 * If the queue record somehow does not have
-                 * swine_id but the endpoint contains:
-                 *
-                 * /swine/4/sync
-                 *
-                 * extract the ID from the URL.
-                 */
-                if (
-                    record.type === 'swine_update' &&
-                    !payload.swine_id
-                ) {
-
-                    const match =
-                        record.endpoint?.match(
-                            /\/swine\/(\d+)\/sync/
-                        );
-
-
-                    if (match) {
-
-                        payload.swine_id =
-                            Number(match[1]);
-
-                        record.payload =
-                            payload;
-
-
-                        console.log(
-                            'Recovered swine_id from endpoint:',
-                            payload.swine_id
-                        );
-
-                    }
-
-                }
-
-
-                /*
-                 * Send request to Laravel.
-                 */
                 const response =
                     await fetch(
                         record.endpoint,
                         {
                             method:
-                                record.method ??
-                                'POST',
+                                record.method || 'POST',
 
                             headers: {
 
@@ -683,253 +471,244 @@ export async function syncPendingRecords() {
                                     csrfToken,
 
                                 'X-Requested-With':
-                                    'XMLHttpRequest',
+                                    'XMLHttpRequest'
 
                             },
+
+                            credentials:
+                                'same-origin',
 
                             body:
                                 JSON.stringify(
                                     payload
-                                ),
-
+                                )
                         }
                     );
 
 
                 /*
-                 * Read server response.
+                 * Read JSON response.
                  */
-                const responseText =
-                    await response.text();
+                let responseData = {};
 
+                try {
 
-                console.log(
-                    'Sync response:',
-                    response.status,
-                    response.url,
-                    responseText
-                );
+                    responseData =
+                        await response.json();
+
+                } catch (error) {
+
+                    responseData = {};
+
+                }
 
 
                 /*
-                 |--------------------------------------------------------------------------
-                 | SUCCESS
-                 |--------------------------------------------------------------------------
+                 * Successful synchronization.
+                 *
+                 * This includes:
+                 *
+                 * 201 Created
+                 *
+                 * and
+                 *
+                 * 200 Already Synced
                  */
+                if (
+                    response.ok
+                ) {
 
-                if (response.ok) {
-
-                    await markLocalRecordAsSynced(
-                        record
+                    console.log(
+                        'Record synchronized successfully:',
+                        responseData
                     );
 
 
-                    await removeFromSyncQueue(
-                        record.id
+                    /*
+                     * Mark the corresponding
+                     * local record as synced.
+                     */
+                    await markLocalRecordAsSynced(
+                        record,
+                        responseData
+                    );
+
+
+                    /*
+                     * Remove the successfully
+                     * processed queue item.
+                     */
+                    await deleteOffline(
+                        SYNC_QUEUE_STORE,
+                        Number(record.id)
                     );
 
 
                     synchronizedCount++;
 
-
-                    console.log(
-                        'Successfully synchronized record:',
-                        record.id
-                    );
-
-
                     continue;
-
                 }
 
 
                 /*
-                 |--------------------------------------------------------------------------
-                 | CONFLICT
-                 |--------------------------------------------------------------------------
-                 |
-                 | Laravel returns HTTP 409 when another user
-                 | modified the same swine while this device
-                 | was offline.
-                 |
-                 | DO NOT DELETE THE QUEUE RECORD.
-                 |
+                 * Conflict response.
                  */
-
                 if (
                     response.status === 409
                 ) {
 
                     console.warn(
-                        'Synchronization conflict detected:',
-                        record.id
+                        'Synchronization conflict:',
+                        responseData
                     );
 
 
-                    let serverResponse = null;
-
-
-                    /*
-                     * Convert JSON response into an object.
-                     */
-                    try {
-
-                        serverResponse =
-                            JSON.parse(
-                                responseText
-                            );
-
-                    } catch (parseError) {
-
-                        console.error(
-                            'Unable to parse conflict response:',
-                            parseError
-                        );
-
-                    }
-
-
-                    /*
-                     * Extract server version.
-                     */
-                    const serverData =
-                        serverResponse?.server_data ??
-                        null;
-
-
-                    /*
-                     * Extract swine ID.
-                     */
-                    const swineId =
-                        serverResponse?.swine_id ??
-                        record.payload?.swine_id ??
-                        record.payload?.id;
-
-
-                    /*
-                     * Save detailed conflict information
-                     * in the synchronization queue.
-                     */
                     await updateQueueStatus(
-                        record.id,
+                        record,
                         'conflict',
                         {
-
-                            conflict_at:
-                                new Date().toISOString(),
-
-                            error_message:
-                                serverResponse?.message ??
-                                'This record was modified by another user while this device was offline.',
-
-                            server_response:
-                                responseText,
-
                             server_data:
-                                serverData,
-
-                            swine_id:
-                                swineId,
-
-                        }
-                    );
-
-
-                    /*
-                     * Mark the local swine as conflicted.
-                     */
-                    await markSwineAsConflict(
-                        record,
-                        serverData
-                    );
-
-
-                    console.warn(
-                        'Conflict preserved in IndexedDB:',
-                        {
-                            queue_id:
-                                record.id,
-
-                            swine_id:
-                                swineId,
+                                responseData
+                                    ?.server_data
+                                    ?? null,
 
                             offline_data:
-                                record.payload,
+                                responseData
+                                    ?.offline_data
+                                    ?? payload,
 
-                            server_data:
-                                serverData
+                            server_movement_id:
+                                responseData
+                                    ?.server_movement_id
+                                    ?? null,
 
+                            conflict_at:
+                                new Date()
+                                    .toISOString()
                         }
                     );
 
 
                     continue;
-
                 }
 
 
                 /*
-                 |--------------------------------------------------------------------------
-                 | VALIDATION ERROR
-                 |--------------------------------------------------------------------------
+                 * Validation error.
                  */
-
                 if (
                     response.status === 422
                 ) {
 
                     console.error(
-                        'Validation error during synchronization:',
-                        responseText
+                        'Synchronization validation error:',
+                        responseData
                     );
 
 
                     await updateQueueStatus(
-                        record.id,
-                        'failed',
+                        record,
+                        'pending',
                         {
+                            last_error:
+                                responseData
+                                    ?.message
+                                    ??
+                                    'Validation failed.',
 
-                            failed_at:
-                                new Date().toISOString(),
-
-                            error_message:
-                                'The server rejected the record because of validation errors.',
-
-                            server_response:
-                                responseText,
-
+                            last_error_at:
+                                new Date()
+                                    .toISOString()
                         }
                     );
 
 
                     continue;
-
                 }
 
 
                 /*
-                 |--------------------------------------------------------------------------
-                 | OTHER SERVER ERROR
-                 |--------------------------------------------------------------------------
+                 * Unauthorized.
                  */
+                if (
+                    response.status === 401 ||
+                    response.status === 419
+                ) {
 
-                console.error(
-                    'Synchronization failed:',
-                    response.status,
-                    responseText
-                );
+                    console.error(
+                        'Authentication or CSRF error during synchronization.'
+                    );
+
+
+                    await updateQueueStatus(
+                        record,
+                        'pending',
+                        {
+                            last_error:
+                                'Authentication or CSRF error.',
+
+                            last_error_at:
+                                new Date()
+                                    .toISOString()
+                        }
+                    );
+
+
+                    continue;
+                }
 
 
                 /*
-                 * Keep the queue record pending so it
-                 * can be retried later.
+                 * Other server error.
                  */
+                console.error(
+                    'Synchronization failed:',
+                    response.status,
+                    responseData
+                );
+
+
+                await updateQueueStatus(
+                    record,
+                    'pending',
+                    {
+                        last_error:
+                            responseData
+                                ?.message
+                                ??
+                                `Server returned ${response.status}.`,
+
+                        last_error_at:
+                            new Date()
+                                .toISOString()
+                    }
+                );
 
             } catch (error) {
 
                 console.error(
-                    'Synchronization error:',
+                    'Synchronization request failed:',
                     error
+                );
+
+
+                /*
+                 * Put the record back into pending
+                 * so it can be retried later.
+                 */
+                await updateQueueStatus(
+                    record,
+                    'pending',
+                    {
+                        last_error:
+                            error.message
+                            ??
+                            'Network error.',
+
+                        last_error_at:
+                            new Date()
+                                .toISOString()
+                    }
                 );
 
             }
@@ -937,38 +716,29 @@ export async function syncPendingRecords() {
         }
 
 
-        /*
-         |--------------------------------------------------------------------------
-         | Synchronization Summary
-         |--------------------------------------------------------------------------
-         */
-
-        if (
-            synchronizedCount > 0
-        ) {
-
-            saveLastSync();
+        console.log(
+            `Synchronization completed. ${synchronizedCount} record(s) synchronized.`
+        );
 
 
-            console.log(
-                `Synchronization completed. ${synchronizedCount} record(s) synchronized.`
-            );
+    } catch (error) {
 
-        } else {
-
-            console.log(
-                'Synchronization completed. No records were synchronized.'
-            );
-
-        }
-
+        console.error(
+            'Synchronization process failed:',
+            error
+        );
 
     } finally {
 
+        /*
+         * Always release the lock.
+         */
         isSynchronizing = false;
 
     }
 
+
+    return synchronizedCount;
 }
 
 
@@ -980,12 +750,13 @@ export async function syncPendingRecords() {
 
 window.addEventListener(
     'online',
-    async () => {
+    async function () {
 
         console.log(
             'Internet connection restored.'
         );
 
+
         await syncPendingRecords();
 
     }
@@ -994,15 +765,19 @@ window.addEventListener(
 
 /*
 |--------------------------------------------------------------------------
-| Try Synchronization When Application Loads
+| Initial Synchronization
 |--------------------------------------------------------------------------
 */
 
 document.addEventListener(
     'DOMContentLoaded',
-    async () => {
+    async function () {
 
-        await syncPendingRecords();
+        if (navigator.onLine) {
+
+            await syncPendingRecords();
+
+        }
 
     }
 );
@@ -1010,13 +785,17 @@ document.addEventListener(
 
 /*
 |--------------------------------------------------------------------------
-| Expose Synchronization Function
+| Global Access
 |--------------------------------------------------------------------------
+|
+| sync-status.js can use:
+|
+| window.SwineLocateOffline.syncPendingRecords()
+|
 */
 
 window.SwineLocateOffline = {
 
-    syncPendingRecords,
+    syncPendingRecords
 
 };
-

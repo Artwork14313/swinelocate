@@ -11,6 +11,7 @@ class WeightRecord extends Model
     use SoftDeletes;
 
     protected $fillable = [
+        'local_id',
         'swine_id',
         'recorded_by',
         'record_date',
@@ -25,11 +26,16 @@ class WeightRecord extends Model
 
     public function swine(): BelongsTo
     {
-        return $this->belongsTo(Swine::class);
+        return $this->belongsTo(
+            Swine::class
+        );
     }
 
     public function recordedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'recorded_by');
+        return $this->belongsTo(
+            User::class,
+            'recorded_by'
+        );
     }
 }

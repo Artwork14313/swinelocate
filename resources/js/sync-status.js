@@ -1,9 +1,17 @@
 import {
+    syncPendingRecords
+} from './offline-sync';
+
+import {
     getAllOffline,
     getOffline,
     saveOffline,
     deleteOffline
 } from './offline-db';
+
+import {
+    getCsrfToken
+} from './offline-utils';
 
 
 // ============================================================
@@ -103,18 +111,6 @@ function updateLastSync() {
 
 
 // ============================================================
-// CSRF TOKEN
-// ============================================================
-
-function getCsrfToken() {
-
-    return document
-        .querySelector('meta[name="csrf-token"]')
-        ?.getAttribute('content');
-}
-
-
-// ============================================================
 // PARSE SERVER RESPONSE
 // ============================================================
 
@@ -197,457 +193,6 @@ function locationLabel(locationId) {
 
 
     return `Location ${locationId}`;
-}
-
-
-// ============================================================
-// ACTUAL SYNCHRONIZATION
-// ============================================================
-
-async function syncPendingRecords() {
-
-    if (!navigator.onLine) {
-
-        console.log(
-            'Synchronization skipped because device is offline.'
-        );
-
-        return {
-            successful: 0,
-            conflicts: 0,
-            failed: 0
-        };
-    }
-
-
-    console.log(
-        'Checking IndexedDB sync queue...'
-    );
-
-
-    const records =
-        await getAllOffline(
-            SYNC_QUEUE_STORE
-        );
-
-
-    console.log(
-        'All sync queue records:',
-        records
-    );
-
-
-    const pendingRecords =
-        records.filter(
-            record =>
-                record.status === 'pending'
-        );
-
-
-    console.log(
-        'Pending records found:',
-        pendingRecords.length
-    );
-
-
-    if (pendingRecords.length === 0) {
-
-        console.log(
-            'No pending records to synchronize.'
-        );
-
-        return {
-            successful: 0,
-            conflicts: 0,
-            failed: 0
-        };
-    }
-
-
-    const csrfToken =
-        getCsrfToken();
-
-
-    if (!csrfToken) {
-
-        throw new Error(
-            'CSRF token was not found. Please refresh the page.'
-        );
-    }
-
-
-    let successfulSync = 0;
-    let conflictCount = 0;
-    let failedCount = 0;
-
-
-    for (const record of pendingRecords) {
-
-        try {
-
-            console.log(
-                'Synchronizing queue record:',
-                record.id,
-                record
-            );
-
-
-            // ------------------------------------------------
-            // MARK AS SYNCING
-            // ------------------------------------------------
-
-            record.status =
-                'syncing';
-
-
-            await saveOffline(
-                SYNC_QUEUE_STORE,
-                record
-            );
-
-
-            // ------------------------------------------------
-            // SEND TO LARAVEL
-            // ------------------------------------------------
-
-            const response =
-                await fetch(
-                    record.endpoint,
-                    {
-                        method:
-                            record.method ?? 'POST',
-
-                        headers: {
-                            'Content-Type':
-                                'application/json',
-
-                            'Accept':
-                                'application/json',
-
-                            'X-CSRF-TOKEN':
-                                csrfToken,
-
-                            'X-Requested-With':
-                                'XMLHttpRequest'
-                        },
-
-                        body:
-                            JSON.stringify(
-                                record.payload ?? {}
-                            )
-                    }
-                );
-
-
-            const responseText =
-                await response.text();
-
-
-            let result = null;
-
-
-            try {
-
-                result =
-                    responseText
-                        ? JSON.parse(responseText)
-                        : null;
-
-            } catch (error) {
-
-                console.error(
-                    'Unable to parse synchronization response:',
-                    responseText
-                );
-            }
-
-
-            console.log(
-                'Synchronization response:',
-                {
-                    queueId: record.id,
-                    httpStatus: response.status,
-                    ok: response.ok,
-                    result
-                }
-            );
-
-
-            // =================================================
-            // CONFLICT
-            // =================================================
-
-            if (response.status === 409) {
-
-                record.status =
-                    'conflict';
-
-
-                record.conflict_at =
-                    new Date().toISOString();
-
-
-                record.error_message =
-                    result?.message ??
-                    'Synchronization conflict detected.';
-
-
-                record.server_response =
-                    responseText;
-
-
-                record.server_data =
-                    result?.server_data ??
-                    null;
-
-
-                record.server_movement_id =
-                    result?.server_movement_id ??
-                    result?.server_data?.movement_id ??
-                    result?.server_data?.id ??
-                    null;
-
-
-                await saveOffline(
-                    SYNC_QUEUE_STORE,
-                    record
-                );
-
-
-                conflictCount++;
-
-
-                console.warn(
-                    'Movement synchronization conflict:',
-                    {
-                        queueId: record.id,
-                        serverMovementId:
-                            record.server_movement_id,
-                        serverData:
-                            record.server_data
-                    }
-                );
-
-
-                continue;
-            }
-
-
-            // =================================================
-            // OTHER SERVER ERROR
-            // =================================================
-
-            if (!response.ok) {
-
-                record.status =
-                    'pending';
-
-
-                record.error_message =
-                    result?.message ??
-                    `Server returned HTTP ${response.status}.`;
-
-
-                record.last_attempt_at =
-                    new Date().toISOString();
-
-
-                await saveOffline(
-                    SYNC_QUEUE_STORE,
-                    record
-                );
-
-
-                failedCount++;
-
-
-                console.error(
-                    'Synchronization failed:',
-                    {
-                        queueId: record.id,
-                        status: response.status,
-                        result
-                    }
-                );
-
-
-                continue;
-            }
-
-
-            // =================================================
-            // SUCCESS
-            // =================================================
-
-            console.log(
-                'Synchronization successful:',
-                record.id,
-                result
-            );
-
-
-            // ------------------------------------------------
-            // UPDATE LOCAL MOVEMENT/SWINE
-            // ------------------------------------------------
-
-            if (
-                record.type ===
-                'movement'
-            ) {
-
-                const swineId =
-                    record.payload?.swine_id;
-
-
-                const destinationId =
-                    record.payload?.to_location_id;
-
-
-                if (
-                    swineId &&
-                    destinationId
-                ) {
-
-                    const localSwine =
-                        await getOffline(
-                            SWINE_STORE,
-                            Number(swineId)
-                        );
-
-
-                    if (localSwine) {
-
-                        localSwine.current_location_id =
-                            Number(destinationId);
-
-
-                        localSwine.sync_status =
-                            'synced';
-
-
-                        await saveOffline(
-                            SWINE_STORE,
-                            localSwine
-                        );
-
-
-                        console.log(
-                            'Local swine location updated:',
-                            {
-                                swineId,
-                                destinationId
-                            }
-                        );
-                    }
-                }
-
-
-                // ------------------------------------------------
-                // MARK LOCAL MOVEMENT AS SYNCED
-                // ------------------------------------------------
-
-                const localMovementId =
-                    record.payload?.local_id;
-
-
-                if (localMovementId) {
-
-                    const localMovement =
-                        await getOffline(
-                            'movements',
-                            localMovementId
-                        );
-
-
-                    if (localMovement) {
-
-                        localMovement.sync_status =
-                            'synced';
-
-
-                        localMovement.server_id =
-                            result?.movement?.id ??
-                            result?.movement_id ??
-                            result?.id ??
-                            null;
-
-
-                        await saveOffline(
-                            'movements',
-                            localMovement
-                        );
-                    }
-                }
-            }
-
-
-            // ------------------------------------------------
-            // REMOVE SUCCESSFULLY SYNCHRONIZED QUEUE ITEM
-            // ------------------------------------------------
-
-            await deleteOffline(
-                SYNC_QUEUE_STORE,
-                Number(record.id)
-            );
-
-
-            successfulSync++;
-
-
-        } catch (error) {
-
-            console.error(
-                'Error synchronizing queue record:',
-                record.id,
-                error
-            );
-
-
-            record.status =
-                'pending';
-
-
-            record.error_message =
-                error?.message ??
-                'Unable to synchronize record.';
-
-
-            record.last_attempt_at =
-                new Date().toISOString();
-
-
-            await saveOffline(
-                SYNC_QUEUE_STORE,
-                record
-            );
-
-
-            failedCount++;
-        }
-    }
-
-
-    if (successfulSync > 0) {
-
-        updateLastSync();
-    }
-
-
-    console.log(
-        'Synchronization summary:',
-        {
-            successful: successfulSync,
-            conflicts: conflictCount,
-            failed: failedCount
-        }
-    );
-
-
-    return {
-        successful: successfulSync,
-        conflicts: conflictCount,
-        failed: failedCount
-    };
 }
 
 
@@ -952,17 +497,7 @@ function renderMovementConflict(
 
                 <div class="flex flex-col sm:flex-row gap-3">
 
-                    <button
-                        type="button"
-                        class="keep-server-btn inline-flex
-                               items-center justify-center rounded-lg
-                               bg-gray-700 px-4 py-2.5
-                               text-sm font-semibold text-white
-                               hover:bg-gray-800"
-                        data-record-id="${record.id}"
-                    >
-                        Keep Server Version
-                    </button>
+                    
 
 
                     <button
@@ -975,6 +510,18 @@ function renderMovementConflict(
                         data-record-id="${record.id}"
                     >
                         Keep Offline Version
+                    </button>
+
+                    <button
+                        type="button"
+                        class="keep-server-btn inline-flex
+                               items-center justify-center rounded-lg
+                               bg-gray-700 px-4 py-2.5
+                               text-sm font-semibold text-white
+                               hover:bg-gray-800"
+                        data-record-id="${record.id}"
+                    >
+                        Keep Server Version
                     </button>
 
                 </div>
@@ -1883,7 +1430,6 @@ async function loadPendingRecords() {
     }
 }
 
-
 // ============================================================
 // MANUAL SYNC
 // ============================================================
@@ -1920,13 +1466,17 @@ async function performSync() {
 
     try {
 
+        // Use the centralized synchronization engine
+        // from offline-sync.js.
         const result =
             await syncPendingRecords();
 
 
+        // Refresh the Sync Status page after synchronization.
         await loadPendingRecords();
 
 
+        // Show a warning in the console if conflicts remain.
         if (
             result &&
             result.conflicts > 0
@@ -1973,46 +1523,33 @@ async function performSync() {
 
 async function initializeSyncStatus() {
 
+    // --------------------------------------------------------
+    // Initial connection status
+    // --------------------------------------------------------
+
     updateConnectionStatus();
 
 
     // --------------------------------------------------------
-    // Load existing records first
+    // Load existing queue records
     // --------------------------------------------------------
 
     await loadPendingRecords();
 
 
     // --------------------------------------------------------
-    // IMPORTANT:
-    // If page loads while ONLINE, immediately synchronize.
-    // --------------------------------------------------------
-
-    if (navigator.onLine) {
-
-        console.log(
-            'Page loaded while online. Checking pending records...'
-        );
-
-
-        try {
-
-            await syncPendingRecords();
-
-            await loadPendingRecords();
-
-        } catch (error) {
-
-            console.error(
-                'Initial automatic synchronization failed:',
-                error
-            );
-        }
-    }
-
-
-    // --------------------------------------------------------
     // INTERNET RESTORED
+    // --------------------------------------------------------
+    //
+    // IMPORTANT:
+    // sync-status.js MUST NOT synchronize here.
+    //
+    // offline-sync.js is responsible for:
+    // - Refreshing server state
+    // - Synchronizing pending records
+    // - Handling conflicts
+    //
+    // sync-status.js only refreshes the display.
     // --------------------------------------------------------
 
     window.addEventListener(
@@ -2023,23 +1560,29 @@ async function initializeSyncStatus() {
                 'Internet connection restored.'
             );
 
-
             updateConnectionStatus();
 
 
-            try {
+            /*
+            |--------------------------------------------------------------------------
+            | Wait briefly for offline-sync.js
+            |--------------------------------------------------------------------------
+            |
+            | offline-sync.js owns the actual synchronization.
+            | We only reload the queue display after it has had
+            | time to process the records.
+            |
+            |--------------------------------------------------------------------------
+            */
 
-                await syncPendingRecords();
+            setTimeout(
+                async () => {
 
-                await loadPendingRecords();
+                    await loadPendingRecords();
 
-            } catch (error) {
-
-                console.error(
-                    'Automatic synchronization failed:',
-                    error
-                );
-            }
+                },
+                1000
+            );
         }
     );
 
@@ -2056,9 +1599,7 @@ async function initializeSyncStatus() {
                 'Device is now offline.'
             );
 
-
             updateConnectionStatus();
-
 
             await loadPendingRecords();
         }
@@ -2067,6 +1608,12 @@ async function initializeSyncStatus() {
 
     // --------------------------------------------------------
     // MANUAL SYNC BUTTON
+    // --------------------------------------------------------
+    //
+    // Manual synchronization is allowed here.
+    //
+    // performSync() should call the imported
+    // syncPendingRecords() from offline-sync.js.
     // --------------------------------------------------------
 
     const syncButton =
@@ -2079,7 +1626,20 @@ async function initializeSyncStatus() {
 
         syncButton.addEventListener(
             'click',
-            performSync
+            async () => {
+
+                syncButton.disabled = true;
+
+                try {
+
+                    await performSync();
+
+                } finally {
+
+                    syncButton.disabled = false;
+
+                }
+            }
         );
     }
 }

@@ -14,29 +14,44 @@ function initializeOfflineWeightRecords() {
         return;
     }
 
+    if (form.dataset.offlineWeightRecordsInitialized === 'true') {
+        return;
+    }
+
+    form.dataset.offlineWeightRecordsInitialized = 'true';
+
 
     form.addEventListener(
         'submit',
         async function (event) {
 
-            // If online, let Laravel process the form normally.
+            /*
+             * If the device is online,
+             * let Laravel process the form normally.
+             */
             if (navigator.onLine) {
                 return;
             }
 
 
-            // Offline: stop the normal POST request.
+            /*
+             * Device is offline.
+             * Stop the normal HTTP submission.
+             */
             event.preventDefault();
 
 
-            const formData = new FormData(form);
+            const formData =
+                new FormData(form);
 
 
             const swineId =
                 formData.get('swine_id');
 
 
-            // Basic validation
+            /*
+             * Validate swine.
+             */
             if (!swineId) {
 
                 alert(
@@ -57,7 +72,9 @@ function initializeOfflineWeightRecords() {
                 formData.get('notes') || null;
 
 
-            // Basic validation
+            /*
+             * Validate record date.
+             */
             if (!recordDate) {
 
                 alert(
@@ -68,7 +85,13 @@ function initializeOfflineWeightRecords() {
             }
 
 
-            if (!weight || Number(weight) <= 0) {
+            /*
+             * Validate weight.
+             */
+            if (
+                !weight ||
+                Number(weight) <= 0
+            ) {
 
                 alert(
                     'Please enter a valid weight.'
@@ -78,13 +101,30 @@ function initializeOfflineWeightRecords() {
             }
 
 
-            const recordId =
+            /*
+             * Generate one permanent identifier
+             * for this offline record.
+             *
+             * This same ID will be used in:
+             *
+             * 1. IndexedDB
+             * 2. sync_queue
+             * 3. Laravel database
+             *
+             * This prevents duplicate synchronization.
+             */
+            const localId =
                 crypto.randomUUID();
 
 
+            /*
+             * Build the local weight record.
+             */
             const data = {
 
-                id: recordId,
+                id: localId,
+
+                local_id: localId,
 
                 swine_id:
                     Number(swineId),
@@ -113,8 +153,7 @@ function initializeOfflineWeightRecords() {
             try {
 
                 /*
-                 * Save the actual weight record
-                 * in IndexedDB.
+                 * Save weight record locally.
                  */
                 await saveOffline(
                     'weight_records',
@@ -123,8 +162,16 @@ function initializeOfflineWeightRecords() {
 
 
                 /*
-                 * Add synchronization instruction
-                 * to the synchronization queue.
+                 * Add the synchronization
+                 * instruction to IndexedDB.
+                 *
+                 * IMPORTANT:
+                 *
+                 * The endpoint is /weight-records/sync
+                 * rather than /weight-records.
+                 *
+                 * The local_id allows Laravel to
+                 * identify this exact offline record.
                  */
                 await addToSyncQueue({
 
@@ -132,12 +179,15 @@ function initializeOfflineWeightRecords() {
                         'weight_record',
 
                     endpoint:
-                        '/weight-records',
+                        '/weight-records/sync',
 
                     method:
                         'POST',
 
                     payload: {
+
+                        local_id:
+                            localId,
 
                         swine_id:
                             Number(swineId),
@@ -167,6 +217,10 @@ function initializeOfflineWeightRecords() {
                 );
 
 
+                /*
+                 * Clear the form after
+                 * successful local saving.
+                 */
                 form.reset();
 
 

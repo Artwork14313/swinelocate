@@ -1,4 +1,4 @@
-const CACHE_NAME = 'swine-locate-v1';
+const CACHE_NAME = 'swine-locate-v5';
 
 const APP_SHELL = [
     '/dashboard',
@@ -169,7 +169,99 @@ self.addEventListener('fetch', event => {
 
             .catch(() => {
 
-                return caches.match(request);
+                return caches.match(request)
+                    .then(cachedResponse => {
+
+                        if (cachedResponse) {
+                            return cachedResponse;
+                        }
+
+                        return new Response(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Offline - SwineLocate</title>
+        <style>
+            body {
+                margin: 0;
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-family: Arial, sans-serif;
+                background: #f9fafb;
+                color: #111827;
+            }
+
+            .container {
+                width: 100%;
+                max-width: 420px;
+                padding: 24px;
+                text-align: center;
+            }
+
+            .icon {
+                font-size: 48px;
+                margin-bottom: 16px;
+            }
+
+            h1 {
+                font-size: 22px;
+                margin-bottom: 10px;
+            }
+
+            p {
+                color: #6b7280;
+                line-height: 1.6;
+                margin-bottom: 24px;
+            }
+
+            button {
+                width: 100%;
+                padding: 12px 18px;
+                border: 0;
+                border-radius: 8px;
+                background: #3368A0;
+                color: white;
+                font-size: 15px;
+                font-weight: 600;
+                cursor: pointer;
+            }
+
+            button:hover {
+                background: #28557F;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class="container">
+            <div class="icon">📡</div>
+
+            <h1>This page is not available offline</h1>
+
+            <p>
+                Please connect to the internet and open this page first
+                to make it available for offline use.
+            </p>
+
+            <button onclick="history.back()">
+                ← Back to Previous Page
+            </button>
+        </div>
+    </body>
+    </html>
+`, {
+                            status: 503,
+                            statusText: 'Service Unavailable',
+                            headers: {
+                                'Content-Type': 'text/html; charset=utf-8'
+                            }
+                        });
+
+                    });
 
             })
 
