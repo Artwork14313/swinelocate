@@ -169,7 +169,18 @@
             @if ($nextVaccination)
 
                 @php
-                    if ($nextVaccination->next_due_date->isPast()) {
+                    /*
+                     * Compare calendar dates instead of date + time.
+                     *
+                     * Example:
+                     * Today:    September 7
+                     * Due date: September 9
+                     * Result:   2 days
+                     */
+                    $today = now()->startOfDay();
+                    $dueDate = $nextVaccination->next_due_date->copy()->startOfDay();
+
+                    if ($dueDate->lt($today)) {
 
                         $vaccinationStatus = 'Overdue';
                         $statusClasses = 'bg-red-100 text-red-700';
@@ -177,7 +188,7 @@
 
                         $vaccinationMessage = 'Vaccination is overdue.';
 
-                    } elseif ($nextVaccination->next_due_date->isToday()) {
+                    } elseif ($dueDate->equalTo($today)) {
 
                         $vaccinationStatus = 'Due Today';
                         $statusClasses = 'bg-orange-100 text-orange-700';
@@ -185,34 +196,38 @@
 
                         $vaccinationMessage = 'Vaccination is due today.';
 
-                    } elseif (now()->diffInDays($nextVaccination->next_due_date) <= 7) {
-
-                        $vaccinationStatus = 'Due Soon';
-                        $statusClasses = 'bg-yellow-100 text-yellow-700';
-                        $statusIcon = '◷';
-
-                        $daysUntilDue = (int) round(now()->diffInDays($nextVaccination->next_due_date));
-
-
-                        $vaccinationMessage =
-                            'Vaccination is due in ' .
-                            $daysUntilDue .
-                            ' day' .
-                            ($daysUntilDue == 1 ? '' : 's') .
-                            '.';
-
                     } else {
 
-                        $vaccinationStatus = 'Scheduled';
-                        $statusClasses = 'bg-green-100 text-green-700';
-                        $statusIcon = '✓';
+                        /*
+                         * diffInDays() is now calculated between two midnight
+                         * calendar dates, preventing the off-by-one problem.
+                         */
+                        $daysUntilDue = $today->diffInDays($dueDate);
 
-                        $daysUntilDue = now()->diffInDays($nextVaccination->next_due_date);
+                        if ($daysUntilDue <= 7) {
 
-                        $vaccinationMessage =
-                            'Vaccination is scheduled in ' .
-                            $daysUntilDue .
-                            ' days.';
+                            $vaccinationStatus = 'Due Soon';
+                            $statusClasses = 'bg-yellow-100 text-yellow-700';
+                            $statusIcon = '◷';
+
+                            $vaccinationMessage =
+                                'Vaccination is due in ' .
+                                $daysUntilDue .
+                                ' day' .
+                                ($daysUntilDue == 1 ? '' : 's') .
+                                '.';
+
+                        } else {
+
+                            $vaccinationStatus = 'Scheduled';
+                            $statusClasses = 'bg-green-100 text-green-700';
+                            $statusIcon = '✓';
+
+                            $vaccinationMessage =
+                                'Vaccination is scheduled in ' .
+                                $daysUntilDue .
+                                ' days.';
+                        }
                     }
                 @endphp
 
@@ -280,7 +295,7 @@
                                 </p>
 
                                 <p class="mt-1 text-sm font-semibold text-gray-900">
-                                    {{ $nextVaccination->next_due_date->format('F d, Y') }}
+                                    {{ $dueDate->format('F d, Y') }}
                                 </p>
 
                             </div>
@@ -332,11 +347,9 @@
                         <div class="mt-6 border-t border-gray-100 pt-5">
 
                             <a href="{{ route('health-records.show', $nextVaccination) }}" class="inline-flex items-center rounded-lg bg-indigo-600
-                              px-4 py-2 text-sm font-semibold text-white
-                              shadow-sm hover:bg-indigo-700">
-
+                               px-4 py-2 text-sm font-semibold text-white
+                               shadow-sm hover:bg-indigo-700">
                                 View Vaccination Record
-
                             </a>
 
                         </div>
@@ -376,8 +389,8 @@
                         </p>
 
                         <a href="{{ route('health-records.create', ['swine_id' => $swine->id]) }}" class="mt-4 inline-flex rounded-lg bg-indigo-600
-                                               px-4 py-2 text-sm font-semibold text-white
-                                               hover:bg-indigo-700">
+                                                   px-4 py-2 text-sm font-semibold text-white
+                                                   hover:bg-indigo-700">
                             Add First Health Record
                         </a>
 
@@ -442,7 +455,7 @@
 
                                                         <span
                                                             class="rounded-full px-2.5 py-1 text-xs
-                                                                                                                   font-semibold {{ $statusClasses }}">
+                                                                                                                                       font-semibold {{ $statusClasses }}">
                                                             {{ str_replace(
                                 '_',
                                 ' ',
@@ -522,10 +535,11 @@
                                                     <a href="{{ route(
                                 'health-records.show',
                                 $record
-                            ) }}" class="inline-flex rounded-lg border
-                                                                                                               border-gray-300 bg-white px-3 py-2
-                                                                                                               text-sm font-medium text-gray-700
-                                                                                                               hover:bg-gray-50">
+                            ) }}"
+                                                        class="inline-flex rounded-lg border
+                                                                                                                                   border-gray-300 bg-white px-3 py-2
+                                                                                                                                   text-sm font-medium text-gray-700
+                                                                                                                                   hover:bg-gray-50">
                                                         View Details
                                                     </a>
 
