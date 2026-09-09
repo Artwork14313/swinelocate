@@ -1,4 +1,4 @@
-const CACHE_NAME = 'swine-locate-v5';
+const CACHE_NAME = 'swine-locate-v6';
 
 const APP_SHELL = [
     '/dashboard',
@@ -67,6 +67,27 @@ self.addEventListener('fetch', event => {
 
     const request = event.request;
     const url = new URL(request.url);
+
+
+    /*
+     * Authentication pages contain a session-bound CSRF token.
+     * Never serve or cache them from the service worker.
+     */
+    if (
+        url.pathname === '/login' ||
+        url.pathname === '/register' ||
+        url.pathname.startsWith('/forgot-password') ||
+        url.pathname.startsWith('/reset-password') ||
+        url.pathname.startsWith('/confirm-password') ||
+        url.pathname.startsWith('/verify-email')
+    ) {
+
+        event.respondWith(
+            fetch(request)
+        );
+
+        return;
+    }
 
 
     /*

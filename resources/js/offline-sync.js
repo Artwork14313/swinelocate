@@ -142,7 +142,7 @@ async function markLocalRecordAsSynced(
                 server_id:
                     responseData
                         ?.weight_record_id
-                        ?? null
+                    ?? null
 
             }
         );
@@ -192,7 +192,7 @@ async function markLocalRecordAsSynced(
                 server_id:
                     responseData
                         ?.health_record_id
-                        ?? null
+                    ?? null
 
             }
         );
@@ -242,7 +242,7 @@ async function markLocalRecordAsSynced(
                 server_id:
                     responseData
                         ?.movement_id
-                        ?? null
+                    ?? null
 
             }
         );
@@ -567,24 +567,22 @@ async function syncPendingRecordsInternal() {
                         record,
                         'conflict',
                         {
+                            conflict: true,
+
                             server_data:
-                                responseData
-                                    ?.server_data
-                                    ?? null,
+                                responseData?.server_data ??
+                                null,
 
                             offline_data:
-                                responseData
-                                    ?.offline_data
-                                    ?? payload,
+                                responseData?.offline_data ??
+                                payload,
 
-                            server_movement_id:
-                                responseData
-                                    ?.server_movement_id
-                                    ?? null,
+                            server_updated_at:
+                                responseData?.server_updated_at ??
+                                null,
 
                             conflict_at:
-                                new Date()
-                                    .toISOString()
+                                new Date().toISOString()
                         }
                     );
 
@@ -613,8 +611,8 @@ async function syncPendingRecordsInternal() {
                             last_error:
                                 responseData
                                     ?.message
-                                    ??
-                                    'Validation failed.',
+                                ??
+                                'Validation failed.',
 
                             last_error_at:
                                 new Date()
@@ -675,8 +673,8 @@ async function syncPendingRecordsInternal() {
                         last_error:
                             responseData
                                 ?.message
-                                ??
-                                `Server returned ${response.status}.`,
+                            ??
+                            `Server returned ${response.status}.`,
 
                         last_error_at:
                             new Date()
