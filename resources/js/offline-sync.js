@@ -42,7 +42,32 @@ const WEIGHT_RECORD_STORE =
 const MOVEMENT_STORE =
     'movements';
 
+const LAST_SYNC_KEY =
+    'swineLocate_last_sync';
 
+/*
+|--------------------------------------------------------------------------
+| Save Last Successful Synchronization Time
+|--------------------------------------------------------------------------
+*/
+
+function saveLastSyncTimestamp() {
+
+    const timestamp =
+        new Date().toISOString();
+
+
+    localStorage.setItem(
+        LAST_SYNC_KEY,
+        timestamp
+    );
+
+
+    console.log(
+        'Last synchronization timestamp saved:',
+        timestamp
+    );
+}
 /*
 |--------------------------------------------------------------------------
 | Get Pending Queue Records
@@ -202,11 +227,11 @@ async function markLocalRecordAsSynced(
 
 
     /*
-     * Movement
-     */
+ * Movement
+ */
     if (
         record.type ===
-        'swine_movement'
+        'movement'
     ) {
 
         const localId =
@@ -252,15 +277,15 @@ async function markLocalRecordAsSynced(
 
 
     /*
-     * Swine update
-     */
+ * Swine update
+ */
     if (
         record.type ===
         'swine_update'
     ) {
 
         const localId =
-            payload.local_id;
+            payload.swine_id;
 
         if (!localId) {
             return;
@@ -718,6 +743,18 @@ async function syncPendingRecordsInternal() {
             `Synchronization completed. ${synchronizedCount} record(s) synchronized.`
         );
 
+
+        /*
+         * Save the last synchronization time.
+         *
+         * Only save it when at least one record was
+         * successfully synchronized.
+         */
+        if (synchronizedCount > 0) {
+
+            saveLastSyncTimestamp();
+
+        }
 
     } catch (error) {
 

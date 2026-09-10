@@ -97,16 +97,77 @@ function updateConnectionStatus() {
 // LAST SYNC
 // ============================================================
 
+const LAST_SYNC_KEY =
+    'swineLocate_last_sync';
+
+
 function updateLastSync() {
 
     const element =
-        document.getElementById('last-sync');
+        document.getElementById(
+            'last-sync'
+        );
 
-    if (!element) return;
+
+    if (!element) {
+        return;
+    }
+
+
+    const savedTimestamp =
+        localStorage.getItem(
+            LAST_SYNC_KEY
+        );
+
+
+    if (!savedTimestamp) {
+
+        element.textContent =
+            'Never';
+
+        return;
+    }
+
+
+    const date =
+        new Date(
+            savedTimestamp
+        );
+
+
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
+
+        element.textContent =
+            'Never';
+
+        return;
+    }
 
 
     element.textContent =
-        new Date().toLocaleString();
+        date.toLocaleString();
+}
+
+
+function recordLastSync() {
+
+    const timestamp =
+        new Date().toISOString();
+
+
+    localStorage.setItem(
+        LAST_SYNC_KEY,
+        timestamp
+    );
+
+
+    updateLastSync(
+        timestamp
+    );
 }
 
 
@@ -166,9 +227,10 @@ function getServerMovementId(record) {
     const response =
         parseServerResponse(record);
 
-
     return (
         record?.server_movement_id ??
+        record?.server_data?.movement_id ??
+        record?.server_data?.id ??
         response?.server_movement_id ??
         response?.server_data?.movement_id ??
         response?.server_data?.id ??
@@ -979,8 +1041,8 @@ function renderSwineConflict(
 
                         ${conflictCount}
                         ${conflictCount === 1
-                            ? 'field has'
-                            : 'fields have'}
+            ? 'field has'
+            : 'fields have'}
                         a conflict
 
                     </span>
@@ -1101,9 +1163,9 @@ function renderSwineConflict(
                                          text-gray-900 text-right">
 
                                 ${displayValue(
-                                    serverData.updated_at,
-                                    '-'
-                                )}
+                serverData.updated_at,
+                '-'
+            )}
 
                             </span>
 
@@ -2512,7 +2574,7 @@ async function loadPendingRecords() {
 
                 if (
                     record.status === 'conflict' &&
-                    record.type === 'swine_movement'
+                    record.type === 'movement'
                 ) {
 
                     renderMovementConflict(
@@ -2624,6 +2686,10 @@ async function performSync() {
             await syncPendingRecords();
 
 
+        // Record the time after synchronization completes.
+        recordLastSync();
+
+
         // Refresh the Sync Status page after synchronization.
         await loadPendingRecords();
 
@@ -2680,6 +2746,13 @@ async function initializeSyncStatus() {
     // --------------------------------------------------------
 
     updateConnectionStatus();
+
+
+    // --------------------------------------------------------
+    // Load last synchronization timestamp
+    // --------------------------------------------------------
+
+    updateLastSync();
 
 
     // --------------------------------------------------------

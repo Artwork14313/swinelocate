@@ -466,20 +466,6 @@
                         </a>
 
 
-                        {{-- Token --}}
-                        <div class="mt-5 max-w-full text-center">
-
-                            <p class="text-xs font-medium uppercase
-                                      tracking-wide text-gray-500">
-                                QR Identification Token
-                            </p>
-
-                            <p class="mt-2 break-all font-mono text-xs text-gray-500">
-                                {{ $swine->qr_token }}
-                            </p>
-
-                        </div>
-
                     </div>
 
                 </div>

@@ -169,6 +169,7 @@ class RolePermissionSeeder extends Seeder
                 'manage-locations',
                 'register-swine',
                 'manage-swine',
+                'manage-health',
                 'record-weight',
                 'manage-movements',
                 'generate-qr',
@@ -193,7 +194,6 @@ class RolePermissionSeeder extends Seeder
             Permission::whereIn('slug', [
                 'manage-swine',
                 'manage-health',
-                'manage-vaccinations',
                 'view-traceability',
                 'view-reports',
             ])->pluck('id')

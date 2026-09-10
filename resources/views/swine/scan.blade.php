@@ -854,43 +854,7 @@
                     @endif
 
                 </div>
-            </div>
-
-
-            {{-- QR Information --}}
-            <div class="rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
-
-                <div class="border-b border-gray-200 px-5 py-4">
-
-                    <h2 class="text-lg font-bold text-gray-900">
-                        QR Identification
-                    </h2>
-
-                    <p class="mt-1 text-sm text-gray-500">
-                        Unique QR identifier assigned to this swine
-                    </p>
-
-                </div>
-
-
-                <div class="p-5">
-
-                    <div class="rounded-lg bg-gray-50 p-4">
-
-                        <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
-                            QR Token
-                        </p>
-
-                        <p class="mt-2 break-all font-mono text-sm font-semibold text-gray-900">
-                            {{ $swine->qr_token }}
-                        </p>
-
-                    </div>
-
-                </div>
-
-            </div>
-
+            </div>           
 
             {{-- Footer --}}
             <div class="py-6 text-center">

@@ -595,6 +595,8 @@ class SwineController extends Controller
                 'currentLocation',
                 'movements.fromLocation',
                 'movements.toLocation',
+                'healthRecords',
+                'weightRecords',
             ])
             ->firstOrFail();
 
