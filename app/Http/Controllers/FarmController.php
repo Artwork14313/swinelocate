@@ -9,9 +9,15 @@ use Illuminate\View\View;
 
 class FarmController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $farms = Farm::latest()->paginate(10);
+        $farms = Farm::query()
+            ->when($request->filled('status'), function ($query) use ($request) {
+                $query->where('status', $request->status);
+            })
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
 
         return view('farms.index', compact('farms'));
     }
@@ -175,10 +181,19 @@ class FarmController extends Controller
             'status' => 'inactive',
         ]);
 
-        $farm->delete();
+        return redirect()
+            ->route('farms.index')
+            ->with('success', 'Farm deactivated successfully.');
+    }
+
+    public function activate(Farm $farm): RedirectResponse
+    {
+        $farm->update([
+            'status' => 'active',
+        ]);
 
         return redirect()
             ->route('farms.index')
-            ->with('success', 'Farm successfully deactivated.');
+            ->with('success', 'Farm activated successfully.');
     }
 }

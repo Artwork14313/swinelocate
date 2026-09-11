@@ -30,6 +30,8 @@ class FarmLocationController extends Controller
      */
     public function create(Farm $farm): View
     {
+        $this->ensureFarmIsActive($farm);
+
         return view('farm-locations.create', compact('farm'));
     }
 
@@ -40,6 +42,8 @@ class FarmLocationController extends Controller
         Request $request,
         Farm $farm
     ): RedirectResponse {
+        $this->ensureFarmIsActive($farm);
+
         $validated = $request->validate([
             'location_code' => [
                 'required',
@@ -109,6 +113,7 @@ class FarmLocationController extends Controller
         FarmLocation $location
     ): View {
         $this->ensureLocationBelongsToFarm($farm, $location);
+        $this->ensureFarmIsActive($farm);
 
         return view('farm-locations.edit', compact(
             'farm',
@@ -125,6 +130,7 @@ class FarmLocationController extends Controller
         FarmLocation $location
     ): RedirectResponse {
         $this->ensureLocationBelongsToFarm($farm, $location);
+        $this->ensureFarmIsActive($farm);
 
         $validated = $request->validate([
             'location_code' => [
@@ -132,9 +138,9 @@ class FarmLocationController extends Controller
                 'string',
                 'max:50',
                 'unique:farm_locations,location_code,'
-                    . $location->id
-                    . ',id,farm_id,'
-                    . $farm->id,
+                . $location->id
+                . ',id,farm_id,'
+                . $farm->id,
             ],
 
             'name' => [
@@ -187,6 +193,7 @@ class FarmLocationController extends Controller
         FarmLocation $location
     ): RedirectResponse {
         $this->ensureLocationBelongsToFarm($farm, $location);
+        $this->ensureFarmIsActive($farm);
 
         $location->update([
             'status' => 'inactive',
@@ -210,6 +217,18 @@ class FarmLocationController extends Controller
         abort_unless(
             $location->farm_id === $farm->id,
             404
+        );
+    }
+
+    /**
+     * Make sure the farm is active.
+     */
+    private function ensureFarmIsActive(Farm $farm): void
+    {
+        abort_if(
+            $farm->status !== 'active',
+            403,
+            'This action is not available because the farm is inactive.'
         );
     }
 }

@@ -96,7 +96,7 @@
         <div class="lg:pl-64">
 
             {{-- Existing top navigation --}}
-            @include('layouts.navigation')
+            <!-- @include('layouts.navigation') -->
 
 
             {{-- Page Heading --}}
@@ -104,7 +104,7 @@
 
                 <header class="bg-white border-b border-gray-200">
 
-                    <div class="px-4 py-6 sm:px-6 lg:px-8">
+                    <div class="px-4 py-6 sm:px-6 lg:px-8 mt-11 lg:mt-0 pt-11 lg:pt-6">
 
                         {{ $header }}
 

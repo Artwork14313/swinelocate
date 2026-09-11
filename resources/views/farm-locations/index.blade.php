@@ -16,12 +16,19 @@
                 </p>
             </div>
 
-            <a
-                href="{{ route('farms.locations.create', $farm) }}"
-                class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md text-xs font-semibold uppercase tracking-widest hover:bg-gray-700"
-            >
-                Add Location
-            </a>
+            @if(
+                $farm->status === 'active' &&
+                auth()->user()->hasPermission('manage-locations')
+            )
+
+                <a
+                    href="{{ route('farms.locations.create', $farm) }}"
+                    class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md text-xs font-semibold uppercase tracking-widest hover:bg-gray-700"
+                >
+                    Add Location
+                </a>
+
+            @endif
 
         </div>
 
@@ -29,30 +36,90 @@
 
     <div class="py-8">
 
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
+            {{-- Success Message --}}
             @if(session('success'))
 
-                <div class="mb-6 rounded-lg bg-green-50 border border-green-200 p-4 text-green-700">
+                <div class="rounded-lg bg-green-50 border border-green-200 p-4 text-green-700">
                     {{ session('success') }}
                 </div>
 
             @endif
 
+
+            {{-- Error Message --}}
+            @if(session('error'))
+
+                <div class="rounded-lg bg-red-50 border border-red-200 p-4 text-red-700">
+                    {{ session('error') }}
+                </div>
+
+            @endif
+
+
+            {{-- Inactive Farm Notice --}}
+            @if($farm->status !== 'active')
+
+                <div class="rounded-lg bg-yellow-50 border border-yellow-200 p-4">
+
+                    <div class="flex items-start">
+
+                        <div>
+                            <p class="font-semibold text-yellow-800">
+                                This farm is inactive.
+                            </p>
+
+                            <p class="text-sm text-yellow-700 mt-1">
+                                Existing locations are shown for historical and
+                                traceability purposes. New locations cannot be
+                                added or modified while the farm is inactive.
+                            </p>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            @endif
+
+
+            {{-- Locations Card --}}
             <div class="bg-white shadow-sm sm:rounded-lg">
 
                 <div class="p-6">
 
-                    <div class="flex items-center justify-between mb-6">
+                    {{-- Header --}}
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
 
                         <div>
-                            <h3 class="text-lg font-semibold text-gray-900">
-                                Registered Locations
-                            </h3>
 
-                            <p class="text-sm text-gray-500">
+                            <div class="flex items-center gap-3">
+
+                                <h3 class="text-lg font-semibold text-gray-900">
+                                    Registered Locations
+                                </h3>
+
+                                @if($farm->status === 'active')
+
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">
+                                        Farm Active
+                                    </span>
+
+                                @else
+
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700">
+                                        Farm Inactive
+                                    </span>
+
+                                @endif
+
+                            </div>
+
+                            <p class="text-sm text-gray-500 mt-1">
                                 Areas, pens, and housing locations within this farm.
                             </p>
+
                         </div>
 
                         <a
@@ -64,6 +131,8 @@
 
                     </div>
 
+
+                    {{-- Location Table --}}
                     <div class="overflow-x-auto">
 
                         <table class="min-w-full divide-y divide-gray-200">
@@ -100,30 +169,50 @@
 
                             </thead>
 
+
                             <tbody class="divide-y divide-gray-200">
 
                                 @forelse($locations as $location)
 
                                     <tr class="hover:bg-gray-50">
 
+                                        {{-- Code --}}
                                         <td class="px-6 py-4">
+
                                             <span class="font-medium text-gray-900">
                                                 {{ $location->location_code }}
                                             </span>
+
                                         </td>
 
+
+                                        {{-- Location --}}
                                         <td class="px-6 py-4">
-                                            {{ $location->name }}
+
+                                            <span class="text-gray-900">
+                                                {{ $location->name }}
+                                            </span>
+
                                         </td>
 
+
+                                        {{-- Type --}}
                                         <td class="px-6 py-4 text-sm text-gray-600">
+
                                             {{ $location->type ?? '—' }}
+
                                         </td>
 
+
+                                        {{-- Capacity --}}
                                         <td class="px-6 py-4 text-sm text-gray-600">
+
                                             {{ $location->capacity ?? '—' }}
+
                                         </td>
 
+
+                                        {{-- Status --}}
                                         <td class="px-6 py-4">
 
                                             @if($location->status === 'active')
@@ -142,8 +231,11 @@
 
                                         </td>
 
+
+                                        {{-- Actions --}}
                                         <td class="px-6 py-4 text-right text-sm">
 
+                                            {{-- View --}}
                                             <a
                                                 href="{{ route('farms.locations.show', [$farm, $location]) }}"
                                                 class="text-gray-700 hover:text-gray-900 mr-3"
@@ -151,33 +243,43 @@
                                                 View
                                             </a>
 
-                                            <a
-                                                href="{{ route('farms.locations.edit', [$farm, $location]) }}"
-                                                class="text-blue-600 hover:text-blue-800 mr-3"
-                                            >
-                                                Edit
-                                            </a>
 
-                                            @if($location->status === 'active')
+                                            {{-- Management Actions --}}
+                                            @if(
+                                                $farm->status === 'active' &&
+                                                auth()->user()->hasPermission('manage-locations')
+                                            )
 
-                                                <form
-                                                    action="{{ route('farms.locations.destroy', [$farm, $location]) }}"
-                                                    method="POST"
-                                                    class="inline"
-                                                    onsubmit="return confirm('Deactivate this location?')"
+                                                <a
+                                                    href="{{ route('farms.locations.edit', [$farm, $location]) }}"
+                                                    class="text-blue-600 hover:text-blue-800 mr-3"
                                                 >
+                                                    Edit
+                                                </a>
 
-                                                    @csrf
-                                                    @method('DELETE')
 
-                                                    <button
-                                                        type="submit"
-                                                        class="text-red-600 hover:text-red-800"
+                                                @if($location->status === 'active')
+
+                                                    <form
+                                                        action="{{ route('farms.locations.destroy', [$farm, $location]) }}"
+                                                        method="POST"
+                                                        class="inline"
+                                                        onsubmit="return confirm('Deactivate this location?')"
                                                     >
-                                                        Deactivate
-                                                    </button>
 
-                                                </form>
+                                                        @csrf
+                                                        @method('DELETE')
+
+                                                        <button
+                                                            type="submit"
+                                                            class="text-red-600 hover:text-red-800"
+                                                        >
+                                                            Deactivate
+                                                        </button>
+
+                                                    </form>
+
+                                                @endif
 
                                             @endif
 
@@ -206,6 +308,8 @@
 
                     </div>
 
+
+                    {{-- Pagination --}}
                     @if($locations->hasPages())
 
                         <div class="mt-6">

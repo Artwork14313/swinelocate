@@ -116,6 +116,27 @@ class SwineController extends Controller
 
         /*
         |--------------------------------------------------------------------------
+        | Validate Farm Status
+        |--------------------------------------------------------------------------
+        |
+        | New swine can only be registered under an active farm.
+        |
+        */
+
+        $farm = Farm::query()
+            ->where('id', $validated['farm_id'])
+            ->first();
+
+        if (!$farm || $farm->status !== 'active') {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'farm_id' => 'The selected farm is inactive and cannot receive new swine.',
+                ]);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
         | Validate Farm Location
         |--------------------------------------------------------------------------
         |
@@ -144,8 +165,7 @@ class SwineController extends Controller
         $validated['status'] = 'active';
         $validated['qr_token'] = Str::uuid()->toString();
 
-        $swine = Swine::create($validated);
-
+        Swine::create($validated);
 
         return redirect()
             ->route('swine.index')

@@ -194,7 +194,6 @@ class RolePermissionSeeder extends Seeder
             Permission::whereIn('slug', [
                 'manage-swine',
                 'manage-health',
-                'view-traceability',
                 'view-reports',
             ])->pluck('id')
         );
