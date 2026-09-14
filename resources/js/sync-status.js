@@ -576,11 +576,14 @@ function renderMovementConflict(
 
                     <button
                         type="button"
+                        style="background-color: #76C457;"
+                        onmouseover="this.style.backgroundColor='#2A7C13';"
+                        onmouseout="this.style.backgroundColor='#76C457';"
                         class="keep-server-btn inline-flex
                                items-center justify-center rounded-lg
-                               bg-gray-700 px-4 py-2.5
+                               px-4 py-2.5
                                text-sm font-semibold text-white
-                               hover:bg-gray-800"
+                              "
                         data-record-id="${record.id}"
                     >
                         Keep Server Version

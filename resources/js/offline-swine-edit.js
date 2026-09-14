@@ -170,12 +170,6 @@ function initializeOfflineSwineEdit() {
                 ) || null;
 
 
-            const status =
-                formData.get(
-                    'status'
-                );
-
-
             const notes =
                 formData.get(
                     'notes'
@@ -212,16 +206,6 @@ function initializeOfflineSwineEdit() {
 
                 alert(
                     'Please select the sex of the swine.'
-                );
-
-                return;
-            }
-
-
-            if (!status) {
-
-                alert(
-                    'Please select the swine status.'
                 );
 
                 return;
@@ -274,9 +258,6 @@ function initializeOfflineSwineEdit() {
 
                 source:
                     source,
-
-                status:
-                    status,
 
                 notes:
                     notes,
@@ -371,9 +352,6 @@ function initializeOfflineSwineEdit() {
 
                         source:
                             source,
-
-                        status:
-                            status,
 
                         notes:
                             notes,

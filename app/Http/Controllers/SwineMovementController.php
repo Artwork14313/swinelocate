@@ -135,14 +135,22 @@ class SwineMovementController extends Controller
             );
         }
 
-
+        if (!$swine->farm || $swine->farm->status !== 'active') {
+            abort(
+                403,
+                'This swine cannot be moved because its farm is inactive.'
+            );
+        }
         /*
         |--------------------------------------------------------------------------
         | Load Current Location
         |--------------------------------------------------------------------------
         */
 
-        $swine->load('currentLocation');
+        $swine->load([
+            'farm',
+            'currentLocation',
+        ]);
 
 
         /*
@@ -186,6 +194,15 @@ class SwineMovementController extends Controller
                 ->with(
                     'error',
                     'Only active swine can be moved.'
+                );
+        }
+
+        if (!$swine->farm || $swine->farm->status !== 'active') {
+            return redirect()
+                ->route('swine-movements.index')
+                ->with(
+                    'error',
+                    'This swine cannot be moved because its farm is inactive.'
                 );
         }
 
@@ -460,6 +477,13 @@ class SwineMovementController extends Controller
                 'message' =>
                     'Only active swine can be moved.',
 
+            ], 422);
+        }
+
+        if (!$swine->farm || $swine->farm->status !== 'active') {
+            return response()->json([
+                'success' => false,
+                'message' => 'This swine cannot be moved because its farm is inactive.',
             ], 422);
         }
 

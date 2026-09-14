@@ -44,6 +44,23 @@
 
                     @endif
 
+                    @if ($swine->farm)
+
+                        <p class="mt-2 text-sm text-gray-600">
+                            Farm:
+                            <span class="font-medium text-gray-900">
+                                {{ $swine->farm->name }}
+                            </span>
+
+                            @if ($swine->farm->farm_code)
+                                <span class="text-gray-500">
+                                    ({{ $swine->farm->farm_code }})
+                                </span>
+                            @endif
+                        </p>
+
+                    @endif
+
                 </div>
 
 
@@ -87,7 +104,6 @@
 
                         </div>
 
-
                         {{-- ==================================================
                         DESTINATION
                         =================================================== --}}
@@ -100,28 +116,22 @@
                                 <span class="text-red-500">*</span>
                             </label>
 
-
                             <select id="to_location_id" name="to_location_id" required class="mt-2 block w-full rounded-lg border-gray-300
-                                       shadow-sm focus:border-indigo-500
-                                       focus:ring-indigo-500">
+               shadow-sm focus:border-indigo-500
+               focus:ring-indigo-500">
 
                                 <option value="">
                                     Select destination
                                 </option>
 
-
                                 @foreach ($locations as $location)
 
-                                    <option value="{{ $location->id }}" @selected(
-                                        old('to_location_id') == $location->id
-                                    )>
-
+                                    <option value="{{ $location->id }}" data-farm-id="{{ $location->farm_id }}"
+                                        @selected(old('to_location_id') == $location->id)>
                                         {{ $location->name }}
 
                                         @if ($location->location_code)
-
                                             — {{ $location->location_code }}
-
                                         @endif
 
                                     </option>
@@ -130,6 +140,9 @@
 
                             </select>
 
+                            <p class="mt-1 text-xs text-gray-500">
+                                Only active locations in the swine's current farm are available.
+                            </p>
 
                             @error('to_location_id')
 
@@ -140,7 +153,6 @@
                             @enderror
 
                         </div>
-
 
                         {{-- ==================================================
                         MOVEMENT DATE

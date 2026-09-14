@@ -19,26 +19,20 @@
 
             <div class="flex gap-2">
 
-                <a
-                    href="{{ route('swine-movements.index') }}"
-                    class="inline-flex items-center rounded-lg
+                <a href="{{ route('swine-movements.index') }}" class="inline-flex items-center rounded-lg
                            border border-gray-300 bg-white px-4 py-2
                            text-sm font-medium text-gray-700
-                           hover:bg-gray-50"
-                >
+                           hover:bg-gray-50">
                     Back to Movements
                 </a>
 
 
                 @if ($movement->swine)
 
-                    <a
-                        href="{{ route('swine.show', $movement->swine) }}"
-                        class="inline-flex items-center rounded-lg
-                               bg-[#3368A0] px-4 py-2
-                               text-sm font-semibold text-white
-                               hover:bg-[#28557F]"
-                    >
+                    <a href="{{ route('swine.show', $movement->swine) }}" class="inline-flex items-center rounded-lg
+                                               bg-[#3368A0] px-4 py-2
+                                               text-sm font-semibold text-white
+                                               hover:bg-[#28557F]">
                         View Swine
                     </a>
 
@@ -57,7 +51,7 @@
 
 
             {{-- ==========================================================
-                STATUS
+            STATUS
             =========================================================== --}}
 
             @php
@@ -98,7 +92,7 @@
 
 
                     {{-- ==================================================
-                        STATUS
+                    STATUS
                     =================================================== --}}
 
                     <div>
@@ -110,66 +104,54 @@
 
                         @if ($status === 'completed')
 
-                            <span
-                                class="mt-2 inline-flex items-center rounded-full
-                                       bg-green-100 px-3 py-1.5
-                                       text-sm font-semibold text-green-700"
-                            >
+                            <span class="mt-2 inline-flex items-center rounded-full
+                                                       bg-green-100 px-3 py-1.5
+                                                       text-sm font-semibold text-green-700">
                                 Completed
                             </span>
 
 
                         @elseif ($status === 'superseded')
 
-                            <span
-                                class="mt-2 inline-flex items-center rounded-full
-                                       bg-gray-200 px-3 py-1.5
-                                       text-sm font-semibold text-gray-700"
-                            >
-                                Superseded
-                            </span>
+                                                <span class="mt-2 inline-flex items-center rounded-full
+                               bg-yellow-100 px-3 py-1.5
+                               text-sm font-semibold text-yellow-700">
+                                                    Superseded
+                                                </span>
 
 
                         @elseif ($status === 'conflict')
 
-                            <span
-                                class="mt-2 inline-flex items-center rounded-full
-                                       bg-yellow-100 px-3 py-1.5
-                                       text-sm font-semibold text-yellow-700"
-                            >
+                            <span class="mt-2 inline-flex items-center rounded-full
+                                                       bg-yellow-100 px-3 py-1.5
+                                                       text-sm font-semibold text-yellow-700">
                                 Conflict
                             </span>
 
 
                         @elseif ($status === 'rejected')
 
-                            <span
-                                class="mt-2 inline-flex items-center rounded-full
-                                       bg-red-100 px-3 py-1.5
-                                       text-sm font-semibold text-red-700"
-                            >
+                            <span class="mt-2 inline-flex items-center rounded-full
+                                                       bg-red-100 px-3 py-1.5
+                                                       text-sm font-semibold text-red-700">
                                 Rejected
                             </span>
 
 
                         @elseif ($status === 'pending')
 
-                            <span
-                                class="mt-2 inline-flex items-center rounded-full
-                                       bg-gray-100 px-3 py-1.5
-                                       text-sm font-semibold text-gray-700"
-                            >
+                            <span class="mt-2 inline-flex items-center rounded-full
+                                                       bg-gray-100 px-3 py-1.5
+                                                       text-sm font-semibold text-gray-700">
                                 Pending
                             </span>
 
 
                         @else
 
-                            <span
-                                class="mt-2 inline-flex items-center rounded-full
-                                       bg-gray-100 px-3 py-1.5
-                                       text-sm font-semibold text-gray-700"
-                            >
+                            <span class="mt-2 inline-flex items-center rounded-full
+                                                       bg-gray-100 px-3 py-1.5
+                                                       text-sm font-semibold text-gray-700">
                                 {{ ucfirst($status) }}
                             </span>
 
@@ -179,7 +161,7 @@
 
 
                     {{-- ==================================================
-                        CONFLICT RESOLUTION
+                    CONFLICT RESOLUTION
                     =================================================== --}}
 
                     <div>
@@ -193,79 +175,53 @@
 
                         @if ($resolution === 'offline')
 
-                            <span
-                                class="mt-2 inline-flex items-center rounded-full
-                                       bg-blue-100 px-3 py-1.5
-                                       text-sm font-semibold text-blue-700"
-                            >
+                            <span class="mt-2 inline-flex items-center rounded-full
+                                           bg-blue-100 px-3 py-1.5
+                                           text-sm font-semibold text-blue-700">
                                 Offline Version Kept
                             </span>
 
 
-                        {{-- Online Version Kept --}}
+                            {{-- Online Version Kept --}}
 
                         @elseif ($resolution === 'online')
 
-                            <span
-                                class="mt-2 inline-flex items-center rounded-full
-                                       bg-purple-100 px-3 py-1.5
-                                       text-sm font-semibold text-purple-700"
-                            >
+                            <span class="mt-2 inline-flex items-center rounded-full
+                                           bg-purple-100 px-3 py-1.5
+                                           text-sm font-semibold text-purple-700">
                                 Online Version Kept
                             </span>
 
 
-                        {{-- No Conflict --}}
-
-                        @elseif (
-                            $status === 'completed' &&
-                            empty($resolution)
-                        )
-
-                            <span
-                                class="mt-2 inline-flex items-center rounded-full
-                                       bg-green-100 px-3 py-1.5
-                                       text-sm font-semibold text-green-700"
-                            >
-                                No Conflict
-                            </span>
-
-
-                        {{-- Conflict still unresolved --}}
+                            {{-- Unresolved Conflict --}}
 
                         @elseif ($status === 'conflict')
 
-                            <span
-                                class="mt-2 inline-flex items-center rounded-full
-                                       bg-yellow-100 px-3 py-1.5
-                                       text-sm font-semibold text-yellow-700"
-                            >
+                            <span class="mt-2 inline-flex items-center rounded-full
+                                           bg-yellow-100 px-3 py-1.5
+                                           text-sm font-semibold text-yellow-700">
                                 Awaiting Resolution
                             </span>
 
 
-                        {{-- Superseded without resolution --}}
+                            {{-- Superseded Movement --}}
 
                         @elseif ($status === 'superseded')
 
-                            <span
-                                class="mt-2 inline-flex items-center rounded-full
-                                       bg-gray-100 px-3 py-1.5
-                                       text-sm font-semibold text-gray-600"
-                            >
+                            <span class="mt-2 inline-flex items-center rounded-full
+                                           bg-gray-100 px-3 py-1.5
+                                           text-sm font-semibold text-gray-600">
                                 Superseded
                             </span>
 
 
-                        {{-- Unknown --}}
+                            {{-- No Conflict / Not Applicable --}}
 
                         @else
 
-                            <span
-                                class="mt-2 inline-flex items-center rounded-full
-                                       bg-gray-100 px-3 py-1.5
-                                       text-sm font-semibold text-gray-600"
-                            >
+                            <span class="mt-2 inline-flex items-center rounded-full
+                                           bg-gray-100 px-3 py-1.5
+                                           text-sm font-semibold text-gray-600">
                                 Not Applicable
                             </span>
 
@@ -277,7 +233,7 @@
 
 
                 {{-- ======================================================
-                    SYNCHRONIZATION INFORMATION
+                SYNCHRONIZATION INFORMATION
                 ======================================================= --}}
 
                 @if ($resolution === 'offline')
@@ -371,7 +327,7 @@
 
 
             {{-- ==========================================================
-                SWINE
+            SWINE
             =========================================================== --}}
 
             <div class="overflow-hidden rounded-xl bg-white
@@ -470,7 +426,7 @@
 
 
             {{-- ==========================================================
-                LOCATION MOVEMENT
+            LOCATION MOVEMENT
             =========================================================== --}}
 
             <div class="overflow-hidden rounded-xl bg-white
@@ -573,7 +529,7 @@
 
 
             {{-- ==========================================================
-                MOVEMENT INFORMATION
+            MOVEMENT INFORMATION
             =========================================================== --}}
 
             <div class="overflow-hidden rounded-xl bg-white

@@ -93,13 +93,13 @@
                                 </label>
 
                                 <select id="current_location_id" name="current_location_id" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                                           focus:border-indigo-500 focus:ring-indigo-500">
+               focus:border-indigo-500 focus:ring-indigo-500">
                                     <option value="">
                                         Select location
                                     </option>
 
                                     @foreach ($locations as $location)
-                                        <option value="{{ $location->id }}"
+                                        <option value="{{ $location->id }}" data-farm-id="{{ $location->farm_id }}"
                                             @selected(old('current_location_id') == $location->id)>
                                             {{ $location->location_code }} - {{ $location->name }}
                                         </option>
@@ -107,7 +107,7 @@
                                 </select>
 
                                 <p class="mt-1 text-xs text-gray-500">
-                                    The current pen or housing location of the swine.
+                                    Select a location belonging to the selected farm.
                                 </p>
 
                                 @error('current_location_id')
@@ -116,7 +116,6 @@
                                     </p>
                                 @enderror
                             </div>
-
 
                             {{-- Tag Number --}}
                             <div>
@@ -318,5 +317,38 @@
         </div>
 
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const farmSelect = document.getElementById('farm_id');
+            const locationSelect = document.getElementById('current_location_id');
 
+            function filterLocations() {
+                const selectedFarmId = farmSelect.value;
+                const options = locationSelect.querySelectorAll('option');
+
+                options.forEach(option => {
+                    if (!option.value) {
+                        option.hidden = false;
+                        return;
+                    }
+
+                    option.hidden = option.dataset.farmId !== selectedFarmId;
+                });
+
+                const selectedOption = locationSelect.options[locationSelect.selectedIndex];
+
+                if (
+                    selectedOption &&
+                    selectedOption.value &&
+                    selectedOption.dataset.farmId !== selectedFarmId
+                ) {
+                    locationSelect.value = '';
+                }
+            }
+
+            farmSelect.addEventListener('change', filterLocations);
+
+            filterLocations();
+        });
+    </script>
 </x-app-layout>

@@ -124,6 +124,7 @@
 
 
                             {{-- Current Location --}}
+
                             <div>
                                 <label
                                     for="current_location_id"
@@ -132,43 +133,82 @@
                                     Current Location
                                 </label>
 
-                                <select
-                                    id="current_location_id"
-                                    name="current_location_id"
-                                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                                           focus:border-indigo-500 focus:ring-indigo-500"
-                                >
-                                    <option value="">
-                                        No location assigned
+
+                            <select
+                                id="current_location_id"
+                                name="current_location_id"
+                                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
+                                    focus:border-indigo-500 focus:ring-indigo-500"
+                            >
+                                <option value="">
+                                    No location assigned
+                                </option>
+
+                                @foreach ($locations as $location)
+                                    <option
+                                        value="{{ $location->id }}"
+                                        data-farm-id="{{ $location->farm_id }}"
+                                        @selected(
+                                            old(
+                                                'current_location_id',
+                                                $swine->current_location_id
+                                            ) == $location->id
+                                        )
+                                    >
+                                        {{ $location->location_code }} -
+                                        {{ $location->name }}
                                     </option>
+                                @endforeach
+                            </select>
 
-                                    @foreach ($locations as $location)
-                                        <option
-                                            value="{{ $location->id }}"
-                                            @selected(
-                                                old(
-                                                    'current_location_id',
-                                                    $swine->current_location_id
-                                                ) == $location->id
-                                            )
-                                        >
-                                            {{ $location->location_code }} -
-                                            {{ $location->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
+                            <p class="mt-1 text-xs text-gray-500">
+                                Only locations belonging to the selected farm are shown.
+                            </p>
 
-                                <p class="mt-1 text-xs text-gray-500">
-                                    The current pen or housing location.
+                            @error('current_location_id')
+                                <p class="mt-1 text-sm text-red-600">
+                                    {{ $message }}
                                 </p>
+                            @enderror
 
-                                @error('current_location_id')
-                                    <p class="mt-1 text-sm text-red-600">
-                                        {{ $message }}
-                                    </p>
-                                @enderror
+
                             </div>
 
+
+                            {{-- Current Status --}}
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">
+                                    Current Status
+                                </label>
+
+                                <div class="mt-2">
+                                    @if ($swine->status === 'active')
+                                        <span class="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700">
+                                            Active
+                                        </span>
+                                    @elseif ($swine->status === 'inactive')
+                                        <span class="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700">
+                                            Inactive
+                                        </span>
+                                    @elseif ($swine->status === 'sold')
+                                        <span class="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-700">
+                                            Sold
+                                        </span>
+                                    @elseif ($swine->status === 'deceased')
+                                        <span class="inline-flex items-center rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-700">
+                                            Deceased
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700">
+                                            {{ ucfirst($swine->status) }}
+                                        </span>
+                                    @endif
+                                </div>
+
+                                <p class="mt-1 text-xs text-gray-500">
+                                    Status is managed separately using the Activate and Deactivate actions.
+                                </p>
+                            </div>
 
                             {{-- Tag Number --}}
                             <div>
@@ -383,47 +423,6 @@
                             </div>
 
 
-                            {{-- Status --}}
-                            <div>
-                                <label
-                                    for="status"
-                                    class="block text-sm font-medium text-gray-700"
-                                >
-                                    Status <span class="text-red-500">*</span>
-                                </label>
-
-                                <select
-                                    id="status"
-                                    name="status"
-                                    required
-                                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                                           focus:border-indigo-500 focus:ring-indigo-500"
-                                >
-                                    @foreach ([
-                                        'active' => 'Active',
-                                        'inactive' => 'Inactive',
-                                        'sold' => 'Sold',
-                                        'deceased' => 'Deceased',
-                                    ] as $value => $label)
-
-                                        <option
-                                            value="{{ $value }}"
-                                            @selected(old('status', $swine->status) === $value)
-                                        >
-                                            {{ $label }}
-                                        </option>
-
-                                    @endforeach
-                                </select>
-
-                                @error('status')
-                                    <p class="mt-1 text-sm text-red-600">
-                                        {{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
-
-
                             {{-- Notes --}}
                             <div class="md:col-span-2">
 
@@ -495,5 +494,44 @@
         </div>
 
     </div>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const farmSelect = document.getElementById('farm_id');
+        const locationSelect = document.getElementById('current_location_id');
+
+        function filterLocations() {
+            const selectedFarmId = String(farmSelect.value);
+
+            Array.from(locationSelect.options).forEach(function (option) {
+                if (!option.value) {
+                    option.hidden = false;
+                    option.disabled = false;
+                    return;
+                }
+
+                const belongsToSelectedFarm =
+                    String(option.dataset.farmId) === selectedFarmId;
+
+                option.hidden = !belongsToSelectedFarm;
+                option.disabled = !belongsToSelectedFarm;
+            });
+
+            const selectedOption =
+                locationSelect.options[locationSelect.selectedIndex];
+
+            if (
+                selectedOption &&
+                selectedOption.value &&
+                String(selectedOption.dataset.farmId) !== selectedFarmId
+            ) {
+                locationSelect.value = '';
+            }
+        }
+
+        farmSelect.addEventListener('change', filterLocations);
+
+        filterLocations();
+    });
+</script>
 
 </x-app-layout>

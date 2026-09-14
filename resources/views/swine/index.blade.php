@@ -41,7 +41,11 @@
                 </div>
             @endif
 
-
+            @if (session('error'))
+                <div class="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {{ session('error') }}
+                </div>
+            @endif
             {{-- Main Table --}}
             <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
 
@@ -309,34 +313,111 @@
                                                             </span>
                                                         </a>
 
+                                                        @if ($pig->status === 'active')
 
-                                                        {{-- Delete --}}
-                                                        <form action="{{ route('swine.destroy', $pig) }}" method="POST" class="inline"
-                                                            onsubmit="return confirm('Are you sure you want to delete this swine?')">
+                                                            {{-- Deactivate --}}
+                                                            <form
+                                                                action="{{ route('swine.destroy', $pig) }}"
+                                                                method="POST"
+                                                                class="inline"
+                                                                onsubmit="return confirm('Are you sure you want to deactivate this swine?')"
+                                                            >
 
-                                                            @csrf
-                                                            @method('DELETE')
+                                                                @csrf
+                                                                @method('DELETE')
 
-                                                            <button type="submit" title="Delete Swine" aria-label="Delete Swine" class="group relative inline-flex h-9 w-9 items-center justify-center
-                                       rounded-lg text-red-600
-                                       hover:bg-red-50 hover:text-red-800
-                                       transition">
-                                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                                                    stroke-width="1.8" stroke="currentColor" class="h-5 w-5">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                                        d="M6 7.5h12M9.75 7.5V5.25A1.25 1.25 0 0 1 11 4h2a1.25 1.25 0 0 1 1.25 1.25V7.5m-7.5 0 .75 12.25A1.5 1.5 0 0 0 9 21.25h6a1.5 1.5 0 0 0 1.5-1.5L17.25 7.5M10.5 11v6M13.5 11v6" />
-                                                                </svg>
+                                                                <button
+                                                                    type="submit"
+                                                                    title="Deactivate Swine"
+                                                                    aria-label="Deactivate Swine"
+                                                                    class="group relative inline-flex h-9 w-9 items-center justify-center
+                                                                        rounded-lg text-red-600
+                                                                        hover:bg-red-50 hover:text-red-800
+                                                                        transition"
+                                                                >
 
-                                                                <span class="pointer-events-none absolute bottom-full left-1/2 mb-2
-                                           -translate-x-1/2 whitespace-nowrap rounded-md
-                                           bg-gray-900 px-2 py-1 text-xs font-medium text-white
-                                           opacity-0 shadow-sm transition
-                                           group-hover:opacity-100">
-                                                                    Delete
-                                                                </span>
-                                                            </button>
+                                                                    <svg
+                                                                        xmlns="http://www.w3.org/2000/svg"
+                                                                        fill="none"
+                                                                        viewBox="0 0 24 24"
+                                                                        stroke-width="1.8"
+                                                                        stroke="currentColor"
+                                                                        class="h-5 w-5"
+                                                                    >
+                                                                        <path
+                                                                            stroke-linecap="round"
+                                                                            stroke-linejoin="round"
+                                                                            d="M18 12H6"
+                                                                        />
+                                                                    </svg>
 
-                                                        </form>
+                                                                    <span
+                                                                        class="pointer-events-none absolute bottom-full left-1/2 mb-2
+                                                                            -translate-x-1/2 whitespace-nowrap rounded-md
+                                                                            bg-gray-900 px-2 py-1 text-xs font-medium text-white
+                                                                            opacity-0 shadow-sm transition
+                                                                            group-hover:opacity-100"
+                                                                    >
+                                                                        Deactivate
+                                                                    </span>
+
+                                                                </button>
+
+                                                            </form>
+
+                                                        @elseif ($pig->status === 'inactive')
+
+                                                            {{-- Activate --}}
+                                                            <form
+                                                                action="{{ route('swine.activate', $pig) }}"
+                                                                method="POST"
+                                                                class="inline"
+                                                                onsubmit="return confirm('Are you sure you want to activate this swine?')"
+                                                            >
+
+                                                                @csrf
+                                                                @method('PATCH')
+
+                                                                <button
+                                                                    type="submit"
+                                                                    title="Activate Swine"
+                                                                    aria-label="Activate Swine"
+                                                                    class="group relative inline-flex h-9 w-9 items-center justify-center
+                                                                        rounded-lg text-green-600
+                                                                        hover:bg-green-50 hover:text-green-800
+                                                                        transition"
+                                                                >
+
+                                                                    <svg
+                                                                        xmlns="http://www.w3.org/2000/svg"
+                                                                        fill="none"
+                                                                        viewBox="0 0 24 24"
+                                                                        stroke-width="1.8"
+                                                                        stroke="currentColor"
+                                                                        class="h-5 w-5"
+                                                                    >
+                                                                        <path
+                                                                            stroke-linecap="round"
+                                                                            stroke-linejoin="round"
+                                                                            d="M12 6v12M6 12h12"
+                                                                        />
+                                                                    </svg>
+
+                                                                    <span
+                                                                        class="pointer-events-none absolute bottom-full left-1/2 mb-2
+                                                                            -translate-x-1/2 whitespace-nowrap rounded-md
+                                                                            bg-gray-900 px-2 py-1 text-xs font-medium text-white
+                                                                            opacity-0 shadow-sm transition
+                                                                            group-hover:opacity-100"
+                                                                    >
+                                                                        Activate
+                                                                    </span>
+
+                                                                </button>
+
+                                                            </form>
+
+                                                        @endif
 
                                                     </div>
 

@@ -133,10 +133,27 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:manage-swine')
         ->name('swine.destroy');
 
-    Route::get('/swine/{swine}', [SwineController::class, 'show'])
-        ->middleware('permission:view-traceability')
-        ->name('swine.show');
+    /*
+    |--------------------------------------------------------------------------
+    | Activate Swine
+    |--------------------------------------------------------------------------
+    */
+    Route::patch('/swine/{swine}/activate', [SwineController::class, 'activate'])
+        ->middleware('permission:manage-swine')
+        ->name('swine.activate');
 
+    /*
+    |--------------------------------------------------------------------------
+    | View Swine Record
+    |--------------------------------------------------------------------------
+    |
+    | Veterinarians have manage-swine but do not have view-traceability.
+    | Traceability itself remains protected by view-traceability.
+    |
+    */
+    Route::get('/swine/{swine}', [SwineController::class, 'show'])
+        ->middleware('permission:manage-swine')
+        ->name('swine.show');
 
     /*
     |--------------------------------------------------------------------------
@@ -284,9 +301,6 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     */
 
-    Route::get('/swine/offline-state', [SwineController::class, 'offlineState'])
-        ->middleware('permission:manage-swine')
-        ->name('swine.offline-state');
 
     Route::post('/swine/sync', [SwineController::class, 'syncStore'])
         ->middleware('permission:register-swine')
