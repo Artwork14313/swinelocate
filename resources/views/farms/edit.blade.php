@@ -1,85 +1,123 @@
 <x-app-layout>
 
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+```
+<x-slot name="header">
+
+    <div>
+
+        <h2 class="font-semibold text-xl text-gray-800">
             Edit Farm
         </h2>
-    </x-slot>
 
-    <div class="py-8">
-        <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
+        <p class="text-sm text-gray-500 mt-1">
+            {{ $farm->name }}
+            ·
+            {{ $farm->farm_code }}
+        </p>
 
-            <div class="bg-white shadow-sm sm:rounded-lg">
+    </div>
 
-                <div class="p-6">
+</x-slot>
 
-                    <form
-                        method="POST"
-                        action="{{ route('farms.update', $farm) }}"
-                    >
 
-                        @csrf
-                        @method('PUT')
+<div class="py-8">
 
-                        @include('farms._form')
+    <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
 
-                        <div class="mt-8">
+        <div class="bg-white shadow-sm sm:rounded-lg">
 
-                            <div>
-                                <x-input-label
-                                    for="status"
-                                    value="Status"
-                                />
+            <div class="p-6">
 
-                                <select
-                                    id="status"
-                                    name="status"
-                                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                >
-                                    <option
-                                        value="active"
-                                        @selected(old('status', $farm->status) === 'active')
-                                    >
-                                        Active
-                                    </option>
+                <div class="mb-6">
 
-                                    <option
-                                        value="inactive"
-                                        @selected(old('status', $farm->status) === 'inactive')
-                                    >
-                                        Inactive
-                                    </option>
-                                </select>
+                    <h3 class="text-lg font-semibold text-gray-900">
+                        Farm Information
+                    </h3>
 
-                            </div>
-
-                        </div>
-
-                        <div class="mt-8 flex items-center justify-end gap-3">
-
-                            <a
-                                href="{{ route('farms.show', $farm) }}"
-                                class="px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50"
-                            >
-                                Cancel
-                            </a>
-
-                            <button
-                                type="submit"
-                                class="px-4 py-2 bg-gray-900 text-white rounded-md text-sm font-semibold hover:bg-gray-700"
-                            >
-                                Save Changes
-                            </button>
-
-                        </div>
-
-                    </form>
+                    <p class="text-sm text-gray-500 mt-1">
+                        Update the details of this farm.
+                        Farm status is managed separately through the
+                        Activate and Deactivate actions.
+                    </p>
 
                 </div>
+
+
+                <form
+                    method="POST"
+                    action="{{ route('farms.update', $farm) }}"
+                >
+
+                    @csrf
+                    @method('PUT')
+
+
+                    {{-- Farm Fields --}}
+                    @include('farms._form')
+
+
+                    {{-- Current Status --}}
+                    <div class="mt-8">
+
+                        <x-input-label
+                            value="Current Status"
+                        />
+
+                        <div class="mt-2">
+
+                            @if($farm->status === 'active')
+
+                                <span class="inline-flex px-3 py-1 text-sm font-semibold rounded-full bg-green-100 text-green-700">
+                                    Active
+                                </span>
+
+                            @else
+
+                                <span class="inline-flex px-3 py-1 text-sm font-semibold rounded-full bg-gray-100 text-gray-700">
+                                    Inactive
+                                </span>
+
+                            @endif
+
+                        </div>
+
+                        <p class="mt-2 text-xs text-gray-500">
+                            To change the farm status, use the Activate or
+                            Deactivate action from the farm details or
+                            farm list.
+                        </p>
+
+                    </div>
+
+
+                    {{-- Actions --}}
+                    <div class="mt-8 flex items-center justify-end gap-3">
+
+                        <a
+                            href="{{ route('farms.show', $farm) }}"
+                            class="px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                            Cancel
+                        </a>
+
+                        <button
+                            type="submit"
+                            class="px-4 py-2 bg-gray-900 text-white rounded-md text-sm font-semibold hover:bg-gray-700"
+                        >
+                            Save Changes
+                        </button>
+
+                    </div>
+
+                </form>
 
             </div>
 
         </div>
+
     </div>
+
+</div>
+```
 
 </x-app-layout>

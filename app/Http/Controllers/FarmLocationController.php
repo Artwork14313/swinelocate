@@ -165,11 +165,6 @@ class FarmLocationController extends Controller
                 'integer',
                 'min:1',
             ],
-
-            'status' => [
-                'required',
-                'in:active,inactive',
-            ],
         ]);
 
         $location->update($validated);
@@ -204,6 +199,30 @@ class FarmLocationController extends Controller
             ->with(
                 'success',
                 'Farm location successfully deactivated.'
+            );
+    }
+
+    /**
+     * Activate a location.
+     */
+    public function activate(
+        Farm $farm,
+        FarmLocation $location
+    ): RedirectResponse {
+        $this->ensureLocationBelongsToFarm($farm, $location);
+
+        // The location cannot be activated if its farm is inactive.
+        $this->ensureFarmIsActive($farm);
+
+        $location->update([
+            'status' => 'active',
+        ]);
+
+        return redirect()
+            ->route('farms.locations.index', $farm)
+            ->with(
+                'success',
+                'Farm location successfully activated.'
             );
     }
 

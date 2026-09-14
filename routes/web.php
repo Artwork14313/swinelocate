@@ -88,6 +88,12 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:manage-farms')
         ->name('farms.activate');
 
+    Route::patch(
+        '/farms/{farm}/locations/{location}/activate',
+        [FarmLocationController::class, 'activate']
+    )
+        ->middleware('permission:manage-locations')
+        ->name('farms.locations.activate');
 
     /*
     |--------------------------------------------------------------------------

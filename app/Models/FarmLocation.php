@@ -5,10 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Models\Swine;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class FarmLocation extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = [
         'farm_id',
         'location_code',
@@ -31,5 +33,4 @@ class FarmLocation extends Model
             'current_location_id'
         );
     }
-
 }

@@ -17,14 +17,12 @@
             </div>
 
             @if(
-                $farm->status === 'active' &&
-                auth()->user()->hasPermission('manage-locations')
-            )
+                    $farm->status === 'active' &&
+                    auth()->user()->hasPermission('manage-locations')
+                )
 
-                <a
-                    href="{{ route('farms.locations.create', $farm) }}"
-                    class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md text-xs font-semibold uppercase tracking-widest hover:bg-gray-700"
-                >
+                <a href="{{ route('farms.locations.create', $farm) }}"
+                    class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-md text-xs font-semibold uppercase tracking-widest hover:bg-gray-700">
                     Add Location
                 </a>
 
@@ -102,13 +100,15 @@
 
                                 @if($farm->status === 'active')
 
-                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">
+                                    <span
+                                        class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">
                                         Farm Active
                                     </span>
 
                                 @else
 
-                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700">
+                                    <span
+                                        class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700">
                                         Farm Inactive
                                     </span>
 
@@ -122,10 +122,7 @@
 
                         </div>
 
-                        <a
-                            href="{{ route('farms.show', $farm) }}"
-                            class="text-sm text-gray-600 hover:text-gray-900"
-                        >
+                        <a href="{{ route('farms.show', $farm) }}" class="text-sm text-gray-600 hover:text-gray-900">
                             ← Back to Farm
                         </a>
 
@@ -217,13 +214,15 @@
 
                                             @if($location->status === 'active')
 
-                                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">
+                                                <span
+                                                    class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">
                                                     Active
                                                 </span>
 
                                             @else
 
-                                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700">
+                                                <span
+                                                    class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-700">
                                                     Inactive
                                                 </span>
 
@@ -236,48 +235,60 @@
                                         <td class="px-6 py-4 text-right text-sm">
 
                                             {{-- View --}}
-                                            <a
-                                                href="{{ route('farms.locations.show', [$farm, $location]) }}"
-                                                class="text-gray-700 hover:text-gray-900 mr-3"
-                                            >
+                                            <a href="{{ route('farms.locations.show', [$farm, $location]) }}"
+                                                class="text-gray-700 hover:text-gray-900 mr-3">
                                                 View
                                             </a>
 
 
                                             {{-- Management Actions --}}
                                             @if(
-                                                $farm->status === 'active' &&
-                                                auth()->user()->hasPermission('manage-locations')
-                                            )
+                                                    $farm->status === 'active' &&
+                                                    auth()->user()->hasPermission('manage-locations')
+                                                )
 
-                                                <a
-                                                    href="{{ route('farms.locations.edit', [$farm, $location]) }}"
-                                                    class="text-blue-600 hover:text-blue-800 mr-3"
-                                                >
+                                                <a href="{{ route('farms.locations.edit', [$farm, $location]) }}"
+                                                    class="text-blue-600 hover:text-blue-800 mr-3">
                                                     Edit
                                                 </a>
 
 
-                                                @if($location->status === 'active')
+                                                @if(
+                                                        $farm->status === 'active' &&
+                                                        auth()->user()->hasPermission('manage-locations')
+                                                    )
 
-                                                    <form
-                                                        action="{{ route('farms.locations.destroy', [$farm, $location]) }}"
-                                                        method="POST"
-                                                        class="inline"
-                                                        onsubmit="return confirm('Deactivate this location?')"
-                                                    >
+                                                    @if($location->status === 'active')
 
-                                                        @csrf
-                                                        @method('DELETE')
+                                                        <form action="{{ route('farms.locations.destroy', [$farm, $location]) }}"
+                                                            method="POST" class="inline"
+                                                            onsubmit="return confirm('Deactivate this location?')">
 
-                                                        <button
-                                                            type="submit"
-                                                            class="text-red-600 hover:text-red-800"
-                                                        >
-                                                            Deactivate
-                                                        </button>
+                                                            @csrf
+                                                            @method('DELETE')
 
-                                                    </form>
+                                                            <button type="submit" class="text-red-600 hover:text-red-800">
+                                                                Deactivate
+                                                            </button>
+
+                                                        </form>
+
+                                                    @else
+
+                                                        <form action="{{ route('farms.locations.activate', [$farm, $location]) }}"
+                                                            method="POST" class="inline"
+                                                            onsubmit="return confirm('Activate this location?')">
+
+                                                            @csrf
+                                                            @method('PATCH')
+
+                                                            <button type="submit" class="text-green-600 hover:text-green-800">
+                                                                Activate
+                                                            </button>
+
+                                                        </form>
+
+                                                    @endif
 
                                                 @endif
 
@@ -291,10 +302,7 @@
 
                                     <tr>
 
-                                        <td
-                                            colspan="6"
-                                            class="px-6 py-12 text-center text-gray-500"
-                                        >
+                                        <td colspan="6" class="px-6 py-12 text-center text-gray-500">
                                             No locations have been registered for this farm.
                                         </td>
 

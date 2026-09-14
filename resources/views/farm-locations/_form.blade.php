@@ -1,149 +1,155 @@
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-    <div>
-        <x-input-label
-            for="location_code"
-            value="Location Code"
-        />
 
-        <x-text-input
-            id="location_code"
-            name="location_code"
-            type="text"
-            class="mt-1 block w-full"
-            value="{{ old('location_code', $location->location_code ?? '') }}"
-            placeholder="Example: PEN-001"
-            required
-        />
+{{-- Location Code --}}
+<div>
+    <x-input-label
+        for="location_code"
+        value="Location Code"
+    />
 
-        <p class="mt-1 text-xs text-gray-500">
-            Must be unique within this farm.
-        </p>
+    <x-text-input
+        id="location_code"
+        name="location_code"
+        type="text"
+        class="mt-1 block w-full"
+        value="{{ old('location_code', $location->location_code ?? '') }}"
+        placeholder="Example: PEN-001"
+        maxlength="50"
+        required
+    />
 
-        <x-input-error
-            :messages="$errors->get('location_code')"
-            class="mt-2"
-        />
-    </div>
+    <p class="mt-1 text-xs text-gray-500">
+        Must be unique within this farm.
+    </p>
 
-
-    <div>
-        <x-input-label
-            for="name"
-            value="Location Name"
-        />
-
-        <x-text-input
-            id="name"
-            name="name"
-            type="text"
-            class="mt-1 block w-full"
-            value="{{ old('name', $location->name ?? '') }}"
-            placeholder="Example: Grower Pen 1"
-            required
-        />
-
-        <x-input-error
-            :messages="$errors->get('name')"
-            class="mt-2"
-        />
-    </div>
+    <x-input-error
+        :messages="$errors->get('location_code')"
+        class="mt-2"
+    />
+</div>
 
 
-    <div>
+{{-- Location Name --}}
+<div>
+    <x-input-label
+        for="name"
+        value="Location Name"
+    />
 
-        <x-input-label
-            for="type"
-            value="Location Type"
-        />
+    <x-text-input
+        id="name"
+        name="name"
+        type="text"
+        class="mt-1 block w-full"
+        value="{{ old('name', $location->name ?? '') }}"
+        placeholder="Example: Grower Pen 1"
+        maxlength="255"
+        required
+    />
 
-        <select
-            id="type"
-            name="type"
-            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-        >
+    <x-input-error
+        :messages="$errors->get('name')"
+        class="mt-2"
+    />
+</div>
 
-            <option value="">
-                Select type
+
+{{-- Location Type --}}
+<div>
+    <x-input-label
+        for="type"
+        value="Location Type"
+    />
+
+    <select
+        id="type"
+        name="type"
+        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+    >
+        <option value="">
+            Select type
+        </option>
+
+        @foreach([
+            'Pen',
+            'Nursery',
+            'Gestation',
+            'Farrowing',
+            'Grower',
+            'Finisher',
+            'Quarantine',
+            'Isolation',
+            'Boar',
+            'Other',
+        ] as $type)
+
+            <option
+                value="{{ $type }}"
+                @selected(old('type', $location->type ?? '') === $type)
+            >
+                {{ $type }}
             </option>
 
-            @foreach([
-                'Pen',
-                'Nursery',
-                'Gestation',
-                'Farrowing',
-                'Grower',
-                'Finisher',
-                'Quarantine',
-                'Isolation',
-                'Boar',
-                'Other',
-            ] as $type)
+        @endforeach
+    </select>
 
-                <option
-                    value="{{ $type }}"
-                    @selected(old('type', $location->type ?? '') === $type)
-                >
-                    {{ $type }}
-                </option>
-
-            @endforeach
-
-        </select>
-
-        <x-input-error
-            :messages="$errors->get('type')"
-            class="mt-2"
-        />
-
-    </div>
+    <x-input-error
+        :messages="$errors->get('type')"
+        class="mt-2"
+    />
+</div>
 
 
-    <div>
+{{-- Capacity --}}
+<div>
+    <x-input-label
+        for="capacity"
+        value="Capacity"
+    />
 
-        <x-input-label
-            for="capacity"
-            value="Capacity"
-        />
+    <x-text-input
+        id="capacity"
+        name="capacity"
+        type="number"
+        min="1"
+        step="1"
+        class="mt-1 block w-full"
+        value="{{ old('capacity', $location->capacity ?? '') }}"
+        placeholder="Example: 50"
+    />
 
-        <x-text-input
-            id="capacity"
-            name="capacity"
-            type="number"
-            min="1"
-            class="mt-1 block w-full"
-            value="{{ old('capacity', $location->capacity ?? '') }}"
-            placeholder="Example: 50"
-        />
+    <p class="mt-1 text-xs text-gray-500">
+        Maximum number of swine this location can accommodate.
+    </p>
 
-        <x-input-error
-            :messages="$errors->get('capacity')"
-            class="mt-2"
-        />
-
-    </div>
+    <x-input-error
+        :messages="$errors->get('capacity')"
+        class="mt-2"
+    />
+</div>
 
 
-    <div class="md:col-span-2">
+{{-- Description --}}
+<div class="md:col-span-2">
+    <x-input-label
+        for="description"
+        value="Description"
+    />
 
-        <x-input-label
-            for="description"
-            value="Description"
-        />
+    <textarea
+        id="description"
+        name="description"
+        rows="4"
+        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+        placeholder="Describe this location..."
+    >{{ old('description', $location->description ?? '') }}</textarea>
 
-        <textarea
-            id="description"
-            name="description"
-            rows="4"
-            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            placeholder="Describe this location..."
-        >{{ old('description', $location->description ?? '') }}</textarea>
+    <x-input-error
+        :messages="$errors->get('description')"
+        class="mt-2"
+    />
+</div>
 
-        <x-input-error
-            :messages="$errors->get('description')"
-            class="mt-2"
-        />
-
-    </div>
 
 </div>
