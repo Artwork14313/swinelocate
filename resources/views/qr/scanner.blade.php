@@ -1,58 +1,59 @@
 <x-app-layout>
 
-    <x-slot name="header">
+```
+<x-slot name="header">
 
-        <div>
-            <h2 class="text-2xl font-bold text-gray-900">
-                Scan QR Code
-            </h2>
+    <div>
+        <h2 class="text-2xl font-bold text-gray-900">
+            Scan QR Code
+        </h2>
 
-            <p class="mt-1 text-sm text-gray-500">
-                Scan a swine QR code to view its identification and traceability records.
-            </p>
-        </div>
+        <p class="mt-1 text-sm text-gray-500">
+            Scan a swine QR code to view its identification and traceability records.
+        </p>
+    </div>
 
-    </x-slot>
+</x-slot>
 
 
-    <div class="py-8">
+<div class="py-8">
 
-        <div class="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
+    <div class="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
 
-            <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+        <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
 
-                {{-- Header --}}
-                <div class="border-b border-gray-200 px-6 py-5">
+            {{-- Header --}}
+            <div class="border-b border-gray-200 px-6 py-5">
 
-                    <h3 class="text-lg font-semibold text-gray-900">
-                        QR Code Scanner
-                    </h3>
+                <h3 class="text-lg font-semibold text-gray-900">
+                    QR Code Scanner
+                </h3>
 
-                    <p class="mt-1 text-sm text-gray-500">
-                        Position the swine QR code inside the scanner.
-                    </p>
+                <p class="mt-1 text-sm text-gray-500">
+                    Position the SwineLocate QR code inside the scanner.
+                </p>
 
+            </div>
+
+
+            {{-- Scanner Area --}}
+            <div class="px-6 py-8">
+
+                <div id="qr-reader"
+                    class="mx-auto w-full max-w-md overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
                 </div>
 
-
-                {{-- Scanner Area --}}
-                <div class="px-6 py-8">
-
-                    <div id="qr-reader"
-                        class="mx-auto w-full max-w-md overflow-hidden rounded-xl border border-gray-200">
-                    </div>
-
-                </div>
+            </div>
 
 
-                {{-- Status --}}
-                <div class="border-t border-gray-200 bg-gray-50 px-6 py-4">
+            {{-- Status --}}
+            <div class="border-t border-gray-200 bg-gray-50 px-6 py-4">
 
-                    <p id="scanner-status" class="text-center text-sm text-gray-500">
-                        Waiting for camera...
-                    </p>
-
-                </div>
+                <p id="scanner-status"
+                    class="text-center text-sm font-medium text-gray-500"
+                    aria-live="polite">
+                    Waiting for camera...
+                </p>
 
             </div>
 
@@ -60,111 +61,209 @@
 
     </div>
 
-
-    {{-- QR Scanner Library --}}
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+</div>
 
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const status = document.getElementById('scanner-status');
-            const scanner = new Html5Qrcode('qr-reader');
+{{-- QR Scanner Library --}}
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
-            function isValidSwineLocateQr(decodedText) {
-                try {
-                    const url = new URL(decodedText);
 
-                    // Must use the same domain as the current SwineLocate application
-                    if (url.origin !== window.location.origin) {
-                        return false;
-                    }
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
 
-                    // Must follow the SwineLocate QR scan route
-                    const expectedPrefix = '/qr/scan/';
+        const status = document.getElementById('scanner-status');
+        const reader = document.getElementById('qr-reader');
 
-                    if (!url.pathname.startsWith(expectedPrefix)) {
-                        return false;
-                    }
+        if (!status || !reader) {
+            return;
+        }
 
-                    // Get the QR token after /qr/scan/
-                    const qrToken = url.pathname.substring(expectedPrefix.length);
+        const scanner = new Html5Qrcode('qr-reader');
 
-                    // QR token must not be empty
-                    if (!qrToken) {
-                        return false;
-                    }
+        let scanHandled = false;
 
-                    // Prevent extra path segments
-                    if (qrToken.includes('/')) {
-                        return false;
-                    }
 
-                    return true;
+        /*
+         * Validate that the scanned QR code belongs to SwineLocate.
+         *
+         * Accepted format:
+         * https://current-domain.com/qr/scan/{qr_token}
+         *
+         * The scanner rejects:
+         * - External domains
+         * - Other application routes
+         * - Empty QR tokens
+         * - Tokens containing additional path segments
+         */
+        function isValidSwineLocateQr(decodedText) {
 
-                } catch (error) {
+            try {
+
+                const url = new URL(decodedText);
+
+                // Must use the same origin as the current SwineLocate application.
+                if (url.origin !== window.location.origin) {
                     return false;
                 }
-            }
 
-            function onScanSuccess(decodedText) {
+                // Must use the SwineLocate QR scan route.
+                const expectedPrefix = '/qr/scan/';
 
-                // Reject QR codes that are not generated by SwineLocate
-                if (!isValidSwineLocateQr(decodedText)) {
-                    status.textContent =
-                        'Invalid QR code. Please scan a SwineLocate swine QR code.';
-
-                    status.classList.remove('text-green-600');
-                    status.classList.add('text-red-600');
-
-                    return;
+                if (!url.pathname.startsWith(expectedPrefix)) {
+                    return false;
                 }
 
-                status.textContent =
-                    'SwineLocate QR code detected. Opening traceability record...';
+                // Extract the QR token.
+                const qrToken = url.pathname.substring(expectedPrefix.length);
 
-                status.classList.remove('text-red-600');
+                // Token must not be empty.
+                if (!qrToken) {
+                    return false;
+                }
+
+                // Prevent additional path segments.
+                if (qrToken.includes('/')) {
+                    return false;
+                }
+
+                return true;
+
+            } catch (error) {
+
+                return false;
+            }
+        }
+
+
+        /*
+         * Display scanner status.
+         */
+        function setStatus(message, type) {
+
+            status.textContent = message;
+
+            status.classList.remove(
+                'text-gray-500',
+                'text-green-600',
+                'text-red-600',
+                'text-yellow-600'
+            );
+
+            if (type === 'success') {
+
                 status.classList.add('text-green-600');
 
-                scanner.stop()
-                    .then(function () {
-                        window.location.href = decodedText;
-                    })
-                    .catch(function (error) {
-                        console.error(error);
-                        window.location.href = decodedText;
-                    });
+            } else if (type === 'error') {
+
+                status.classList.add('text-red-600');
+
+            } else if (type === 'warning') {
+
+                status.classList.add('text-yellow-600');
+
+            } else {
+
+                status.classList.add('text-gray-500');
+            }
+        }
+
+
+        /*
+         * Handle successful QR scan.
+         */
+        function onScanSuccess(decodedText) {
+
+            // Prevent multiple redirects from repeated camera detections.
+            if (scanHandled) {
+                return;
             }
 
-            function onScanFailure(errorMessage) {
-                // Ignore normal scanning failures
+            // Reject QR codes that are not generated by SwineLocate.
+            if (!isValidSwineLocateQr(decodedText)) {
+
+                setStatus(
+                    'Invalid QR code. Please scan a SwineLocate swine QR code.',
+                    'error'
+                );
+
+                return;
             }
 
-            scanner.start(
-                { facingMode: 'environment' },
-                {
-                    fps: 10,
-                    qrbox: {
-                        width: 250,
-                        height: 250
-                    }
-                },
-                onScanSuccess,
-                onScanFailure
-            )
+            scanHandled = true;
+
+            setStatus(
+                'SwineLocate QR code detected. Opening traceability record...',
+                'success'
+            );
+
+
+            /*
+             * Stop the camera before navigating away.
+             */
+            scanner.stop()
                 .then(function () {
-                    status.textContent =
-                        'Camera ready. Scan a SwineLocate swine QR code.';
+
+                    window.location.assign(decodedText);
+
                 })
                 .catch(function (error) {
-                    console.error(error);
 
-                    status.textContent =
-                        'Unable to access the camera. Please allow camera permission.';
+                    console.error('Unable to stop QR scanner:', error);
 
-                    status.classList.remove('text-green-600');
-                    status.classList.add('text-red-600');
+                    // Still navigate if the camera cannot be stopped.
+                    window.location.assign(decodedText);
+
                 });
-        });
-    </script>
+        }
+
+
+        /*
+         * Normal scanning failures are ignored because
+         * html5-qrcode continuously reports unsuccessful frames.
+         */
+        function onScanFailure(errorMessage) {
+            // Intentionally ignored.
+        }
+
+
+        /*
+         * Start camera.
+         */
+        scanner.start(
+            {
+                facingMode: 'environment'
+            },
+            {
+                fps: 10,
+                qrbox: {
+                    width: 250,
+                    height: 250
+                }
+            },
+            onScanSuccess,
+            onScanFailure
+        )
+            .then(function () {
+
+                setStatus(
+                    'Camera ready. Scan a SwineLocate swine QR code.',
+                    'default'
+                );
+
+            })
+            .catch(function (error) {
+
+                console.error('QR scanner camera error:', error);
+
+                setStatus(
+                    'Unable to access the camera. Please allow camera permission.',
+                    'error'
+                );
+
+            });
+
+    });
+</script>
+```
 
 </x-app-layout>

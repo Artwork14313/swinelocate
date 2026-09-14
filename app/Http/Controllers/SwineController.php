@@ -402,7 +402,7 @@ class SwineController extends Controller
                     'This swine cannot be updated because its farm is inactive.',
             ], 422);
         }
-        
+
         $validated = $request->validate([
             'swine_id' => [
                 'required',
@@ -662,8 +662,13 @@ class SwineController extends Controller
     }
 
     /**
-     * Display the swine traceability page from a QR code.
-     */
+
+* Display the swine traceability page from a QR code.
+*
+* The QR token identifies the swine record.
+* Inactive swine are still accessible so their historical
+* traceability records remain available.
+  */
     public function scan(string $qr_token): View
     {
         $swine = Swine::query()
@@ -680,6 +685,7 @@ class SwineController extends Controller
 
         return view('swine.scan', compact('swine'));
     }
+
 
     /**
      * Store an offline swine registration

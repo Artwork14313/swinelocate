@@ -16,10 +16,8 @@
                     </div>
 
                     <div>
-                        <a
-                            href="{{ route('qr.scanner') }}"
-                            class="inline-flex items-center rounded-lg bg-gray-800 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-700"
-                        >
+                        <a href="{{ route('qr.scanner') }}"
+                            class="inline-flex items-center rounded-lg bg-gray-800 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-700">
                             Scan Another QR
                         </a>
                     </div>
@@ -55,19 +53,23 @@
                             @endphp
 
                             @if($status === 'active')
-                                <span class="inline-flex rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+                                <span
+                                    class="inline-flex rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
                                     Active
                                 </span>
                             @elseif($status === 'sold')
-                                <span class="inline-flex rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+                                <span
+                                    class="inline-flex rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
                                     Sold
                                 </span>
                             @elseif($status === 'deceased')
-                                <span class="inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
+                                <span
+                                    class="inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
                                     Deceased
                                 </span>
                             @else
-                                <span class="inline-flex rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+                                <span
+                                    class="inline-flex rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
                                     {{ ucfirst($swine->status ?? 'Unknown') }}
                                 </span>
                             @endif
@@ -143,25 +145,13 @@
 
                 <div class="flex items-start gap-4">
 
-                    <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            class="h-6 w-6"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            stroke-width="2"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                            />
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                            />
+                    <div
+                        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                     </div>
 
@@ -176,7 +166,7 @@
 
                         @if($swine->currentLocation)
                             <p class="mt-1 text-sm text-gray-500">
-                                {{ $swine->currentLocation->location_type ?? 'Farm Location' }}
+                                {{ $swine->currentLocation->type ?? 'Farm Location' }}
                             </p>
                         @endif
                     </div>
@@ -262,15 +252,18 @@
 
                                 <div class="mt-2">
                                     @if($healthStatus === 'healthy')
-                                        <span class="inline-flex rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+                                        <span
+                                            class="inline-flex rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
                                             Healthy
                                         </span>
                                     @elseif(in_array($healthStatus, ['sick', 'ill', 'critical']))
-                                        <span class="inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
+                                        <span
+                                            class="inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
                                             {{ ucfirst($latestHealth->health_status) }}
                                         </span>
                                     @else
-                                        <span class="inline-flex rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+                                        <span
+                                            class="inline-flex rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
                                             {{ ucfirst($latestHealth->health_status ?? 'Unknown') }}
                                         </span>
                                     @endif
@@ -386,169 +379,172 @@
 
 
             {{-- Vaccination History --}}
-<div class="mb-6 rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+            <div class="mb-6 rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
 
-    <div class="border-b border-gray-200 px-5 py-4">
-        <h2 class="text-lg font-bold text-gray-900">
-            Vaccination History
-        </h2>
+                <div class="border-b border-gray-200 px-5 py-4">
+                    <h2 class="text-lg font-bold text-gray-900">
+                        Vaccination History
+                    </h2>
 
-        <p class="mt-1 text-sm text-gray-500">
-            Vaccinations recorded through the health records module
-        </p>
-    </div>
+                    <p class="mt-1 text-sm text-gray-500">
+                        Vaccinations recorded through the health records module
+                    </p>
+                </div>
 
-    <div class="p-5">
+                <div class="p-5">
 
-        @php
-            $vaccinations = $swine->healthRecords
-                ->filter(function ($record) {
-                    return strtolower($record->record_type ?? '') === 'vaccination';
-                })
-                ->sortByDesc('record_date');
-        @endphp
+                    @php
+                        $vaccinations = $swine->healthRecords
+                            ->filter(function ($record) {
+                                return strtolower($record->record_type ?? '') === 'vaccination';
+                            })
+                            ->sortByDesc('record_date');
+                    @endphp
 
-        @if($vaccinations->count())
+                    @if($vaccinations->count())
 
-            <div class="space-y-4">
+                        <div class="space-y-4">
 
-                @foreach($vaccinations as $vaccination)
+                            @foreach($vaccinations as $vaccination)
 
-                    <div class="rounded-lg border border-gray-200 p-4">
+                                <div class="rounded-lg border border-gray-200 p-4">
 
-                        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 
-                            <div>
-                                <h3 class="font-semibold text-gray-900">
-                                    {{ $vaccination->vaccine_name ?: 'Unnamed Vaccine' }}
-                                </h3>
+                                        <div>
+                                            <h3 class="font-semibold text-gray-900">
+                                                {{ $vaccination->vaccine_name ?: 'Unnamed Vaccine' }}
+                                            </h3>
 
-                                <p class="mt-1 text-sm text-gray-500">
-                                    Vaccination
-                                </p>
-                            </div>
+                                            <p class="mt-1 text-sm text-gray-500">
+                                                Vaccination
+                                            </p>
+                                        </div>
 
-                            @php
-                                $dueDate = $vaccination->next_due_date;
-                                $today = now()->startOfDay();
-                            @endphp
+                                        @php
+                                            $dueDate = $vaccination->next_due_date;
+                                            $today = now()->startOfDay();
+                                        @endphp
 
-                            @if($dueDate)
+                                        @if($dueDate)
 
-                                @if($dueDate->lt($today))
+                                            @if($dueDate->lt($today))
 
-                                    <span class="inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
-                                        Overdue
-                                    </span>
+                                                <span
+                                                    class="inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
+                                                    Overdue
+                                                </span>
 
-                                @elseif($dueDate->lte($today->copy()->addDays(7)))
+                                            @elseif($dueDate->lte($today->copy()->addDays(7)))
 
-                                    <span class="inline-flex rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700">
-                                        Due Soon
-                                    </span>
+                                                <span
+                                                    class="inline-flex rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700">
+                                                    Due Soon
+                                                </span>
 
-                                @else
+                                            @else
 
-                                    <span class="inline-flex rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
-                                        Up to Date
-                                    </span>
+                                                <span
+                                                    class="inline-flex rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+                                                    Up to Date
+                                                </span>
 
-                                @endif
+                                            @endif
 
-                            @endif
+                                        @endif
+
+                                    </div>
+
+
+                                    <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
+                                        {{-- Date Administered --}}
+                                        <div>
+                                            <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                                Date Administered
+                                            </p>
+
+                                            <p class="mt-1 text-sm font-semibold text-gray-900">
+                                                {{ $vaccination->record_date?->format('M d, Y') ?? '—' }}
+                                            </p>
+                                        </div>
+
+
+                                        {{-- Dose --}}
+                                        <div>
+                                            <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                                Dose
+                                            </p>
+
+                                            <p class="mt-1 text-sm font-semibold text-gray-900">
+                                                {{ $vaccination->dose ?: '—' }}
+                                            </p>
+                                        </div>
+
+
+                                        {{-- Batch Number --}}
+                                        <div>
+                                            <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                                Batch Number
+                                            </p>
+
+                                            <p class="mt-1 text-sm font-semibold text-gray-900">
+                                                {{ $vaccination->batch_number ?: '—' }}
+                                            </p>
+                                        </div>
+
+
+                                        {{-- Next Due Date --}}
+                                        <div>
+                                            <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                                Next Due Date
+                                            </p>
+
+                                            <p class="mt-1 text-sm font-semibold text-gray-900">
+                                                {{ $vaccination->next_due_date?->format('M d, Y') ?? '—' }}
+                                            </p>
+                                        </div>
+
+                                    </div>
+
+
+                                    @if($vaccination->notes)
+
+                                        <div class="mt-4 border-t border-gray-100 pt-4">
+
+                                            <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                                Notes
+                                            </p>
+
+                                            <p class="mt-1 text-sm leading-6 text-gray-700">
+                                                {{ $vaccination->notes }}
+                                            </p>
+
+                                        </div>
+
+                                    @endif
+
+                                </div>
+
+                            @endforeach
 
                         </div>
 
+                    @else
 
-                        <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <div class="py-6 text-center">
 
-                            {{-- Date Administered --}}
-                            <div>
-                                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
-                                    Date Administered
-                                </p>
-
-                                <p class="mt-1 text-sm font-semibold text-gray-900">
-                                    {{ $vaccination->record_date?->format('M d, Y') ?? '—' }}
-                                </p>
-                            </div>
-
-
-                            {{-- Dose --}}
-                            <div>
-                                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
-                                    Dose
-                                </p>
-
-                                <p class="mt-1 text-sm font-semibold text-gray-900">
-                                    {{ $vaccination->dose ?: '—' }}
-                                </p>
-                            </div>
-
-
-                            {{-- Batch Number --}}
-                            <div>
-                                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
-                                    Batch Number
-                                </p>
-
-                                <p class="mt-1 text-sm font-semibold text-gray-900">
-                                    {{ $vaccination->batch_number ?: '—' }}
-                                </p>
-                            </div>
-
-
-                            {{-- Next Due Date --}}
-                            <div>
-                                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
-                                    Next Due Date
-                                </p>
-
-                                <p class="mt-1 text-sm font-semibold text-gray-900">
-                                    {{ $vaccination->next_due_date?->format('M d, Y') ?? '—' }}
-                                </p>
-                            </div>
+                            <p class="text-sm text-gray-500">
+                                No vaccination records available for this swine.
+                            </p>
 
                         </div>
 
+                    @endif
 
-                        @if($vaccination->notes)
-
-                            <div class="mt-4 border-t border-gray-100 pt-4">
-
-                                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
-                                    Notes
-                                </p>
-
-                                <p class="mt-1 text-sm leading-6 text-gray-700">
-                                    {{ $vaccination->notes }}
-                                </p>
-
-                            </div>
-
-                        @endif
-
-                    </div>
-
-                @endforeach
+                </div>
 
             </div>
-
-        @else
-
-            <div class="py-6 text-center">
-
-                <p class="text-sm text-gray-500">
-                    No vaccination records available for this swine.
-                </p>
-
-            </div>
-
-        @endif
-
-    </div>
-
-</div>
 
 
             {{-- Growth / Weight History --}}
@@ -601,15 +597,18 @@
 
                                 <thead>
                                     <tr>
-                                        <th class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                        <th
+                                            class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                                             Date
                                         </th>
 
-                                        <th class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                        <th
+                                            class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                                             Weight
                                         </th>
 
-                                        <th class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                        <th
+                                            class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                                             Notes
                                         </th>
                                     </tr>
@@ -672,7 +671,6 @@
 
                 </div>
 
-
                 <div class="p-5">
 
                     @if($swine->movements->count())
@@ -680,6 +678,17 @@
                         <div class="space-y-4">
 
                             @foreach($swine->movements->sortByDesc('movement_date') as $movement)
+
+                                @php
+                                    $movementStatus = strtolower(
+                                        trim($movement->status ?? 'completed')
+                                    );
+
+                                    $movementResolution = strtolower(
+                                        trim($movement->conflict_resolution ?? '')
+                                    );
+                                @endphp
+
 
                                 <div class="relative rounded-lg border border-gray-200 p-4">
 
@@ -698,35 +707,65 @@
                                         </div>
 
 
-                                        @php
-                                            $movementStatus = strtolower($movement->status ?? 'completed');
-                                        @endphp
+                                        {{-- Movement Status --}}
+                                        <div class="text-left sm:text-right">
 
-                                        @if($movementStatus === 'completed')
+                                            @if($movementStatus === 'completed')
 
-                                            <span class="inline-flex rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
-                                                Completed
-                                            </span>
+                                                <span class="inline-flex rounded-full
+                                                       bg-green-100 px-3 py-1
+                                                       text-xs font-semibold text-green-700">
+                                                    Completed
+                                                </span>
 
-                                        @elseif($movementStatus === 'superseded')
 
-                                            <span class="inline-flex rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
-                                                Superseded
-                                            </span>
+                                            @elseif($movementStatus === 'superseded')
 
-                                        @elseif($movementStatus === 'conflict')
+                                                <span class="inline-flex rounded-full
+                                                       bg-yellow-100 px-3 py-1
+                                                       text-xs font-semibold text-yellow-700">
+                                                    Superseded
+                                                </span>
 
-                                            <span class="inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
-                                                Conflict
-                                            </span>
 
-                                        @else
+                                            @elseif($movementStatus === 'conflict')
 
-                                            <span class="inline-flex rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700">
-                                                {{ ucfirst($movement->status ?? 'Pending') }}
-                                            </span>
+                                                <span class="inline-flex rounded-full
+                                                       bg-red-100 px-3 py-1
+                                                       text-xs font-semibold text-red-700">
+                                                    Conflict
+                                                </span>
 
-                                        @endif
+
+                                            @elseif($movementStatus === 'pending')
+
+                                                <span class="inline-flex rounded-full
+                                                       bg-yellow-100 px-3 py-1
+                                                       text-xs font-semibold text-yellow-700">
+                                                    Pending
+                                                </span>
+
+
+                                            @elseif($movementStatus === 'cancelled')
+
+                                                <span class="inline-flex rounded-full
+                                                       bg-red-100 px-3 py-1
+                                                       text-xs font-semibold text-red-700">
+                                                    Cancelled
+                                                </span>
+
+
+                                            @else
+
+                                                <span class="inline-flex rounded-full
+                                                       bg-gray-100 px-3 py-1
+                                                       text-xs font-semibold text-gray-700">
+                                                    {{ ucfirst($movementStatus) }}
+                                                </span>
+
+                                            @endif
+
+                                        </div>
 
                                     </div>
 
@@ -734,6 +773,7 @@
                                     {{-- Movement Route --}}
                                     <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3 md:items-center">
 
+                                        {{-- From --}}
                                         <div class="rounded-lg bg-gray-50 p-3">
 
                                             <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
@@ -741,32 +781,33 @@
                                             </p>
 
                                             <p class="mt-1 font-semibold text-gray-900">
-                                                {{ $movement->fromLocation->name ?? 'Initial Location' }}
+                                                {{ $movement->fromLocation?->name ?? 'Initial Location' }}
                                             </p>
+
+                                            @if($movement->fromLocation?->location_code)
+
+                                                <p class="mt-1 text-xs text-gray-500">
+                                                    {{ $movement->fromLocation->location_code }}
+                                                </p>
+
+                                            @endif
 
                                         </div>
 
 
+                                        {{-- Arrow --}}
                                         <div class="hidden justify-center md:flex">
 
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                class="h-6 w-6 text-gray-400"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                                stroke="currentColor"
-                                                stroke-width="2"
-                                            >
-                                                <path
-                                                    stroke-linecap="round"
-                                                    stroke-linejoin="round"
-                                                    d="M17 8l4 4m0 0l-4 4m4-4H3"
-                                                />
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none"
+                                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                    d="M17 8l4 4m0 0l-4 4m4-4H3" />
                                             </svg>
 
                                         </div>
 
 
+                                        {{-- To --}}
                                         <div class="rounded-lg bg-blue-50 p-3">
 
                                             <p class="text-xs font-medium uppercase tracking-wide text-blue-600">
@@ -774,8 +815,16 @@
                                             </p>
 
                                             <p class="mt-1 font-semibold text-gray-900">
-                                                {{ $movement->toLocation->name ?? 'Unknown Location' }}
+                                                {{ $movement->toLocation?->name ?? 'Unknown Location' }}
                                             </p>
+
+                                            @if($movement->toLocation?->location_code)
+
+                                                <p class="mt-1 text-xs text-gray-500">
+                                                    {{ $movement->toLocation->location_code }}
+                                                </p>
+
+                                            @endif
 
                                         </div>
 
@@ -809,7 +858,7 @@
                                                 Notes
                                             </p>
 
-                                            <p class="mt-1 text-sm text-gray-700">
+                                            <p class="mt-1 whitespace-pre-line text-sm text-gray-700">
                                                 {{ $movement->notes }}
                                             </p>
 
@@ -819,7 +868,7 @@
 
 
                                     {{-- Conflict Resolution --}}
-                                    @if($movement->conflict_resolution)
+                                    @if($movementResolution === 'offline')
 
                                         <div class="mt-4 border-t border-gray-100 pt-3">
 
@@ -827,8 +876,23 @@
                                                 Conflict Resolution
                                             </p>
 
-                                            <p class="mt-1 text-sm font-semibold text-gray-700">
-                                                {{ ucfirst($movement->conflict_resolution) }}
+                                            <p class="mt-1 text-sm font-semibold text-blue-700">
+                                                Offline Version Kept
+                                            </p>
+
+                                        </div>
+
+
+                                    @elseif($movementResolution === 'online')
+
+                                        <div class="mt-4 border-t border-gray-100 pt-3">
+
+                                            <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                                Conflict Resolution
+                                            </p>
+
+                                            <p class="mt-1 text-sm font-semibold text-purple-700">
+                                                Online Version Kept
                                             </p>
 
                                         </div>
@@ -854,7 +918,8 @@
                     @endif
 
                 </div>
-            </div>           
+
+            </div>
 
             {{-- Footer --}}
             <div class="py-6 text-center">
