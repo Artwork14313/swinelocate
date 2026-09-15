@@ -15,12 +15,11 @@
 
             <div class="flex flex-wrap gap-3">
 
-                <a href="{{ route('swine.index') }}" class="rounded-lg border border-gray-300 bg-white px-4 py-2
+                <a href="{{ route('swine.index') }}"
+                    class="rounded-lg border border-gray-300 bg-white px-4 py-2
                            text-sm font-semibold text-gray-700 hover:bg-gray-50">
                     Back to Swine
                 </a>
-
-
 
             </div>
 
@@ -36,9 +35,22 @@
             @if (session('success'))
 
                 <div class="mb-6 rounded-lg border border-green-200
-                                        bg-green-50 px-4 py-3 text-sm text-green-700">
+                            bg-green-50 px-4 py-3 text-sm text-green-700">
 
                     {{ session('success') }}
+
+                </div>
+
+            @endif
+
+
+            {{-- Error Message --}}
+            @if (session('error'))
+
+                <div class="mb-6 rounded-lg border border-red-200
+                            bg-red-50 px-4 py-3 text-sm text-red-700">
+
+                    {{ session('error') }}
 
                 </div>
 
@@ -67,40 +79,40 @@
                                 @if ($swine->status === 'active')
 
                                     <span class="inline-flex rounded-full bg-green-100
-                                                             px-2.5 py-1 text-xs font-semibold
-                                                             text-green-700">
+                                                 px-2.5 py-1 text-xs font-semibold
+                                                 text-green-700">
                                         Active
                                     </span>
 
                                 @elseif ($swine->status === 'inactive')
 
                                     <span class="inline-flex rounded-full bg-gray-100
-                                                             px-2.5 py-1 text-xs font-semibold
-                                                             text-gray-700">
+                                                 px-2.5 py-1 text-xs font-semibold
+                                                 text-gray-700">
                                         Inactive
                                     </span>
 
                                 @elseif ($swine->status === 'sold')
 
                                     <span class="inline-flex rounded-full bg-blue-100
-                                                             px-2.5 py-1 text-xs font-semibold
-                                                             text-blue-700">
+                                                 px-2.5 py-1 text-xs font-semibold
+                                                 text-blue-700">
                                         Sold
                                     </span>
 
                                 @elseif ($swine->status === 'deceased')
 
                                     <span class="inline-flex rounded-full bg-red-100
-                                                             px-2.5 py-1 text-xs font-semibold
-                                                             text-red-700">
+                                                 px-2.5 py-1 text-xs font-semibold
+                                                 text-red-700">
                                         Deceased
                                     </span>
 
                                 @else
 
                                     <span class="inline-flex rounded-full bg-gray-100
-                                                             px-2.5 py-1 text-xs font-semibold
-                                                             text-gray-700">
+                                                 px-2.5 py-1 text-xs font-semibold
+                                                 text-gray-700">
                                         {{ ucfirst($swine->status) }}
                                     </span>
 
@@ -124,6 +136,7 @@
 
                     <div class="mt-5 grid grid-cols-1 gap-6 sm:grid-cols-2">
 
+                        {{-- Tag Number --}}
                         <div>
 
                             <dt class="text-xs font-medium uppercase tracking-wide text-gray-500">
@@ -136,6 +149,8 @@
 
                         </div>
 
+
+                        {{-- Sex --}}
                         <div>
 
                             <dt class="text-xs font-medium uppercase tracking-wide text-gray-500">
@@ -149,6 +164,7 @@
                         </div>
 
 
+                        {{-- Breed --}}
                         <div>
 
                             <dt class="text-xs font-medium uppercase tracking-wide text-gray-500">
@@ -161,10 +177,23 @@
 
                         </div>
 
+
+                        {{-- QR Token --}}
+                        <!-- <div>
+
+                            <dt class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                QR Token
+                            </dt>
+
+                            <dd class="mt-1 break-all text-sm font-medium text-gray-900">
+                                {{ $swine->qr_token ?: '—' }}
+                            </dd>
+
+                        </div> -->
+
                     </div>
 
                 </div>
-
 
 
                 {{-- Farm & Location --}}
@@ -229,6 +258,7 @@
 
                                 @endif
 
+
                                 {{-- Verify location belongs to current farm --}}
                                 @if ($swine->farm && $swine->currentLocation->farm_id === $swine->farm->id)
 
@@ -262,23 +292,28 @@
 
 
                     {{-- Location Action --}}
-                    @if ($swine->status === 'active')
+                    @if (
+                        $swine->status === 'active' &&
+                        auth()->user()->hasPermission('manage-movements')
+                    )
 
                         <div class="mt-6">
 
                             @if ($swine->currentLocation)
 
-                                <a href="{{ route('swine.movements.create', $swine) }}" class="inline-flex items-center justify-center rounded-lg
-                                                        bg-[#3368A0] px-4 py-2 text-sm font-semibold
-                                                        text-white hover:bg-[#28557F]">
+                                <a href="{{ route('swine.movements.create', $swine) }}"
+                                    class="inline-flex items-center justify-center rounded-lg
+                                           bg-[#3368A0] px-4 py-2 text-sm font-semibold
+                                           text-white hover:bg-[#28557F]">
                                     Move Swine
                                 </a>
 
                             @else
 
-                                <a href="{{ route('swine.movements.create', $swine) }}" class="inline-flex items-center justify-center rounded-lg
-                                                        bg-[#3368A0] px-4 py-2 text-sm font-semibold
-                                                        text-white hover:bg-[#28557F]">
+                                <a href="{{ route('swine.movements.create', $swine) }}"
+                                    class="inline-flex items-center justify-center rounded-lg
+                                           bg-[#3368A0] px-4 py-2 text-sm font-semibold
+                                           text-white hover:bg-[#28557F]">
                                     Assign Location
                                 </a>
 
@@ -291,8 +326,6 @@
                 </div>
 
 
-
-
                 {{-- Registration Information --}}
                 <div class="border-b border-gray-200 px-6 py-6">
 
@@ -302,6 +335,7 @@
 
                     <div class="mt-5 grid grid-cols-1 gap-6 sm:grid-cols-2">
 
+                        {{-- Birth Date --}}
                         <div>
 
                             <dt class="text-xs font-medium uppercase tracking-wide text-gray-500">
@@ -315,6 +349,7 @@
                         </div>
 
 
+                        {{-- Acquisition Date --}}
                         <div>
 
                             <dt class="text-xs font-medium uppercase tracking-wide text-gray-500">
@@ -328,6 +363,7 @@
                         </div>
 
 
+                        {{-- Source --}}
                         <div>
 
                             <dt class="text-xs font-medium uppercase tracking-wide text-gray-500">
@@ -341,6 +377,7 @@
                         </div>
 
 
+                        {{-- Record Created --}}
                         <div>
 
                             <dt class="text-xs font-medium uppercase tracking-wide text-gray-500">
@@ -385,39 +422,54 @@
 
                 </div>
 
+
                 {{-- Actions --}}
                 <div class="flex flex-col gap-3 bg-gray-50 px-6 py-5
-            sm:flex-row sm:items-center sm:justify-between">
+                            sm:flex-row sm:items-center sm:justify-between">
 
                     {{-- Lifecycle Action --}}
                     <div>
 
-                        @if ($swine->status === 'active')
+                        @if (
+                            $swine->status === 'active' &&
+                            auth()->user()->hasPermission('manage-swine')
+                        )
 
-                            <form method="POST" action="{{ route('swine.destroy', $swine) }}"
+                            <form method="POST"
+                                action="{{ route('swine.destroy', $swine) }}"
                                 onsubmit="return confirm('Are you sure you want to deactivate this swine?');">
+
                                 @csrf
                                 @method('DELETE')
 
-                                <button type="submit" class="w-full rounded-lg border border-red-200
-                               bg-white px-4 py-2.5 text-sm font-semibold
-                               text-red-600 hover:bg-red-50 sm:w-auto">
+                                <button type="submit"
+                                    class="w-full rounded-lg border border-red-200
+                                           bg-white px-4 py-2.5 text-sm font-semibold
+                                           text-red-600 hover:bg-red-50 sm:w-auto">
                                     Deactivate Swine
                                 </button>
+
                             </form>
 
-                        @elseif ($swine->status === 'inactive')
+                        @elseif (
+                            $swine->status === 'inactive' &&
+                            auth()->user()->hasPermission('manage-swine')
+                        )
 
-                            <form method="POST" action="{{ route('swine.activate', $swine) }}"
+                            <form method="POST"
+                                action="{{ route('swine.activate', $swine) }}"
                                 onsubmit="return confirm('Are you sure you want to activate this swine?');">
+
                                 @csrf
                                 @method('PATCH')
 
-                                <button type="submit" class="w-full rounded-lg border border-green-200
-                               bg-white px-4 py-2.5 text-sm font-semibold
-                               text-green-600 hover:bg-green-50 sm:w-auto">
+                                <button type="submit"
+                                    class="w-full rounded-lg border border-green-200
+                                           bg-white px-4 py-2.5 text-sm font-semibold
+                                           text-green-600 hover:bg-green-50 sm:w-auto">
                                     Activate Swine
                                 </button>
+
                             </form>
 
                         @endif
@@ -426,21 +478,26 @@
 
 
                     {{-- Edit --}}
-                    <div class="flex flex-col gap-3 sm:flex-row">
+                    @if (auth()->user()->hasPermission('manage-swine'))
 
-                        <a href="{{ route('swine.edit', $swine) }}" class="rounded-lg bg-indigo-600 px-5 py-2.5
-                   text-center text-sm font-semibold text-white
-                   hover:bg-indigo-700">
-                            Edit Swine
-                        </a>
+                        <div class="flex flex-col gap-3 sm:flex-row">
 
-                    </div>
+                            <a href="{{ route('swine.edit', $swine) }}"
+                                class="rounded-lg bg-indigo-600 px-5 py-2.5
+                                       text-center text-sm font-semibold text-white
+                                       hover:bg-indigo-700">
+                                Edit Swine
+                            </a>
+
+                        </div>
+
+                    @endif
 
                 </div>
 
 
-
             </div>
+
 
             {{-- QR Code --}}
             <div class="mt-6 overflow-hidden rounded-xl bg-white
@@ -473,13 +530,20 @@
                         </div>
 
 
-                        {{-- Scan Button --}}
-                        <a href="{{ route('swine.scan', ['qr_token' => $swine->qr_token]) }}" target="_blank" class="mt-5 inline-flex items-center justify-center
-                                   rounded-lg bg-indigo-600 px-5 py-2.5
-                                   text-sm font-semibold text-white
-                                   hover:bg-indigo-700">
-                            View Traceability
-                        </a>
+                        {{-- Traceability Button --}}
+                        @if (auth()->user()->hasPermission('scan-qr'))
+
+                            <a href="{{ route('swine.scan', ['qr_token' => $swine->qr_token]) }}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="mt-5 inline-flex items-center justify-center
+                                       rounded-lg bg-indigo-600 px-5 py-2.5
+                                       text-sm font-semibold text-white
+                                       hover:bg-indigo-700">
+                                View Traceability
+                            </a>
+
+                        @endif
 
 
                     </div>
@@ -487,6 +551,7 @@
                 </div>
 
             </div>
+
 
         </div>
 

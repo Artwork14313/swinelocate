@@ -1,3 +1,4 @@
+
 <x-app-layout>
 
     <x-slot name="header">
@@ -13,13 +14,11 @@
     </x-slot>
 
     <div class="py-8">
-
         <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
 
             {{-- Validation Errors --}}
             @if ($errors->any())
                 <div class="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
-
                     <div class="font-semibold text-red-800">
                         Please correct the following errors:
                     </div>
@@ -29,16 +28,13 @@
                             <li>{{ $error }}</li>
                         @endforeach
                     </ul>
-
                 </div>
             @endif
-
 
             <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
 
                 {{-- Header --}}
                 <div class="border-b border-gray-200 px-6 py-5">
-
                     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 
                         <div>
@@ -59,30 +55,28 @@
                         </a>
 
                     </div>
-
                 </div>
-
 
                 {{-- Form --}}
                 <form
-    method="POST"
-    action="{{ route('swine.update', $swine) }}"
-    id="swine-edit-form"
-    data-swine-id="{{ $swine->id }}"
-    data-sync-endpoint="/swine/{{ $swine->id }}/sync"
-    data-redirect-url="{{ route('swine.index') }}"
->
-
+                    method="POST"
+                    action="{{ route('swine.update', $swine) }}"
+                    id="swine-edit-form"
+                    data-swine-id="{{ $swine->id }}"
+                    data-sync-endpoint="/swine/{{ $swine->id }}/sync"
+                    data-redirect-url="{{ route('swine.index') }}"
+                >
                     @csrf
                     @method('PUT')
+
+                    {{-- Used for optimistic concurrency / offline conflict detection --}}
                     <input
-                            type="hidden"
-                            name="original_updated_at"
-                            value="{{ $swine->updated_at?->toISOString() }}"
-                        >
+                        type="hidden"
+                        name="original_updated_at"
+                        value="{{ $swine->updated_at?->toISOString() }}"
+                    >
 
                     <div class="px-6 py-6">
-
                         <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
 
                             {{-- Farm --}}
@@ -98,6 +92,7 @@
                                     id="farm_id"
                                     name="farm_id"
                                     required
+                                    autocomplete="off"
                                     class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
                                            focus:border-indigo-500 focus:ring-indigo-500"
                                 >
@@ -105,14 +100,18 @@
                                         Select farm
                                     </option>
 
-                                    @foreach ($farms as $farm)
+                                    @forelse ($farms as $farm)
                                         <option
                                             value="{{ $farm->id }}"
                                             @selected(old('farm_id', $swine->farm_id) == $farm->id)
                                         >
                                             {{ $farm->farm_code }} - {{ $farm->name }}
                                         </option>
-                                    @endforeach
+                                    @empty
+                                        <option value="" disabled>
+                                            No active farms available
+                                        </option>
+                                    @endforelse
                                 </select>
 
                                 @error('farm_id')
@@ -122,9 +121,7 @@
                                 @enderror
                             </div>
 
-
                             {{-- Current Location --}}
-
                             <div>
                                 <label
                                     for="current_location_id"
@@ -133,47 +130,48 @@
                                     Current Location
                                 </label>
 
-
-                            <select
-                                id="current_location_id"
-                                name="current_location_id"
-                                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                                    focus:border-indigo-500 focus:ring-indigo-500"
-                            >
-                                <option value="">
-                                    No location assigned
-                                </option>
-
-                                @foreach ($locations as $location)
-                                    <option
-                                        value="{{ $location->id }}"
-                                        data-farm-id="{{ $location->farm_id }}"
-                                        @selected(
-                                            old(
-                                                'current_location_id',
-                                                $swine->current_location_id
-                                            ) == $location->id
-                                        )
-                                    >
-                                        {{ $location->location_code }} -
-                                        {{ $location->name }}
+                                <select
+                                    id="current_location_id"
+                                    name="current_location_id"
+                                    autocomplete="off"
+                                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
+                                           focus:border-indigo-500 focus:ring-indigo-500"
+                                >
+                                    <option value="">
+                                        No location assigned
                                     </option>
-                                @endforeach
-                            </select>
 
-                            <p class="mt-1 text-xs text-gray-500">
-                                Only locations belonging to the selected farm are shown.
-                            </p>
+                                    @forelse ($locations as $location)
+                                        <option
+                                            value="{{ $location->id }}"
+                                            data-farm-id="{{ $location->farm_id }}"
+                                            @selected(
+                                                old(
+                                                    'current_location_id',
+                                                    $swine->current_location_id
+                                                ) == $location->id
+                                            )
+                                        >
+                                            {{ $location->location_code }} -
+                                            {{ $location->name }}
+                                        </option>
+                                    @empty
+                                        <option value="" disabled>
+                                            No active locations available
+                                        </option>
+                                    @endforelse
+                                </select>
 
-                            @error('current_location_id')
-                                <p class="mt-1 text-sm text-red-600">
-                                    {{ $message }}
+                                <p class="mt-1 text-xs text-gray-500">
+                                    Only locations belonging to the selected farm are shown.
                                 </p>
-                            @enderror
 
-
+                                @error('current_location_id')
+                                    <p class="mt-1 text-sm text-red-600">
+                                        {{ $message }}
+                                    </p>
+                                @enderror
                             </div>
-
 
                             {{-- Current Status --}}
                             <div>
@@ -225,6 +223,8 @@
                                     type="text"
                                     value="{{ old('tag_number', $swine->tag_number) }}"
                                     required
+                                    maxlength="100"
+                                    autocomplete="off"
                                     class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
                                            focus:border-indigo-500 focus:ring-indigo-500"
                                 >
@@ -240,33 +240,9 @@
                                 @enderror
                             </div>
 
-
                             {{-- Name --}}
-                            <!-- <div>
-                                <label
-                                    for="name"
-                                    class="block text-sm font-medium text-gray-700"
-                                >
-                                    Swine Name
-                                </label>
-
-                                <input
-                                    id="name"
-                                    name="name"
-                                    type="text"
-                                    value="{{ old('name', $swine->name) }}"
-                                    placeholder="Optional animal name"
-                                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                                           focus:border-indigo-500 focus:ring-indigo-500"
-                                >
-
-                                @error('name')
-                                    <p class="mt-1 text-sm text-red-600">
-                                        {{ $message }}
-                                    </p>
-                                @enderror
-                            </div> -->
-
+                            {{-- Name field intentionally omitted because the current
+                                 SwineLocate registration form does not use swine names. --}}
 
                             {{-- Sex --}}
                             <div>
@@ -281,6 +257,7 @@
                                     id="sex"
                                     name="sex"
                                     required
+                                    autocomplete="off"
                                     class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
                                            focus:border-indigo-500 focus:ring-indigo-500"
                                 >
@@ -310,7 +287,6 @@
                                 @enderror
                             </div>
 
-
                             {{-- Breed --}}
                             <div>
                                 <label
@@ -325,7 +301,9 @@
                                     name="breed"
                                     type="text"
                                     value="{{ old('breed', $swine->breed) }}"
+                                    maxlength="100"
                                     placeholder="Example: Large White"
+                                    autocomplete="off"
                                     class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
                                            focus:border-indigo-500 focus:ring-indigo-500"
                                 >
@@ -336,7 +314,6 @@
                                     </p>
                                 @enderror
                             </div>
-
 
                             {{-- Birth Date --}}
                             <div>
@@ -355,6 +332,7 @@
                                         'birth_date',
                                         $swine->birth_date?->format('Y-m-d')
                                     ) }}"
+                                    autocomplete="off"
                                     class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
                                            focus:border-indigo-500 focus:ring-indigo-500"
                                 >
@@ -365,7 +343,6 @@
                                     </p>
                                 @enderror
                             </div>
-
 
                             {{-- Acquisition Date --}}
                             <div>
@@ -384,6 +361,7 @@
                                         'acquisition_date',
                                         $swine->acquisition_date?->format('Y-m-d')
                                     ) }}"
+                                    autocomplete="off"
                                     class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
                                            focus:border-indigo-500 focus:ring-indigo-500"
                                 >
@@ -394,7 +372,6 @@
                                     </p>
                                 @enderror
                             </div>
-
 
                             {{-- Source --}}
                             <div>
@@ -410,7 +387,9 @@
                                     name="source"
                                     type="text"
                                     value="{{ old('source', $swine->source) }}"
+                                    maxlength="255"
                                     placeholder="Example: Farm breeding"
+                                    autocomplete="off"
                                     class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
                                            focus:border-indigo-500 focus:ring-indigo-500"
                                 >
@@ -422,10 +401,8 @@
                                 @enderror
                             </div>
 
-
                             {{-- Notes --}}
                             <div class="md:col-span-2">
-
                                 <label
                                     for="notes"
                                     class="block text-sm font-medium text-gray-700"
@@ -437,6 +414,7 @@
                                     id="notes"
                                     name="notes"
                                     rows="4"
+                                    maxlength="2000"
                                     placeholder="Additional information..."
                                     class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
                                            focus:border-indigo-500 focus:ring-indigo-500"
@@ -447,19 +425,16 @@
                                         {{ $message }}
                                     </p>
                                 @enderror
-
                             </div>
 
                         </div>
-
                     </div>
-
 
                     {{-- Actions --}}
                     <div class="flex flex-col-reverse gap-3 border-t border-gray-200
                                 bg-gray-50 px-6 py-4 sm:flex-row sm:justify-between">
 
-                        
+                        <div></div>
 
                         <div class="flex flex-col gap-3 sm:flex-row">
 
@@ -484,54 +459,57 @@
                             </button>
 
                         </div>
-
                     </div>
 
                 </form>
-
             </div>
 
         </div>
-
     </div>
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const farmSelect = document.getElementById('farm_id');
-        const locationSelect = document.getElementById('current_location_id');
 
-        function filterLocations() {
-            const selectedFarmId = String(farmSelect.value);
+    {{-- Farm → Location Filtering --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const farmSelect = document.getElementById('farm_id');
+            const locationSelect = document.getElementById('current_location_id');
 
-            Array.from(locationSelect.options).forEach(function (option) {
-                if (!option.value) {
-                    option.hidden = false;
-                    option.disabled = false;
-                    return;
-                }
-
-                const belongsToSelectedFarm =
-                    String(option.dataset.farmId) === selectedFarmId;
-
-                option.hidden = !belongsToSelectedFarm;
-                option.disabled = !belongsToSelectedFarm;
-            });
-
-            const selectedOption =
-                locationSelect.options[locationSelect.selectedIndex];
-
-            if (
-                selectedOption &&
-                selectedOption.value &&
-                String(selectedOption.dataset.farmId) !== selectedFarmId
-            ) {
-                locationSelect.value = '';
+            if (!farmSelect || !locationSelect) {
+                return;
             }
-        }
 
-        farmSelect.addEventListener('change', filterLocations);
+            function filterLocations() {
+                const selectedFarmId = String(farmSelect.value);
 
-        filterLocations();
-    });
-</script>
+                Array.from(locationSelect.options).forEach(function (option) {
+                    if (!option.value) {
+                        option.hidden = false;
+                        option.disabled = false;
+                        return;
+                    }
+
+                    const belongsToSelectedFarm =
+                        String(option.dataset.farmId) === selectedFarmId;
+
+                    option.hidden = !belongsToSelectedFarm;
+                    option.disabled = !belongsToSelectedFarm;
+                });
+
+                const selectedOption =
+                    locationSelect.options[locationSelect.selectedIndex];
+
+                if (
+                    selectedOption &&
+                    selectedOption.value &&
+                    String(selectedOption.dataset.farmId) !== selectedFarmId
+                ) {
+                    locationSelect.value = '';
+                }
+            }
+
+            farmSelect.addEventListener('change', filterLocations);
+
+            filterLocations();
+        });
+    </script>
 
 </x-app-layout>

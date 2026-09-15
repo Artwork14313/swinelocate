@@ -26,14 +26,17 @@ class SwineController extends Controller
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = trim($request->search);
 
-                $query->where(function ($query) use ($search) {
-                    $query->where('tag_number', 'like', "%{$search}%")
-                        ->orWhere('name', 'like', "%{$search}%")
-                        ->orWhere('breed', 'like', "%{$search}%");
-                });
+                $query->where(
+                    'tag_number',
+                    'like',
+                    "%{$search}%"
+                );
             })
             ->when($request->filled('status'), function ($query) use ($request) {
-                $query->where('status', $request->status);
+                $query->where(
+                    'status',
+                    $request->status
+                );
             })
             ->latest()
             ->paginate(10)
@@ -325,12 +328,23 @@ class SwineController extends Controller
      */
     public function destroy(Swine $swine): RedirectResponse
     {
-        if ($swine->status === 'inactive') {
+        /*
+        |--------------------------------------------------------------------------
+        | Lifecycle Validation
+        |--------------------------------------------------------------------------
+        |
+        | Only active swine may be deactivated.
+        | Sold and deceased swine are historical/final states and
+        | must not be changed through this action.
+        |
+        */
+
+        if ($swine->status !== 'active') {
             return redirect()
                 ->route('swine.index')
                 ->with(
                     'error',
-                    'Swine is already inactive.'
+                    'Only active swine can be deactivated.'
                 );
         }
 
@@ -351,14 +365,31 @@ class SwineController extends Controller
      */
     public function activate(Swine $swine): RedirectResponse
     {
-        if ($swine->status === 'active') {
+        /*
+        |--------------------------------------------------------------------------
+        | Lifecycle Validation
+        |--------------------------------------------------------------------------
+        |
+        | Only inactive swine may be activated.
+        | Sold and deceased swine are final historical states and
+        | cannot be reactivated.
+        |
+        */
+
+        if ($swine->status !== 'inactive') {
             return redirect()
                 ->route('swine.index')
                 ->with(
                     'error',
-                    'Swine is already active.'
+                    'Only inactive swine can be activated.'
                 );
         }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Validate Farm
+        |--------------------------------------------------------------------------
+        */
 
         if (
             !$swine->farm ||
@@ -381,6 +412,78 @@ class SwineController extends Controller
             ->with(
                 'success',
                 'Swine activated successfully.'
+            );
+    }
+
+    /**
+     * Mark the specified swine as sold.
+     */
+    public function markSold(Swine $swine): RedirectResponse
+    {
+        /*
+        |--------------------------------------------------------------------------
+        | Lifecycle Validation
+        |--------------------------------------------------------------------------
+        |
+        | Only active swine may be marked as sold.
+        | Sold is a final historical state.
+        |
+        */
+
+        if ($swine->status !== 'active') {
+            return redirect()
+                ->route('swine.index')
+                ->with(
+                    'error',
+                    'Only active swine can be marked as sold.'
+                );
+        }
+
+        $swine->update([
+            'status' => 'sold',
+        ]);
+
+        return redirect()
+            ->route('swine.index')
+            ->with(
+                'success',
+                'Swine marked as sold successfully.'
+            );
+    }
+
+    /**
+     * Mark the specified swine as deceased.
+     */
+    public function markDeceased(Swine $swine): RedirectResponse
+    {
+        /*
+        |--------------------------------------------------------------------------
+        | Lifecycle Validation
+        |--------------------------------------------------------------------------
+        |
+        | Only active swine may be marked as deceased.
+        | Deceased is a final historical state.
+        |
+        */
+
+        if ($swine->status !== 'active') {
+            return redirect()
+                ->route('swine.index')
+                ->with(
+                    'error',
+                    'Only active swine can be marked as deceased.'
+                );
+        }
+
+        $swine->update([
+            'status' => 'deceased',
+        ]);
+
+        return redirect()
+            ->route('swine.index')
+            ->with(
+                'success',
+                'Swine marked as deceased successfully.'
             );
     }
 

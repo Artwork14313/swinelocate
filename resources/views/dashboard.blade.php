@@ -567,30 +567,33 @@
 
                                             @foreach ($vaccinationAlerts as $vaccination)
 
+
                                                 @php
 
-                                                    if ($vaccination->next_due_date->isPast()) {
+                                                    $dueDate = $vaccination->next_due_date->startOfDay();
+                                                    $today = now()->startOfDay();
+
+                                                    if ($dueDate->isPast()) {
 
                                                         $status = 'Overdue';
                                                         $statusClasses = 'bg-red-100 text-red-700';
 
-                                                    } elseif ($vaccination->next_due_date->isToday()) {
+                                                    } elseif ($dueDate->isToday()) {
 
                                                         $status = 'Due Today';
                                                         $statusClasses = 'bg-orange-100 text-orange-700';
 
                                                     } else {
 
-                                                        $days = now()->diffInDays(
-                                                            $vaccination->next_due_date
-                                                        );
+                                                        $days = $today->diffInDays($dueDate);
 
-                                                        $status = 'Due in ' . $days . ' day' . ($days == 1 ? '' : 's');
+                                                        $status = 'Due in ' . $days . ' day' . ($days === 1 ? '' : 's');
                                                         $statusClasses = 'bg-yellow-100 text-yellow-700';
 
                                                     }
 
                                                 @endphp
+
 
 
                                                 <tr class="hover:bg-gray-50">

@@ -1,6 +1,5 @@
 <x-app-layout>
 
-```
 <x-slot name="header">
 
     <div>
@@ -264,6 +263,5 @@
 
     });
 </script>
-```
 
 </x-app-layout>

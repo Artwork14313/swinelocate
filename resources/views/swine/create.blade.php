@@ -1,354 +1,535 @@
 <x-app-layout>
+    
+<x-slot name="header">
+    <div>
+        <h2 class="text-2xl font-bold text-gray-900">
+            Register Swine
+        </h2>
 
-    <x-slot name="header">
-        <div>
-            <h2 class="text-2xl font-bold text-gray-900">
-                Register Swine
-            </h2>
-
-            <p class="mt-1 text-sm text-gray-500">
-                Register a swine and assign it to a farm and current location.
-            </p>
-        </div>
-    </x-slot>
-
-    <div class="py-8">
-
-        <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-
-            {{-- Validation Errors --}}
-            @if ($errors->any())
-                <div class="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
-
-                    <div class="font-semibold text-red-800">
-                        Please correct the following errors:
-                    </div>
-
-                    <ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-red-700">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-
-                </div>
-            @endif
+        <p class="mt-1 text-sm text-gray-500">
+            Register a swine and assign it to a farm and current location.
+        </p>
+    </div>
+</x-slot>
 
 
-            <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+<div class="py-8">
 
-                {{-- Form Header --}}
-                <div class="border-b border-gray-200 px-6 py-5">
+    <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
 
-                    <h3 class="text-lg font-semibold text-gray-900">
-                        Swine Information
-                    </h3>
+        {{-- Validation Errors --}}
+        @if ($errors->any())
 
-                    <p class="mt-1 text-sm text-gray-500">
-                        Enter the identification, farm, and basic animal information.
-                    </p>
+            <div class="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
 
+                <div class="font-semibold text-red-800">
+                    Please correct the following errors:
                 </div>
 
+                <ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-red-700">
 
-                {{-- Form --}}
-                <form id="swine-form" method="POST" action="{{ route('swine.store') }}">
+                    @foreach ($errors->all() as $error)
 
-                    @csrf
+                        <li>
+                            {{ $error }}
+                        </li>
 
-                    <div class="px-6 py-6">
+                    @endforeach
 
-                        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                </ul>
 
-                            {{-- Farm --}}
-                            <div>
-                                <label for="farm_id" class="block text-sm font-medium text-gray-700">
-                                    Farm <span class="text-red-500">*</span>
-                                </label>
+            </div>
 
-                                <select id="farm_id" name="farm_id" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                                           focus:border-indigo-500 focus:ring-indigo-500">
-                                    <option value="">
-                                        Select farm
+        @endif
+
+
+        {{-- Main Form --}}
+        <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+
+            {{-- Form Header --}}
+            <div class="border-b border-gray-200 px-6 py-5">
+
+                <h3 class="text-lg font-semibold text-gray-900">
+                    Swine Information
+                </h3>
+
+                <p class="mt-1 text-sm text-gray-500">
+                    Enter the identification, farm, and basic animal information.
+                </p>
+
+            </div>
+
+
+            {{-- Form --}}
+            <form
+                id="swine-form"
+                method="POST"
+                action="{{ route('swine.store') }}"
+            >
+
+                @csrf
+
+
+                <div class="px-6 py-6">
+
+                    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+
+
+                        {{-- Farm --}}
+                        <div>
+
+                            <label
+                                for="farm_id"
+                                class="block text-sm font-medium text-gray-700"
+                            >
+                                Farm <span class="text-red-500">*</span>
+                            </label>
+
+                            <select
+                                id="farm_id"
+                                name="farm_id"
+                                required
+                                autocomplete="organization"
+                                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
+                                       focus:border-indigo-500 focus:ring-indigo-500"
+                            >
+
+                                <option value="">
+                                    Select farm
+                                </option>
+
+                                @forelse ($farms as $farm)
+
+                                    <option
+                                        value="{{ $farm->id }}"
+                                        @selected(old('farm_id') == $farm->id)
+                                    >
+                                        {{ $farm->farm_code }} - {{ $farm->name }}
                                     </option>
 
-                                    @foreach ($farms as $farm)
-                                        <option value="{{ $farm->id }}" @selected(old('farm_id') == $farm->id)>
-                                            {{ $farm->farm_code }} - {{ $farm->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
+                                @empty
 
-                                @error('farm_id')
-                                    <p class="mt-1 text-sm text-red-600">
-                                        {{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
-
-
-                            {{-- Current Location --}}
-                            <div>
-                                <label for="current_location_id" class="block text-sm font-medium text-gray-700">
-                                    Current Location
-                                </label>
-
-                                <select id="current_location_id" name="current_location_id" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-               focus:border-indigo-500 focus:ring-indigo-500">
-                                    <option value="">
-                                        Select location
+                                    <option value="" disabled>
+                                        No active farms available
                                     </option>
 
-                                    @foreach ($locations as $location)
-                                        <option value="{{ $location->id }}" data-farm-id="{{ $location->farm_id }}"
-                                            @selected(old('current_location_id') == $location->id)>
-                                            {{ $location->location_code }} - {{ $location->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
+                                @endforelse
 
-                                <p class="mt-1 text-xs text-gray-500">
-                                    Select a location belonging to the selected farm.
+                            </select>
+
+                            @error('farm_id')
+
+                                <p class="mt-1 text-sm text-red-600">
+                                    {{ $message }}
                                 </p>
 
-                                @error('current_location_id')
-                                    <p class="mt-1 text-sm text-red-600">
-                                        {{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
+                            @enderror
 
-                            {{-- Tag Number --}}
-                            <div>
-                                <label for="tag_number" class="block text-sm font-medium text-gray-700">
-                                    Tag Number <span class="text-red-500">*</span>
-                                </label>
+                        </div>
 
-                                <input id="tag_number" name="tag_number" type="text" value="{{ old('tag_number') }}"
-                                    placeholder="Example: SW-000001" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                                           focus:border-indigo-500 focus:ring-indigo-500">
 
-                                <p class="mt-1 text-xs text-gray-500">
-                                    Unique identification number of the swine.
+                        {{-- Current Location --}}
+                        <div>
+
+                            <label
+                                for="current_location_id"
+                                class="block text-sm font-medium text-gray-700"
+                            >
+                                Current Location
+                            </label>
+
+                            <select
+                                id="current_location_id"
+                                name="current_location_id"
+                                autocomplete="off"
+                                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
+                                       focus:border-indigo-500 focus:ring-indigo-500"
+                            >
+
+                                <option value="">
+                                    No location assigned
+                                </option>
+
+                                @forelse ($locations as $location)
+
+                                    <option
+                                        value="{{ $location->id }}"
+                                        data-farm-id="{{ $location->farm_id }}"
+                                        @selected(old('current_location_id') == $location->id)
+                                    >
+                                        {{ $location->location_code }} -
+                                        {{ $location->name }}
+                                    </option>
+
+                                @empty
+
+                                    <option value="" disabled>
+                                        No active locations available
+                                    </option>
+
+                                @endforelse
+
+                            </select>
+
+                            <p class="mt-1 text-xs text-gray-500">
+                                Only locations belonging to the selected farm are shown.
+                            </p>
+
+                            @error('current_location_id')
+
+                                <p class="mt-1 text-sm text-red-600">
+                                    {{ $message }}
                                 </p>
 
-                                @error('tag_number')
-                                    <p class="mt-1 text-sm text-red-600">
-                                        {{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
+                            @enderror
+
+                        </div>
 
 
-                            {{-- Name --}}
-                            <!-- <div>
-                                <label
-                                    for="name"
-                                    class="block text-sm font-medium text-gray-700"
+                        {{-- Tag Number --}}
+                        <div>
+
+                            <label
+                                for="tag_number"
+                                class="block text-sm font-medium text-gray-700"
+                            >
+                                Tag Number <span class="text-red-500">*</span>
+                            </label>
+
+                            <input
+                                id="tag_number"
+                                name="tag_number"
+                                type="text"
+                                value="{{ old('tag_number') }}"
+                                placeholder="Example: SW-000001"
+                                autocomplete="off"
+                                required
+                                maxlength="100"
+                                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
+                                       focus:border-indigo-500 focus:ring-indigo-500"
+                            >
+
+                            <p class="mt-1 text-xs text-gray-500">
+                                Unique identification number of the swine.
+                            </p>
+
+                            @error('tag_number')
+
+                                <p class="mt-1 text-sm text-red-600">
+                                    {{ $message }}
+                                </p>
+
+                            @enderror
+
+                        </div>
+
+
+                        {{-- Sex --}}
+                        <div>
+
+                            <label
+                                for="sex"
+                                class="block text-sm font-medium text-gray-700"
+                            >
+                                Sex <span class="text-red-500">*</span>
+                            </label>
+
+                            <select
+                                id="sex"
+                                name="sex"
+                                required
+                                autocomplete="sex"
+                                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
+                                       focus:border-indigo-500 focus:ring-indigo-500"
+                            >
+
+                                <option value="">
+                                    Select sex
+                                </option>
+
+                                <option
+                                    value="male"
+                                    @selected(old('sex') === 'male')
                                 >
-                                    Swine Name
-                                </label>
+                                    Male
+                                </option>
 
-                                <input
-                                    id="name"
-                                    name="name"
-                                    type="text"
-                                    value="{{ old('name') }}"
-                                    placeholder="Optional animal name"
-                                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                                           focus:border-indigo-500 focus:ring-indigo-500"
+                                <option
+                                    value="female"
+                                    @selected(old('sex') === 'female')
                                 >
+                                    Female
+                                </option>
 
-                                @error('name')
-                                    <p class="mt-1 text-sm text-red-600">
-                                        {{ $message }}
-                                    </p>
-                                @enderror
-                            </div> -->
+                            </select>
 
+                            @error('sex')
 
-                            {{-- Sex --}}
-                            <div>
-                                <label for="sex" class="block text-sm font-medium text-gray-700">
-                                    Sex <span class="text-red-500">*</span>
-                                </label>
+                                <p class="mt-1 text-sm text-red-600">
+                                    {{ $message }}
+                                </p>
 
-                                <select id="sex" name="sex" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                                           focus:border-indigo-500 focus:ring-indigo-500">
-                                    <option value="">
-                                        Select sex
-                                    </option>
+                            @enderror
 
-                                    <option value="male" @selected(old('sex') === 'male')>
-                                        Male
-                                    </option>
-
-                                    <option value="female" @selected(old('sex') === 'female')>
-                                        Female
-                                    </option>
-                                </select>
-
-                                @error('sex')
-                                    <p class="mt-1 text-sm text-red-600">
-                                        {{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
+                        </div>
 
 
-                            {{-- Breed --}}
-                            <div>
-                                <label for="breed" class="block text-sm font-medium text-gray-700">
-                                    Breed
-                                </label>
+                        {{-- Breed --}}
+                        <div>
 
-                                <input id="breed" name="breed" type="text" value="{{ old('breed') }}"
-                                    placeholder="Example: Large White" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                                           focus:border-indigo-500 focus:ring-indigo-500">
+                            <label
+                                for="breed"
+                                class="block text-sm font-medium text-gray-700"
+                            >
+                                Breed
+                            </label>
 
-                                @error('breed')
-                                    <p class="mt-1 text-sm text-red-600">
-                                        {{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
+                            <input
+                                id="breed"
+                                name="breed"
+                                type="text"
+                                value="{{ old('breed') }}"
+                                placeholder="Example: Large White"
+                                autocomplete="off"
+                                maxlength="100"
+                                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
+                                       focus:border-indigo-500 focus:ring-indigo-500"
+                            >
 
+                            @error('breed')
 
-                            {{-- Birth Date --}}
-                            <div>
-                                <label for="birth_date" class="block text-sm font-medium text-gray-700">
-                                    Birth Date
-                                </label>
+                                <p class="mt-1 text-sm text-red-600">
+                                    {{ $message }}
+                                </p>
 
-                                <input id="birth_date" name="birth_date" type="date" value="{{ old('birth_date') }}"
-                                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                                           focus:border-indigo-500 focus:ring-indigo-500">
+                            @enderror
 
-                                @error('birth_date')
-                                    <p class="mt-1 text-sm text-red-600">
-                                        {{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
+                        </div>
 
 
-                            {{-- Acquisition Date --}}
-                            <div>
-                                <label for="acquisition_date" class="block text-sm font-medium text-gray-700">
-                                    Acquisition Date
-                                </label>
+                        {{-- Birth Date --}}
+                        <div>
 
-                                <input id="acquisition_date" name="acquisition_date" type="date"
-                                    value="{{ old('acquisition_date') }}" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                                           focus:border-indigo-500 focus:ring-indigo-500">
+                            <label
+                                for="birth_date"
+                                class="block text-sm font-medium text-gray-700"
+                            >
+                                Birth Date
+                            </label>
 
-                                @error('acquisition_date')
-                                    <p class="mt-1 text-sm text-red-600">
-                                        {{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
+                            <input
+                                id="birth_date"
+                                name="birth_date"
+                                type="date"
+                                value="{{ old('birth_date') }}"
+                                autocomplete="off"
+                                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
+                                       focus:border-indigo-500 focus:ring-indigo-500"
+                            >
 
+                            @error('birth_date')
 
-                            {{-- Source --}}
-                            <div>
-                                <label for="source" class="block text-sm font-medium text-gray-700">
-                                    Source
-                                </label>
+                                <p class="mt-1 text-sm text-red-600">
+                                    {{ $message }}
+                                </p>
 
-                                <input id="source" name="source" type="text" value="{{ old('source') }}"
-                                    placeholder="Example: Farm breeding" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                                           focus:border-indigo-500 focus:ring-indigo-500">
+                            @enderror
 
-                                @error('source')
-                                    <p class="mt-1 text-sm text-red-600">
-                                        {{ $message }}
-                                    </p>
-                                @enderror
-                            </div>
+                        </div>
 
 
-                            {{-- Notes --}}
-                            <div class="md:col-span-2">
+                        {{-- Acquisition Date --}}
+                        <div>
 
-                                <label for="notes" class="block text-sm font-medium text-gray-700">
-                                    Notes
-                                </label>
+                            <label
+                                for="acquisition_date"
+                                class="block text-sm font-medium text-gray-700"
+                            >
+                                Acquisition Date
+                            </label>
 
-                                <textarea id="notes" name="notes" rows="4"
-                                    placeholder="Additional information about the swine..." class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
-                                           focus:border-indigo-500 focus:ring-indigo-500">{{ old('notes') }}</textarea>
+                            <input
+                                id="acquisition_date"
+                                name="acquisition_date"
+                                type="date"
+                                value="{{ old('acquisition_date') }}"
+                                autocomplete="off"
+                                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
+                                       focus:border-indigo-500 focus:ring-indigo-500"
+                            >
 
-                                @error('notes')
-                                    <p class="mt-1 text-sm text-red-600">
-                                        {{ $message }}
-                                    </p>
-                                @enderror
+                            @error('acquisition_date')
 
-                            </div>
+                                <p class="mt-1 text-sm text-red-600">
+                                    {{ $message }}
+                                </p>
+
+                            @enderror
+
+                        </div>
+
+
+                        {{-- Source --}}
+                        <div>
+
+                            <label
+                                for="source"
+                                class="block text-sm font-medium text-gray-700"
+                            >
+                                Source
+                            </label>
+
+                            <input
+                                id="source"
+                                name="source"
+                                type="text"
+                                value="{{ old('source') }}"
+                                placeholder="Example: Farm breeding"
+                                autocomplete="off"
+                                maxlength="255"
+                                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
+                                       focus:border-indigo-500 focus:ring-indigo-500"
+                            >
+
+                            @error('source')
+
+                                <p class="mt-1 text-sm text-red-600">
+                                    {{ $message }}
+                                </p>
+
+                            @enderror
+
+                        </div>
+
+
+                        {{-- Notes --}}
+                        <div class="md:col-span-2">
+
+                            <label
+                                for="notes"
+                                class="block text-sm font-medium text-gray-700"
+                            >
+                                Notes
+                            </label>
+
+                            <textarea
+                                id="notes"
+                                name="notes"
+                                rows="4"
+                                maxlength="2000"
+                                placeholder="Additional information about the swine..."
+                                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
+                                       focus:border-indigo-500 focus:ring-indigo-500"
+                            >{{ old('notes') }}</textarea>
+
+                            @error('notes')
+
+                                <p class="mt-1 text-sm text-red-600">
+                                    {{ $message }}
+                                </p>
+
+                            @enderror
 
                         </div>
 
                     </div>
 
+                </div>
 
-                    {{-- Form Actions --}}
-                    <div class="flex justify-end gap-3 border-t border-gray-200 bg-gray-50 px-6 py-4">
 
-                        <a href="{{ route('swine.index') }}" class="rounded-lg border border-gray-300 bg-white px-4 py-2.5
-                                   text-sm font-semibold text-gray-700
-                                   hover:bg-gray-50">
-                            Cancel
-                        </a>
+                {{-- Form Actions --}}
+                <div
+                    class="flex flex-col-reverse gap-3 border-t border-gray-200
+                           bg-gray-50 px-6 py-4 sm:flex-row sm:justify-end"
+                >
 
-                        <button type="submit" class="rounded-lg bg-indigo-600 px-5 py-2.5
-                                   text-sm font-semibold text-white
-                                   hover:bg-indigo-700
-                                   focus:outline-none focus:ring-2
-                                   focus:ring-indigo-500 focus:ring-offset-2">
-                            Register Swine
-                        </button>
+                    <a
+                        href="{{ route('swine.index') }}"
+                        class="rounded-lg border border-gray-300 bg-white px-4 py-2.5
+                               text-center text-sm font-semibold text-gray-700
+                               hover:bg-gray-50"
+                    >
+                        Cancel
+                    </a>
 
-                    </div>
+                    <button
+                        type="submit"
+                        class="rounded-lg bg-indigo-600 px-5 py-2.5
+                               text-sm font-semibold text-white
+                               hover:bg-indigo-700
+                               focus:outline-none focus:ring-2
+                               focus:ring-indigo-500 focus:ring-offset-2"
+                    >
+                        Register Swine
+                    </button>
 
-                </form>
+                </div>
 
-            </div>
+            </form>
 
         </div>
 
     </div>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const farmSelect = document.getElementById('farm_id');
-            const locationSelect = document.getElementById('current_location_id');
 
-            function filterLocations() {
-                const selectedFarmId = farmSelect.value;
-                const options = locationSelect.querySelectorAll('option');
+</div>
 
-                options.forEach(option => {
-                    if (!option.value) {
-                        option.hidden = false;
-                        return;
-                    }
 
-                    option.hidden = option.dataset.farmId !== selectedFarmId;
-                });
+{{-- Farm → Location Filtering --}}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
 
-                const selectedOption = locationSelect.options[locationSelect.selectedIndex];
+        const farmSelect = document.getElementById('farm_id');
+        const locationSelect = document.getElementById('current_location_id');
 
-                if (
-                    selectedOption &&
-                    selectedOption.value &&
-                    selectedOption.dataset.farmId !== selectedFarmId
-                ) {
-                    locationSelect.value = '';
+        if (!farmSelect || !locationSelect) {
+            return;
+        }
+
+        function filterLocations() {
+
+            const selectedFarmId = String(farmSelect.value);
+
+            Array.from(locationSelect.options).forEach(function (option) {
+
+                // Always keep the placeholder visible.
+                if (!option.value) {
+                    option.hidden = false;
+                    option.disabled = false;
+                    return;
                 }
+
+                const belongsToSelectedFarm =
+                    String(option.dataset.farmId) === selectedFarmId;
+
+                option.hidden = !belongsToSelectedFarm;
+                option.disabled = !belongsToSelectedFarm;
+
+            });
+
+
+            // Clear the selected location if it does not
+            // belong to the selected farm.
+            const selectedOption =
+                locationSelect.options[locationSelect.selectedIndex];
+
+            if (
+                selectedOption &&
+                selectedOption.value &&
+                String(selectedOption.dataset.farmId) !== selectedFarmId
+            ) {
+                locationSelect.value = '';
             }
 
-            farmSelect.addEventListener('change', filterLocations);
+        }
 
-            filterLocations();
-        });
-    </script>
+
+        farmSelect.addEventListener('change', filterLocations);
+
+        // Apply filtering immediately so old()
+        // values are handled correctly after validation errors.
+        filterLocations();
+
+    });
+</script>
+
 </x-app-layout>

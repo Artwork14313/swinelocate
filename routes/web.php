@@ -133,6 +133,14 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:manage-swine')
         ->name('swine.destroy');
 
+    Route::patch('/swine/{swine}/sold', [SwineController::class, 'markSold'])
+        ->middleware('permission:manage-swine')
+        ->name('swine.sold');
+
+    Route::patch('/swine/{swine}/deceased', [SwineController::class, 'markDeceased'])
+        ->middleware('permission:manage-swine')
+        ->name('swine.deceased');
+
     /*
     |--------------------------------------------------------------------------
     | Activate Swine
