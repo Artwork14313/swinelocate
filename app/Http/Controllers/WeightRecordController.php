@@ -7,6 +7,7 @@ use App\Models\WeightRecord;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class WeightRecordController extends Controller
@@ -17,18 +18,28 @@ class WeightRecordController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function index(
-        Request $request
-    ): View {
-
+    public function index(Request $request): View
+    {
         $weightRecords = WeightRecord::query()
             ->with([
                 'swine',
-                'recordedBy'
+                'recordedBy',
             ])
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = trim($request->search);
+
+                $query->whereHas('swine', function ($swineQuery) use ($search) {
+                    $swineQuery->where(
+                        'tag_number',
+                        'like',
+                        "%{$search}%"
+                    );
+                });
+            })
             ->latest('record_date')
             ->latest('id')
-            ->paginate(15);
+            ->paginate(15)
+            ->withQueryString();
 
         return view(
             'weight-records.index',
@@ -43,23 +54,23 @@ class WeightRecordController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function create(
-        Request $request
-    ): View {
-
+    public function create(Request $request): View
+    {
+        /*
+         * Only active swine can receive
+         * new weight records.
+         */
         $swines = Swine::query()
+            ->where('status', 'active')
             ->orderBy('tag_number')
             ->get();
 
         $selectedSwine = null;
 
         if ($request->filled('swine_id')) {
-
-            $selectedSwine =
-                Swine::find(
-                    $request->swine_id
-                );
-
+            $selectedSwine = Swine::query()
+                ->where('status', 'active')
+                ->find($request->swine_id);
         }
 
         return view(
@@ -78,33 +89,33 @@ class WeightRecordController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function store(
-        Request $request
-    ): RedirectResponse {
-
+    public function store(Request $request): RedirectResponse
+    {
         $validated = $request->validate([
 
             'swine_id' => [
                 'required',
-                'exists:swine,id'
+                Rule::exists('swine', 'id')
+                    ->where('status', 'active'),
             ],
 
             'record_date' => [
                 'required',
-                'date'
+                'date',
+                'before_or_equal:today',
             ],
 
             'weight' => [
                 'required',
                 'numeric',
                 'min:0.01',
-                'max:9999.99'
+                'max:9999.99',
             ],
 
             'notes' => [
                 'nullable',
                 'string',
-                'max:2000'
+                'max:2000',
             ],
 
         ]);
@@ -114,23 +125,14 @@ class WeightRecordController extends Controller
          * Record the authenticated user
          * for normal online records.
          */
-        $validated['recorded_by'] =
-            auth()->id();
+        $validated['recorded_by'] = auth()->id();
 
 
-        /*
-         * Normal online records do not
-         * require a local_id.
-         */
-        WeightRecord::create(
-            $validated
-        );
+        WeightRecord::create($validated);
 
 
         return redirect()
-            ->route(
-                'weight-records.index'
-            )
+            ->route('weight-records.index')
             ->with(
                 'success',
                 'Weight record added successfully.'
@@ -144,74 +146,58 @@ class WeightRecordController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function syncStore(
-        Request $request
-    ): JsonResponse {
-
-        /*
-         * Validate synchronization data.
-         */
+    public function syncStore(Request $request): JsonResponse
+    {
         $validated = $request->validate([
 
             'local_id' => [
                 'required',
                 'string',
-                'max:100'
+                'max:100',
             ],
 
             'swine_id' => [
                 'required',
-                'exists:swine,id'
+                Rule::exists('swine', 'id')
+                    ->where('status', 'active'),
             ],
 
             'record_date' => [
                 'required',
-                'date'
+                'date',
+                'before_or_equal:today',
             ],
 
             'weight' => [
                 'required',
                 'numeric',
                 'min:0.01',
-                'max:9999.99'
+                'max:9999.99',
             ],
 
             'notes' => [
                 'nullable',
                 'string',
-                'max:2000'
+                'max:2000',
             ],
 
         ]);
 
 
         /*
-         * IMPORTANT:
+         * Prevent duplicate synchronization.
          *
-         * Check whether this exact offline
-         * record has already been synchronized.
+         * The same local record may be sent more
+         * than once because of network retries.
          */
-        $existingRecord =
-            WeightRecord::query()
-                ->where(
-                    'local_id',
-                    $validated['local_id']
-                )
-                ->first();
+        $existingRecord = WeightRecord::query()
+            ->where(
+                'local_id',
+                $validated['local_id']
+            )
+            ->first();
 
 
-        /*
-         * If it already exists, DO NOT create
-         * another database record.
-         *
-         * This protects against:
-         *
-         * - duplicate requests
-         * - phone reconnect timing
-         * - multiple sync attempts
-         * - network retries
-         * - accidental repeated synchronization
-         */
         if ($existingRecord) {
 
             return response()->json([
@@ -232,20 +218,16 @@ class WeightRecordController extends Controller
 
 
         /*
-         * Record the authenticated user
-         * who synchronized the record.
+         * Record the authenticated user who
+         * synchronized the offline record.
          */
         $validated['recorded_by'] =
             auth()->id();
 
 
-        /*
-         * Create the server-side record.
-         */
-        $weightRecord =
-            WeightRecord::create(
-                $validated
-            );
+        $weightRecord = WeightRecord::create(
+            $validated
+        );
 
 
         return response()->json([
@@ -277,7 +259,7 @@ class WeightRecordController extends Controller
 
         $weightRecord->load([
             'swine',
-            'recordedBy'
+            'recordedBy',
         ]);
 
         return view(
@@ -297,7 +279,19 @@ class WeightRecordController extends Controller
         WeightRecord $weightRecord
     ): View {
 
+        /*
+         * Include active swine plus the swine
+         * currently associated with this record.
+         *
+         * This allows historical records to remain
+         * editable even after the swine becomes
+         * inactive, sold, or deceased.
+         */
         $swines = Swine::query()
+            ->where(function ($query) use ($weightRecord) {
+                $query->where('status', 'active')
+                    ->orWhere('id', $weightRecord->swine_id);
+            })
             ->orderBy('tag_number')
             ->get();
 
@@ -326,20 +320,21 @@ class WeightRecordController extends Controller
 
             'record_date' => [
                 'required',
-                'date'
+                'date',
+                'before_or_equal:today',
             ],
 
             'weight' => [
                 'required',
                 'numeric',
                 'min:0.01',
-                'max:9999.99'
+                'max:9999.99',
             ],
 
             'notes' => [
                 'nullable',
                 'string',
-                'max:2000'
+                'max:2000',
             ],
 
         ]);
@@ -375,8 +370,10 @@ class WeightRecordController extends Controller
         $weightRecord->delete();
 
         return redirect()
-            ->route(
-                'weight-records.index'
+            ->route('weight-records.index')
+            ->with(
+                'success',
+                'Weight record deleted successfully.'
             );
     }
 }

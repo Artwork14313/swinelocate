@@ -36,7 +36,7 @@
             @if (session('success'))
 
                 <div class="mb-6 rounded-lg border border-green-200
-                                        bg-green-50 px-4 py-3 text-sm text-green-700">
+                                            bg-green-50 px-4 py-3 text-sm text-green-700">
 
                     {{ session('success') }}
 
@@ -44,7 +44,7 @@
 
             @endif
 
-          
+
             {{-- Health Records --}}
             <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
 
@@ -74,11 +74,13 @@
                             Start by adding a health record for a swine.
                         </p>
 
-                        <a href="{{ route('health-records.create') }}" class="mt-4 inline-flex rounded-lg bg-indigo-600
-                                               px-4 py-2 text-sm font-semibold text-white
-                                               hover:bg-indigo-700">
-                            Add Health Record
-                        </a>
+                        @can('manage-health')
+                                    <a href="{{ route('health-records.create') }}" class="inline-flex items-center justify-center rounded-lg
+                               bg-indigo-600 px-4 py-2 text-sm font-semibold
+                               text-white shadow-sm hover:bg-indigo-700">
+                                        Add Health Record
+                                    </a>
+                        @endcan
 
                     </div>
 
@@ -94,38 +96,38 @@
                                 <tr>
 
                                     <th class="px-6 py-3 text-left text-xs
-                                                           font-semibold uppercase tracking-wide
-                                                           text-gray-500">
+                                                               font-semibold uppercase tracking-wide
+                                                               text-gray-500">
                                         Swine
                                     </th>
 
                                     <th class="px-6 py-3 text-left text-xs
-                                                           font-semibold uppercase tracking-wide
-                                                           text-gray-500">
+                                                               font-semibold uppercase tracking-wide
+                                                               text-gray-500">
                                         Latest Record
                                     </th>
 
                                     <th class="px-6 py-3 text-left text-xs
-                                                           font-semibold uppercase tracking-wide
-                                                           text-gray-500">
+                                                               font-semibold uppercase tracking-wide
+                                                               text-gray-500">
                                         Health Status
                                     </th>
 
                                     <th class="px-6 py-3 text-left text-xs
-                                                           font-semibold uppercase tracking-wide
-                                                           text-gray-500">
+                                                               font-semibold uppercase tracking-wide
+                                                               text-gray-500">
                                         Date
                                     </th>
 
                                     <th class="px-6 py-3 text-left text-xs
-                                                           font-semibold uppercase tracking-wide
-                                                           text-gray-500">
+                                                               font-semibold uppercase tracking-wide
+                                                               text-gray-500">
                                         Diagnosis
                                     </th>
 
                                     <th class="px-6 py-3 text-right text-xs
-                                                           font-semibold uppercase tracking-wide
-                                                           text-gray-500">
+                                                               font-semibold uppercase tracking-wide
+                                                               text-gray-500">
                                         Actions
                                     </th>
 
@@ -145,19 +147,19 @@
                                                             ) {
 
                                                                 'healthy' =>
-                                                                'bg-green-100 text-green-700',
+                                                                    'bg-green-100 text-green-700',
 
                                                                 'under_observation' =>
-                                                                'bg-yellow-100 text-yellow-700',
+                                                                    'bg-yellow-100 text-yellow-700',
 
                                                                 'sick' =>
-                                                                'bg-red-100 text-red-700',
+                                                                    'bg-red-100 text-red-700',
 
                                                                 'recovering' =>
-                                                                'bg-blue-100 text-blue-700',
+                                                                    'bg-blue-100 text-blue-700',
 
                                                                 default =>
-                                                                'bg-gray-100 text-gray-700',
+                                                                    'bg-gray-100 text-gray-700',
 
                                                             };
 
@@ -219,8 +221,8 @@
 
                                                                 <span
                                                                     class="inline-flex rounded-full px-2.5 py-1
-                                                                                                                                                   text-xs font-semibold
-                                                                                                                                                   {{ $statusClasses }}">
+                                                                                                                                                                               text-xs font-semibold
+                                                                                                                                                                               {{ $statusClasses }}">
                                                                     {{ str_replace(
                                         '_',
                                         ' ',
@@ -261,22 +263,17 @@
                                         $healthRecord
                                     ) }}"
                                                                         class="text-sm font-medium text-indigo-600
-                                                                                                                                                       hover:text-indigo-800">
+                                                                                                                                                                                   hover:text-indigo-800">
                                                                         View
                                                                     </a>
-                                                                    <!-- 
-
-                                                                                                                                            <a
-                                                                                                                                                href="{{ route(
-                                                                                                'health-records.history',
-                                                                                                $healthRecord->swine
-                                                                                            ) }}"
-                                                                                                                                                class="text-sm font-medium text-gray-600
-                                                                                                                                                       hover:text-gray-900"
-                                                                                                                                            >
-                                                                                                                                                History
-                                                                                                                                            </a> -->
-
+                                                                 @if ($healthRecord->swine)
+    <a
+        href="{{ route('health-records.history', $healthRecord->swine) }}"
+        class="text-sm font-medium text-gray-600 hover:text-gray-900"
+    >
+        Health History
+    </a>
+@endif
                                                                 </div>
 
                                                             </td>
@@ -304,19 +301,19 @@
                                             ) {
 
                                                 'healthy' =>
-                                                'bg-green-100 text-green-700',
+                                                    'bg-green-100 text-green-700',
 
                                                 'under_observation' =>
-                                                'bg-yellow-100 text-yellow-700',
+                                                    'bg-yellow-100 text-yellow-700',
 
                                                 'sick' =>
-                                                'bg-red-100 text-red-700',
+                                                    'bg-red-100 text-red-700',
 
                                                 'recovering' =>
-                                                'bg-blue-100 text-blue-700',
+                                                    'bg-blue-100 text-blue-700',
 
                                                 default =>
-                                                'bg-gray-100 text-gray-700',
+                                                    'bg-gray-100 text-gray-700',
 
                                             };
 
@@ -346,7 +343,7 @@
 
                                                 <span
                                                     class="rounded-full px-2.5 py-1 text-xs
-                                                                                                           font-semibold {{ $statusClasses }}">
+                                                                                                                               font-semibold {{ $statusClasses }}">
                                                     {{ str_replace(
                                 '_',
                                 ' ',

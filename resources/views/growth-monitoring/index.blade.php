@@ -3,7 +3,6 @@
     <x-slot name="header">
 
         <div>
-
             <h2 class="text-2xl font-bold text-gray-900">
                 Growth Monitoring
             </h2>
@@ -11,7 +10,6 @@
             <p class="mt-1 text-sm text-gray-500">
                 Monitor swine weight progression and growth performance.
             </p>
-
         </div>
 
     </x-slot>
@@ -22,7 +20,10 @@
         <div class="mx-auto max-w-7xl space-y-6 px-4 sm:px-6 lg:px-8">
 
 
-            {{-- Select Swine --}}
+            {{-- ================================================================
+                SELECT SWINE
+            ================================================================= --}}
+
             <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
 
                 <div class="border-b border-gray-200 px-6 py-5">
@@ -40,18 +41,27 @@
 
                 <div class="px-6 py-6">
 
-                    <form method="GET" action="{{ route('growth-monitoring.index') }}"
-                        class="flex flex-col gap-4 sm:flex-row sm:items-end">
+                    <form
+                        method="GET"
+                        action="{{ route('growth-monitoring.index') }}"
+                        class="flex flex-col gap-4 sm:flex-row sm:items-end"
+                    >
 
                         <div class="flex-1">
 
-                            <label for="swine_id" class="block text-sm font-medium text-gray-700">
+                            <label
+                                for="swine_id"
+                                class="block text-sm font-medium text-gray-700"
+                            >
                                 Swine
                             </label>
 
-                            <select id="swine_id" name="swine_id" class="mt-2 block w-full rounded-lg border-gray-300
-                                       shadow-sm focus:border-indigo-500
-                                       focus:ring-indigo-500">
+                            <select
+                                id="swine_id"
+                                name="swine_id"
+                                class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm
+                                       focus:border-indigo-500 focus:ring-indigo-500"
+                            >
 
                                 <option value="">
                                     Select swine
@@ -59,16 +69,15 @@
 
                                 @foreach ($swines as $swine)
 
-                                    <option value="{{ $swine->id }}" @selected(
-                                        $selectedSwine?->id == $swine->id
-                                    )>
-
+                                    <option
+                                        value="{{ $swine->id }}"
+                                        @selected($selectedSwine?->id == $swine->id)
+                                    >
                                         {{ $swine->tag_number }}
 
                                         @if ($swine->name)
                                             — {{ $swine->name }}
                                         @endif
-
                                     </option>
 
                                 @endforeach
@@ -78,9 +87,12 @@
                         </div>
 
 
-                        <button type="submit" class="rounded-lg bg-[#3368A0] px-5 py-2.5
+                        <button
+                            type="submit"
+                            class="rounded-lg bg-[#3368A0] px-5 py-2.5
                                    text-sm font-semibold text-white shadow-sm
-                                   hover:bg-[#28557F]">
+                                   hover:bg-[#28557F]"
+                        >
                             View Growth
                         </button>
 
@@ -94,37 +106,41 @@
             @if ($selectedSwine)
 
 
-                    {{-- Swine Information --}}
-                    <div class="overflow-hidden rounded-xl bg-white
-                                    shadow-sm ring-1 ring-gray-200">
+                {{-- ============================================================
+                    SWINE INFORMATION
+                ============================================================= --}}
 
-                        <div class="px-6 py-6">
+                <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
 
-                            <div class="flex flex-col gap-5 sm:flex-row
-                                            sm:items-center sm:justify-between">
+                    <div class="px-6 py-6">
 
-                                <div>
+                        <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
 
-                                    <p class="text-sm font-medium text-gray-500">
-                                        Swine Identification
+                            <div>
+
+                                <p class="text-sm font-medium text-gray-500">
+                                    Swine Identification
+                                </p>
+
+                                <h1 class="mt-1 text-3xl font-bold text-gray-900">
+                                    {{ $selectedSwine->tag_number }}
+                                </h1>
+
+                                @if ($selectedSwine->name)
+
+                                    <p class="mt-1 text-sm text-gray-500">
+                                        {{ $selectedSwine->name }}
                                     </p>
 
-                                    <h1 class="mt-1 text-3xl font-bold text-gray-900">
-                                        {{ $selectedSwine->tag_number }}
-                                    </h1>
+                                @endif
 
-                                    @if ($selectedSwine->name)
-
-                                        <p class="mt-1 text-sm text-gray-500">
-                                            {{ $selectedSwine->name }}
-                                        </p>
-
-                                    @endif
-
-                                </div>
+                            </div>
 
 
-                                <div class="text-sm sm:text-right">
+                            <div class="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:text-right">
+
+                                {{-- Breed --}}
+                                <div>
 
                                     <p class="text-xs uppercase tracking-wide text-gray-500">
                                         Breed
@@ -136,357 +152,266 @@
 
                                 </div>
 
+
+                                {{-- Current Location --}}
+                                <div>
+
+                                    <p class="text-xs uppercase tracking-wide text-gray-500">
+                                        Current Location
+                                    </p>
+
+                                    <p class="mt-1 font-semibold text-gray-900">
+                                        {{ $selectedSwine->currentLocation?->name ?? '—' }}
+                                    </p>
+
+                                </div>
+
+
+                                {{-- Status --}}
+                                <div>
+
+                                    <p class="text-xs uppercase tracking-wide text-gray-500">
+                                        Status
+                                    </p>
+
+                                    @php
+                                        $statusClasses = match ($selectedSwine->status) {
+                                            'active' => 'bg-green-100 text-green-700',
+                                            'inactive' => 'bg-gray-100 text-gray-700',
+                                            'sold' => 'bg-blue-100 text-blue-700',
+                                            'deceased' => 'bg-red-100 text-red-700',
+                                            default => 'bg-gray-100 text-gray-700',
+                                        };
+                                    @endphp
+
+                                    <span class="mt-1 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize {{ $statusClasses }}">
+                                        {{ str_replace('_', ' ', $selectedSwine->status ?? 'Unknown') }}
+                                    </span>
+
+                                </div>
+
                             </div>
 
                         </div>
 
                     </div>
 
-
-                    {{-- Summary Cards --}}
-                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                </div>
 
 
-                        {{-- Current Weight --}}
-                        <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+                {{-- ============================================================
+                    SUMMARY CARDS
+                ============================================================= --}}
 
-                            <p class="text-sm font-medium text-gray-500">
-                                Current Weight
-                            </p>
-
-                            <p class="mt-2 text-3xl font-bold text-gray-900">
-
-                                {{ $currentWeight !== null
-                ? number_format($currentWeight, 2)
-                : '—' }}
-
-                                @if ($currentWeight !== null)
-                                    <span class="text-sm font-medium text-gray-500">
-                                        kg
-                                    </span>
-                                @endif
-
-                            </p>
-
-                        </div>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
 
-                        {{-- Previous Weight --}}
-                        <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
+                    {{-- Current Weight --}}
+                    <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
 
-                            <p class="text-sm font-medium text-gray-500">
-                                Previous Weight
-                            </p>
+                        <p class="text-sm font-medium text-gray-500">
+                            Current Weight
+                        </p>
 
-                            <p class="mt-2 text-3xl font-bold text-gray-900">
+                        <p class="mt-2 text-3xl font-bold text-gray-900">
 
-                                {{ $previousWeight !== null
-                ? number_format($previousWeight, 2)
-                : '—' }}
+                            @if ($currentWeight !== null)
 
-                                @if ($previousWeight !== null)
-                                    <span class="text-sm font-medium text-gray-500">
-                                        kg
-                                    </span>
-                                @endif
+                                {{ number_format($currentWeight, 2) }}
 
-                            </p>
-
-                        </div>
-
-
-                        {{-- Weight Gain --}}
-                        <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
-
-                            <p class="text-sm font-medium text-gray-500">
-                                Weight Gain
-                            </p>
-
-                            <p class="mt-2 text-3xl font-bold
-                                    {{ $totalWeightGain !== null && $totalWeightGain >= 0
-                ? 'text-green-600'
-                : 'text-red-600' }}">
-
-                                {{ $totalWeightGain !== null
-                ? number_format($totalWeightGain, 2)
-                : '—' }}
-
-                                @if ($totalWeightGain !== null)
-                                    <span class="text-sm font-medium text-gray-500">
-                                        kg
-                                    </span>
-                                @endif
-
-                            </p>
-
-                        </div>
-
-
-                        {{-- Average Daily Gain --}}
-                        <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
-
-                            <p class="text-sm font-medium text-gray-500">
-                                Average Daily Gain
-                            </p>
-
-                            <p class="mt-2 text-3xl font-bold text-[#3368A0]">
-
-                                {{ $averageDailyGain !== null
-                ? number_format($averageDailyGain, 2)
-                : '—' }}
-
-                                @if ($averageDailyGain !== null)
-                                    <span class="text-sm font-medium text-gray-500">
-                                        kg/day
-                                    </span>
-                                @endif
-
-                            </p>
-
-                        </div>
-
-                    </div>
-
-
-                    {{-- Weight Chart --}}
-                    <div class="overflow-hidden rounded-xl bg-white
-                                    shadow-sm ring-1 ring-gray-200">
-
-                        <div class="border-b border-gray-200 px-6 py-5">
-
-                            <h3 class="text-lg font-semibold text-gray-900">
-                                Weight Progression
-                            </h3>
-
-                            <p class="mt-1 text-sm text-gray-500">
-                                Recorded weight measurements over time.
-                            </p>
-
-                        </div>
-
-
-                        <div class="p-6">
-
-                            @if ($weightRecords->count() >= 2)
-
-                                <div class="h-80">
-
-                                    <canvas id="weightGrowthChart"></canvas>
-
-                                </div>
+                                <span class="text-sm font-medium text-gray-500">
+                                    kg
+                                </span>
 
                             @else
 
-                                <div class="py-12 text-center">
-
-                                    <p class="text-sm font-medium text-gray-900">
-                                        Not enough data for a growth chart.
-                                    </p>
-
-                                    <p class="mt-1 text-sm text-gray-500">
-                                        At least two weight records are required.
-                                    </p>
-
-                                </div>
+                                —
 
                             @endif
 
-                        </div>
+                        </p>
 
                     </div>
 
 
-                    {{-- Weight History --}}
-                    <div class="overflow-hidden rounded-xl bg-white
-                                    shadow-sm ring-1 ring-gray-200">
+                    {{-- Previous Weight --}}
+                    <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
 
-                        <div class="border-b border-gray-200 px-6 py-5">
+                        <p class="text-sm font-medium text-gray-500">
+                            Previous Weight
+                        </p>
 
-                            <h3 class="text-lg font-semibold text-gray-900">
-                                Weight History
-                            </h3>
+                        <p class="mt-2 text-3xl font-bold text-gray-900">
 
-                            <p class="mt-1 text-sm text-gray-500">
-                                All recorded weight measurements for this swine.
-                            </p>
+                            @if ($previousWeight !== null)
 
-                        </div>
+                                {{ number_format($previousWeight, 2) }}
+
+                                <span class="text-sm font-medium text-gray-500">
+                                    kg
+                                </span>
+
+                            @else
+
+                                —
+
+                            @endif
+
+                        </p>
+
+                    </div>
 
 
-                        @if ($weightRecords->isEmpty())
+                    {{-- Weight Gain / Loss --}}
+                    <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
 
-                                    <div class="px-6 py-12 text-center">
+                        <p class="text-sm font-medium text-gray-500">
+                            Weight Change
+                        </p>
 
-                                        <p class="text-sm font-medium text-gray-900">
-                                            No weight records found.
-                                        </p>
+                        @if ($totalWeightGain !== null)
 
-                                        <p class="mt-1 text-sm text-gray-500">
-                                            Record at least one weight measurement to begin monitoring growth.
-                                        </p>
+                            @if ($totalWeightGain >= 0)
 
-                                        <a href="{{ route('weight-records.create', [
-                                'swine_id' => $selectedSwine->id
-                            ]) }}" class="mt-4 inline-flex rounded-lg bg-[#3368A0]
-                                                           px-4 py-2 text-sm font-semibold text-white
-                                                           hover:bg-[#28557F]">
-                                            Add Weight Record
-                                        </a>
+                                <p class="mt-2 text-3xl font-bold text-green-600">
+                                    +{{ number_format($totalWeightGain, 2) }}
 
-                                    </div>
+                                    <span class="text-sm font-medium text-gray-500">
+                                        kg
+                                    </span>
+                                </p>
+
+                                <p class="mt-1 text-xs text-green-600">
+                                    Weight gain since previous record
+                                </p>
+
+                            @else
+
+                                <p class="mt-2 text-3xl font-bold text-red-600">
+                                    {{ number_format($totalWeightGain, 2) }}
+
+                                    <span class="text-sm font-medium text-gray-500">
+                                        kg
+                                    </span>
+                                </p>
+
+                                <p class="mt-1 text-xs text-red-600">
+                                    Weight loss since previous record
+                                </p>
+
+                            @endif
 
                         @else
 
-                            <div class="overflow-x-auto">
+                            <p class="mt-2 text-3xl font-bold text-gray-900">
+                                —
+                            </p>
 
-                                <table class="min-w-full divide-y divide-gray-200">
+                            <p class="mt-1 text-xs text-gray-500">
+                                Requires at least two records
+                            </p>
 
-                                    <thead class="bg-gray-50">
+                        @endif
 
-                                        <tr>
-
-                                            <th class="px-6 py-3 text-left text-xs
-                                                               font-semibold uppercase tracking-wide
-                                                               text-gray-500">
-                                                Date
-                                            </th>
-
-                                            <th class="px-6 py-3 text-left text-xs
-                                                               font-semibold uppercase tracking-wide
-                                                               text-gray-500">
-                                                Weight
-                                            </th>
-
-                                            <th class="px-6 py-3 text-left text-xs
-                                                               font-semibold uppercase tracking-wide
-                                                               text-gray-500">
-                                                Change
-                                            </th>
-
-                                            <th class="px-6 py-3 text-left text-xs
-                                                               font-semibold uppercase tracking-wide
-                                                               text-gray-500">
-                                                Recorded By
-                                            </th>
-
-                                        </tr>
-
-                                    </thead>
+                    </div>
 
 
-                                    <tbody class="divide-y divide-gray-100 bg-white">
+                    {{-- Average Daily Gain --}}
+                    <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
 
-                                        @php
+                        <p class="text-sm font-medium text-gray-500">
+                            Average Daily Gain
+                        </p>
 
-                                            /*
-                                            |--------------------------------------------------------------------------
-                                            | Calculate changes in chronological order
-                                            |--------------------------------------------------------------------------
-                                            */
+                        @if ($averageDailyGain !== null)
 
-                                            $chronologicalRecords = $weightRecords
-                                                ->sortBy('record_date')
-                                                ->values();
+                            <p class="mt-2 text-3xl font-bold text-[#3368A0]">
+                                {{ number_format($averageDailyGain, 2) }}
 
-                                            $weightChanges = [];
+                                <span class="text-sm font-medium text-gray-500">
+                                    kg/day
+                                </span>
+                            </p>
 
-                                            $previousWeight = null;
+                            <p class="mt-1 text-xs text-gray-500">
+                                Based on the two latest measurements
+                            </p>
 
-                                            foreach ($chronologicalRecords as $chronologicalRecord) {
+                        @else
 
-                                                if ($previousWeight !== null) {
+                            <p class="mt-2 text-3xl font-bold text-gray-900">
+                                —
+                            </p>
 
-                                                    $weightChanges[$chronologicalRecord->id] =
-                                                        (float) $chronologicalRecord->weight - $previousWeight;
+                            <p class="mt-1 text-xs text-gray-500">
+                                Requires two records on different dates
+                            </p>
 
-                                                } else {
+                        @endif
 
-                                                    $weightChanges[$chronologicalRecord->id] = null;
+                    </div>
 
-                                                }
-
-                                                $previousWeight = (float) $chronologicalRecord->weight;
-                                            }
-
-                                        @endphp
-
-
-                                        {{-- Display newest first --}}
-                                        @foreach ($weightRecords->sortByDesc('record_date') as $record)
-
-                                            @php
-                                                $change = $weightChanges[$record->id] ?? null;
-                                            @endphp
-
-                                            <tr class="hover:bg-gray-50">
-
-                                                {{-- Date --}}
-                                                <td class="whitespace-nowrap px-6 py-4">
-
-                                                    <p class="text-sm font-medium text-gray-900">
-                                                        {{ $record->record_date?->format('M d, Y') }}
-                                                    </p>
-
-                                                    <p class="text-xs text-gray-500">
-                                                        {{ $record->record_date?->format('l') }}
-                                                    </p>
-
-                                                </td>
+                </div>
 
 
-                                                {{-- Weight --}}
-                                                <td class="whitespace-nowrap px-6 py-4">
+                {{-- ============================================================
+                    WEIGHT PROGRESSION CHART
+                ============================================================= --}}
 
-                                                    <span class="text-sm font-semibold text-gray-900">
-                                                        {{ number_format((float) $record->weight, 2) }}
-                                                        kg
-                                                    </span>
+                <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
 
-                                                </td>
+                    <div class="border-b border-gray-200 px-6 py-5">
 
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            Weight Progression
+                        </h3>
 
-                                                {{-- Change --}}
-                                                <td class="whitespace-nowrap px-6 py-4">
+                        <p class="mt-1 text-sm text-gray-500">
+                            Recorded weight measurements over time.
+                        </p>
 
-                                                    @if ($change !== null)
-
-                                                                        <span class="text-sm font-semibold
-                                                            {{ $change >= 0
-                                                        ? 'text-green-600'
-                                                        : 'text-red-600' }}">
-
-                                                                            {{ $change >= 0 ? '+' : '' }}{{ number_format($change, 2) }}
-                                                                            kg
-
-                                                                        </span>
-
-                                                    @else
-
-                                                        <span class="text-sm text-gray-400">
-                                                            —
-                                                        </span>
-
-                                                    @endif
-
-                                                </td>
+                    </div>
 
 
-                                                {{-- Recorded By --}}
-                                                <td class="whitespace-nowrap px-6 py-4">
+                    <div class="p-6">
 
-                                                    <span class="text-sm text-gray-700">
-                                                        {{ $record->recordedBy?->name ?? 'Unknown' }}
-                                                    </span>
+                        @if ($weightRecords->count() >= 2)
 
-                                                </td>
+                            <div class="h-80">
 
-                                            </tr>
+                                <canvas id="weightGrowthChart"></canvas>
 
-                                        @endforeach
+                            </div>
 
-                                    </tbody>
+                        @else
 
-                                </table>
+                            <div class="py-12 text-center">
+
+                                <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+
+                                    <svg
+                                        class="h-6 w-6 text-gray-400"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M11 3v18m4-14v10m4-6v6M7 7v10m-4-6v6"
+                                        />
+                                    </svg>
+
+                                </div>
+
+                                <p class="mt-4 text-sm font-medium text-gray-900">
+                                    Not enough data for a growth chart.
+                                </p>
+
+                                <p class="mt-1 text-sm text-gray-500">
+                                    At least two weight records are required.
+                                </p>
 
                             </div>
 
@@ -494,14 +419,360 @@
 
                     </div>
 
+                </div>
+
+
+                {{-- ============================================================
+                    WEIGHT HISTORY
+                ============================================================= --}}
+
+                <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
+
+                    <div class="border-b border-gray-200 px-6 py-5">
+
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            Weight History
+                        </h3>
+
+                        <p class="mt-1 text-sm text-gray-500">
+                            All recorded weight measurements for this swine.
+                        </p>
+
+                    </div>
+
+
+                    @if ($weightRecords->isEmpty())
+
+                        <div class="px-6 py-12 text-center">
+
+                            <p class="text-sm font-medium text-gray-900">
+                                No weight records found.
+                            </p>
+
+                            <p class="mt-1 text-sm text-gray-500">
+                                Record at least one weight measurement to begin monitoring growth.
+                            </p>
+
+                            @can('record-weight')
+
+                                <a
+                                    href="{{ route('weight-records.create', [
+                                        'swine_id' => $selectedSwine->id
+                                    ]) }}"
+                                    class="mt-4 inline-flex rounded-lg bg-[#3368A0]
+                                           px-4 py-2 text-sm font-semibold text-white
+                                           hover:bg-[#28557F]"
+                                >
+                                    Add Weight Record
+                                </a>
+
+                            @endcan
+
+                        </div>
+
+                    @else
+
+                        @php
+
+                            /*
+                            |--------------------------------------------------------------------------
+                            | Calculate chronological weight changes
+                            |--------------------------------------------------------------------------
+                            */
+
+                            $chronologicalRecords = $weightRecords
+                                ->sortBy(function ($record) {
+                                    return $record->record_date?->timestamp ?? 0;
+                                })
+                                ->values();
+
+                            $weightChanges = [];
+
+                            $previousRecordedWeight = null;
+
+                            foreach ($chronologicalRecords as $chronologicalRecord) {
+
+                                if ($previousRecordedWeight !== null) {
+
+                                    $weightChanges[$chronologicalRecord->id] =
+                                        (float) $chronologicalRecord->weight
+                                        - $previousRecordedWeight;
+
+                                } else {
+
+                                    $weightChanges[$chronologicalRecord->id] = null;
+
+                                }
+
+                                $previousRecordedWeight =
+                                    (float) $chronologicalRecord->weight;
+                            }
+
+                            /*
+                            |--------------------------------------------------------------------------
+                            | Display newest record first
+                            |--------------------------------------------------------------------------
+                            */
+
+                            $displayRecords = $weightRecords
+                                ->sortByDesc(function ($record) {
+                                    return $record->record_date?->timestamp ?? 0;
+                                })
+                                ->values();
+
+                        @endphp
+
+
+                        {{-- Desktop Table --}}
+                        <div class="hidden overflow-x-auto md:block">
+
+                            <table class="min-w-full divide-y divide-gray-200">
+
+                                <thead class="bg-gray-50">
+
+                                    <tr>
+
+                                        <th class="px-6 py-3 text-left text-xs
+                                                   font-semibold uppercase tracking-wide
+                                                   text-gray-500">
+                                            Date
+                                        </th>
+
+                                        <th class="px-6 py-3 text-left text-xs
+                                                   font-semibold uppercase tracking-wide
+                                                   text-gray-500">
+                                            Weight
+                                        </th>
+
+                                        <th class="px-6 py-3 text-left text-xs
+                                                   font-semibold uppercase tracking-wide
+                                                   text-gray-500">
+                                            Change
+                                        </th>
+
+                                        <th class="px-6 py-3 text-left text-xs
+                                                   font-semibold uppercase tracking-wide
+                                                   text-gray-500">
+                                            Recorded By
+                                        </th>
+
+                                    </tr>
+
+                                </thead>
+
+
+                                <tbody class="divide-y divide-gray-100 bg-white">
+
+                                    @foreach ($displayRecords as $record)
+
+                                        @php
+                                            $change = $weightChanges[$record->id] ?? null;
+                                        @endphp
+
+                                        <tr class="hover:bg-gray-50">
+
+                                            {{-- Date --}}
+                                            <td class="whitespace-nowrap px-6 py-4">
+
+                                                <p class="text-sm font-medium text-gray-900">
+                                                    {{ $record->record_date?->format('M d, Y') ?? '—' }}
+                                                </p>
+
+                                                @if ($record->record_date)
+
+                                                    <p class="text-xs text-gray-500">
+                                                        {{ $record->record_date->format('l') }}
+                                                    </p>
+
+                                                @endif
+
+                                            </td>
+
+
+                                            {{-- Weight --}}
+                                            <td class="whitespace-nowrap px-6 py-4">
+
+                                                <span class="text-sm font-semibold text-gray-900">
+                                                    {{ number_format((float) $record->weight, 2) }}
+                                                    kg
+                                                </span>
+
+                                            </td>
+
+
+                                            {{-- Change --}}
+                                            <td class="whitespace-nowrap px-6 py-4">
+
+                                                @if ($change !== null)
+
+                                                    @if ($change > 0)
+
+                                                        <span class="text-sm font-semibold text-green-600">
+                                                            +{{ number_format($change, 2) }} kg
+                                                        </span>
+
+                                                    @elseif ($change < 0)
+
+                                                        <span class="text-sm font-semibold text-red-600">
+                                                            {{ number_format($change, 2) }} kg
+                                                        </span>
+
+                                                    @else
+
+                                                        <span class="text-sm font-semibold text-gray-500">
+                                                            0.00 kg
+                                                        </span>
+
+                                                    @endif
+
+                                                @else
+
+                                                    <span class="text-sm text-gray-400">
+                                                        —
+                                                    </span>
+
+                                                @endif
+
+                                            </td>
+
+
+                                            {{-- Recorded By --}}
+                                            <td class="whitespace-nowrap px-6 py-4">
+
+                                                <span class="text-sm text-gray-700">
+                                                    {{ $record->recordedBy?->name ?? 'Unknown' }}
+                                                </span>
+
+                                            </td>
+
+                                        </tr>
+
+                                    @endforeach
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+
+                        {{-- Mobile Cards --}}
+                        <div class="divide-y divide-gray-100 md:hidden">
+
+                            @foreach ($displayRecords as $record)
+
+                                @php
+                                    $change = $weightChanges[$record->id] ?? null;
+                                @endphp
+
+                                <div class="px-5 py-5">
+
+                                    <div class="flex items-start justify-between gap-4">
+
+                                        <div>
+
+                                            <p class="text-sm font-semibold text-gray-900">
+                                                {{ $record->record_date?->format('M d, Y') ?? '—' }}
+                                            </p>
+
+                                            @if ($record->record_date)
+
+                                                <p class="mt-1 text-xs text-gray-500">
+                                                    {{ $record->record_date->format('l') }}
+                                                </p>
+
+                                            @endif
+
+                                        </div>
+
+
+                                        <div class="text-right">
+
+                                            <p class="text-lg font-bold text-gray-900">
+                                                {{ number_format((float) $record->weight, 2) }}
+                                                kg
+                                            </p>
+
+                                            @if ($change !== null)
+
+                                                @if ($change > 0)
+
+                                                    <p class="text-xs font-semibold text-green-600">
+                                                        +{{ number_format($change, 2) }} kg
+                                                    </p>
+
+                                                @elseif ($change < 0)
+
+                                                    <p class="text-xs font-semibold text-red-600">
+                                                        {{ number_format($change, 2) }} kg
+                                                    </p>
+
+                                                @else
+
+                                                    <p class="text-xs font-semibold text-gray-500">
+                                                        0.00 kg
+                                                    </p>
+
+                                                @endif
+
+                                            @endif
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <div class="mt-3">
+
+                                        <p class="text-xs text-gray-500">
+                                            Recorded By
+                                        </p>
+
+                                        <p class="mt-1 text-sm text-gray-700">
+                                            {{ $record->recordedBy?->name ?? 'Unknown' }}
+                                        </p>
+
+                                    </div>
+
+                                </div>
+
+                            @endforeach
+
+                        </div>
+
+                    @endif
+
+                </div>
+
 
             @else
 
-                {{-- Empty State --}}
-                <div class="rounded-xl bg-white px-6 py-16 text-center
-                                shadow-sm ring-1 ring-gray-200">
 
-                    <h3 class="text-lg font-semibold text-gray-900">
+                {{-- ============================================================
+                    EMPTY STATE
+                ============================================================= --}}
+
+                <div class="rounded-xl bg-white px-6 py-16 text-center shadow-sm ring-1 ring-gray-200">
+
+                    <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
+
+                        <svg
+                            class="h-7 w-7 text-gray-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M11 3v18m4-14v10m4-6v6M7 7v10m-4-6v6"
+                            />
+                        </svg>
+
+                    </div>
+
+                    <h3 class="mt-4 text-lg font-semibold text-gray-900">
                         Select a swine
                     </h3>
 
@@ -512,6 +783,7 @@
 
                 </div>
 
+
             @endif
 
         </div>
@@ -519,7 +791,10 @@
     </div>
 
 
-    {{-- Chart.js --}}
+    {{-- ================================================================
+        CHART.JS
+    ================================================================= --}}
+
     @if ($selectedSwine && $weightRecords->count() >= 2)
 
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -527,79 +802,104 @@
         <script>
 
             const chartLabels = @json($chartLabels);
-
             const chartWeights = @json($chartWeights);
 
-            const ctx = document
-                .getElementById('weightGrowthChart');
+            const chartCanvas = document.getElementById('weightGrowthChart');
 
-            new Chart(ctx, {
+            if (chartCanvas) {
 
-                type: 'line',
+                new Chart(chartCanvas, {
 
-                data: {
+                    type: 'line',
 
-                    labels: chartLabels,
+                    data: {
 
-                    datasets: [{
+                        labels: chartLabels,
 
-                        label: 'Weight (kg)',
+                        datasets: [{
 
-                        data: chartWeights,
+                            label: 'Weight (kg)',
 
-                        tension: 0.3,
+                            data: chartWeights,
 
-                        borderWidth: 2,
+                            tension: 0.3,
 
-                        pointRadius: 4,
+                            borderWidth: 2,
 
-                        fill: false
+                            pointRadius: 4,
 
-                    }]
+                            pointHoverRadius: 6,
 
-                },
+                            fill: false
 
-                options: {
+                        }]
 
-                    responsive: true,
+                    },
 
-                    maintainAspectRatio: false,
+                    options: {
 
-                    scales: {
+                        responsive: true,
 
-                        y: {
+                        maintainAspectRatio: false,
 
-                            beginAtZero: true,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        },
 
-                            title: {
-                                display: true,
-                                text: 'Weight (kg)'
+                        scales: {
+
+                            y: {
+
+                                beginAtZero: true,
+
+                                title: {
+                                    display: true,
+                                    text: 'Weight (kg)'
+                                }
+
+                            },
+
+                            x: {
+
+                                title: {
+                                    display: true,
+                                    text: 'Record Date'
+                                }
+
                             }
 
                         },
 
-                        x: {
+                        plugins: {
 
-                            title: {
-                                display: true,
-                                text: 'Record Date'
+                            legend: {
+                                display: true
+                            },
+
+                            tooltip: {
+
+                                callbacks: {
+
+                                    label: function (context) {
+
+                                        return 'Weight: ' +
+                                            Number(context.parsed.y).toFixed(2) +
+                                            ' kg';
+
+                                    }
+
+                                }
+
                             }
 
                         }
 
-                    },
-
-                    plugins: {
-
-                        legend: {
-                            display: true
-                        }
-
                     }
 
-                }
+                });
 
-            });
+            }
 
         </script>
 

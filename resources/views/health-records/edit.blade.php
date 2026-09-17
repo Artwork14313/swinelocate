@@ -166,38 +166,36 @@
                     </div>
 
                 </div>
-                {{-- Vaccination Details --}}
-                <div id="vaccination-fields" class="{{ old('record_type', $healthRecord->record_type) === 'Vaccination'
-    ? ''
-    : 'hidden' }}
-    rounded-lg border border-indigo-100 bg-indigo-50 p-5">
+                <div id="vaccination-fields" class="{{ old('record_type', $healthRecord->record_type) === 'Vaccination' ? '' : 'hidden' }}
+                           overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-indigo-200">
 
-                    <div class="mb-4">
+                    <div class="border-b border-indigo-100 bg-indigo-50 px-6 py-5">
 
-                        <h3 class="text-sm font-semibold text-gray-900">
+                        <h3 class="text-lg font-semibold text-gray-900">
                             Vaccination Details
                         </h3>
 
-                        <p class="mt-1 text-xs text-gray-500">
+                        <p class="mt-1 text-sm text-gray-500">
                             Provide vaccination information for this swine.
                         </p>
 
                     </div>
 
 
-                    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                    <div class="grid grid-cols-1 gap-6 bg-indigo-50/50 px-6 py-6 sm:grid-cols-2">
 
                         {{-- Vaccine Name --}}
                         <div>
 
                             <label for="vaccine_name" class="block text-sm font-medium text-gray-700">
                                 Vaccine Name
+                                <span id="vaccine-required" class="text-red-500">*</span>
                             </label>
 
                             <input type="text" id="vaccine_name" name="vaccine_name"
-                                value="{{ old('vaccine_name', $healthRecord->vaccine_name) }}" class="mt-2 block w-full rounded-lg border-gray-300
-                       shadow-sm focus:border-indigo-500
-                       focus:ring-indigo-500" placeholder="e.g. Swine Fever Vaccine">
+                                value="{{ old('vaccine_name', $healthRecord->vaccine_name) }}" maxlength="255"
+                                placeholder="e.g. Swine Fever Vaccine" class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm
+                                       focus:border-indigo-500 focus:ring-indigo-500">
 
                             @error('vaccine_name')
                                 <p class="mt-1 text-sm text-red-600">
@@ -216,9 +214,8 @@
                             </label>
 
                             <input type="text" id="dose" name="dose" value="{{ old('dose', $healthRecord->dose) }}"
-                                class="mt-2 block w-full rounded-lg border-gray-300
-                       shadow-sm focus:border-indigo-500
-                       focus:ring-indigo-500" placeholder="e.g. 2 mL">
+                                maxlength="255" placeholder="e.g. 2 mL" class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm
+                                       focus:border-indigo-500 focus:ring-indigo-500">
 
                             @error('dose')
                                 <p class="mt-1 text-sm text-red-600">
@@ -229,7 +226,7 @@
                         </div>
 
 
-                        {{-- Batch / Lot Number --}}
+                        {{-- Batch Number --}}
                         <div>
 
                             <label for="batch_number" class="block text-sm font-medium text-gray-700">
@@ -237,9 +234,9 @@
                             </label>
 
                             <input type="text" id="batch_number" name="batch_number"
-                                value="{{ old('batch_number', $healthRecord->batch_number) }}" class="mt-2 block w-full rounded-lg border-gray-300
-                       shadow-sm focus:border-indigo-500
-                       focus:ring-indigo-500" placeholder="Optional">
+                                value="{{ old('batch_number', $healthRecord->batch_number) }}" maxlength="255"
+                                placeholder="Optional" class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm
+                                       focus:border-indigo-500 focus:ring-indigo-500">
 
                             @error('batch_number')
                                 <p class="mt-1 text-sm text-red-600">
@@ -260,9 +257,8 @@
                             <input type="date" id="next_due_date" name="next_due_date" value="{{ old(
     'next_due_date',
     $healthRecord->next_due_date?->format('Y-m-d')
-) }}" class="mt-2 block w-full rounded-lg border-gray-300
-                       shadow-sm focus:border-indigo-500
-                       focus:ring-indigo-500">
+) }}" class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm
+                                       focus:border-indigo-500 focus:ring-indigo-500">
 
                             @error('next_due_date')
                                 <p class="mt-1 text-sm text-red-600">
@@ -306,7 +302,7 @@
 
                                 <textarea id="{{ $field }}" name="{{ $field }}" rows="3"
                                     class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm
-                                                   focus:border-indigo-500 focus:ring-indigo-500">{{ old($field, $healthRecord->$field) }}</textarea>
+                                                       focus:border-indigo-500 focus:ring-indigo-500">{{ old($field, $healthRecord->$field) }}</textarea>
 
                                 @error($field)
                                     <p class="mt-1 text-sm text-red-600">
@@ -401,11 +397,11 @@
                 {{-- Actions --}}
                 <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
 
-                    <a href="{{ route('health-records.index') }}" class="inline-flex justify-center rounded-lg border border-gray-300
+                    <a href="{{ route('health-records.show', $healthRecord) }}" class="inline-flex justify-center rounded-lg border border-gray-300
                                bg-white px-5 py-2.5 text-sm font-semibold text-gray-700
                                shadow-sm hover:bg-gray-50">
                         Cancel
-                    </a>
+                    </a>    
 
                     <button type="submit" class="inline-flex justify-center rounded-lg bg-indigo-600
                                px-5 py-2.5 text-sm font-semibold text-white shadow-sm

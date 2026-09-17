@@ -6,12 +6,13 @@ use App\Models\HealthRecord;
 use App\Models\Swine;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class HealthRecordController extends Controller
 {
     /**
-     * Display a listing of health records.
+     * Display the latest health record for each swine.
      */
     public function index(): View
     {
@@ -26,10 +27,10 @@ class HealthRecordController extends Controller
                     )
                     ->whereRaw(
                         'hr2.record_date = (
-                        SELECT MAX(hr3.record_date)
-                        FROM health_records as hr3
-                        WHERE hr3.swine_id = health_records.swine_id
-                    )'
+                            SELECT MAX(hr3.record_date)
+                            FROM health_records as hr3
+                            WHERE hr3.swine_id = health_records.swine_id
+                        )'
                     );
             })
             ->groupBy('swine_id');
@@ -45,9 +46,10 @@ class HealthRecordController extends Controller
             ->latest('record_date')
             ->paginate(10);
 
-        return view('health-records.index', compact(
-            'healthRecords'
-        ));
+        return view(
+            'health-records.index',
+            compact('healthRecords')
+        );
     }
 
     /**
@@ -71,28 +73,40 @@ class HealthRecordController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        $vaccineNameRule = $request->record_type === 'Vaccination'
-            ? ['required', 'string', 'max:255']
-            : ['nullable', 'string', 'max:255'];
-
         $validated = $request->validate([
             'swine_id' => [
                 'required',
-                'exists:swine,id',
+                Rule::exists('swine', 'id')
+                    ->where(fn ($query) => $query->where('status', 'active')),
             ],
 
             'record_date' => [
                 'required',
                 'date',
+                'before_or_equal:today',
             ],
 
             'record_type' => [
                 'required',
-                'string',
-                'max:255',
+                Rule::in([
+                    'Routine Examination',
+                    'Vaccination',
+                    'Illness',
+                    'Treatment',
+                    'Injury',
+                    'Follow-up',
+                    'Other',
+                ]),
             ],
 
-            'vaccine_name' => $vaccineNameRule,
+            'vaccine_name' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::requiredIf(
+                    fn () => $request->input('record_type') === 'Vaccination'
+                ),
+            ],
 
             'dose' => [
                 'nullable',
@@ -139,8 +153,12 @@ class HealthRecordController extends Controller
 
             'health_status' => [
                 'required',
-                'string',
-                'max:255',
+                Rule::in([
+                    'healthy',
+                    'under_observation',
+                    'sick',
+                    'recovering',
+                ]),
             ],
 
             'notes' => [
@@ -148,6 +166,17 @@ class HealthRecordController extends Controller
                 'string',
             ],
         ]);
+
+        /*
+         * Vaccination-only fields must not retain data
+         * when the record type is not Vaccination.
+         */
+        if ($validated['record_type'] !== 'Vaccination') {
+            $validated['vaccine_name'] = null;
+            $validated['dose'] = null;
+            $validated['batch_number'] = null;
+            $validated['next_due_date'] = null;
+        }
 
         $validated['recorded_by'] = auth()->id();
 
@@ -187,12 +216,19 @@ class HealthRecordController extends Controller
     /**
      * Show the form for editing the specified health record.
      */
-    public function edit(
-        HealthRecord $healthRecord
-    ): View {
-
+    public function edit(HealthRecord $healthRecord): View
+    {
+        /*
+         * Include active swine plus the swine currently
+         * associated with this record. This prevents the
+         * existing swine from disappearing from the dropdown
+         * if its status has changed since the record was created.
+         */
         $swine = Swine::query()
-            ->where('status', 'active')
+            ->where(function ($query) use ($healthRecord) {
+                $query->where('status', 'active')
+                    ->orWhere('id', $healthRecord->swine_id);
+            })
             ->orderBy('tag_number')
             ->get();
 
@@ -212,29 +248,43 @@ class HealthRecordController extends Controller
         Request $request,
         HealthRecord $healthRecord
     ): RedirectResponse {
-
-        $vaccineNameRule = $request->record_type === 'Vaccination'
-            ? ['required', 'string', 'max:255']
-            : ['nullable', 'string', 'max:255'];
-
         $validated = $request->validate([
             'swine_id' => [
                 'required',
-                'exists:swine,id',
+                Rule::exists('swine', 'id')
+                    ->where(function ($query) use ($healthRecord) {
+                        $query->where('status', 'active')
+                            ->orWhere('id', $healthRecord->swine_id);
+                    }),
             ],
 
             'record_date' => [
                 'required',
                 'date',
+                'before_or_equal:today',
             ],
 
             'record_type' => [
                 'required',
-                'string',
-                'max:255',
+                Rule::in([
+                    'Routine Examination',
+                    'Vaccination',
+                    'Illness',
+                    'Treatment',
+                    'Injury',
+                    'Follow-up',
+                    'Other',
+                ]),
             ],
 
-            'vaccine_name' => $vaccineNameRule,
+            'vaccine_name' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::requiredIf(
+                    fn () => $request->input('record_type') === 'Vaccination'
+                ),
+            ],
 
             'dose' => [
                 'nullable',
@@ -254,16 +304,39 @@ class HealthRecordController extends Controller
                 'after_or_equal:record_date',
             ],
 
-            'symptoms' => ['nullable', 'string'],
-            'diagnosis' => ['nullable', 'string'],
-            'treatment' => ['nullable', 'string'],
-            'observations' => ['nullable', 'string'],
-            'veterinary_assessment' => ['nullable', 'string'],
+            'symptoms' => [
+                'nullable',
+                'string',
+            ],
+
+            'diagnosis' => [
+                'nullable',
+                'string',
+            ],
+
+            'treatment' => [
+                'nullable',
+                'string',
+            ],
+
+            'observations' => [
+                'nullable',
+                'string',
+            ],
+
+            'veterinary_assessment' => [
+                'nullable',
+                'string',
+            ],
 
             'health_status' => [
                 'required',
-                'string',
-                'max:255',
+                Rule::in([
+                    'healthy',
+                    'under_observation',
+                    'sick',
+                    'recovering',
+                ]),
             ],
 
             'notes' => [
@@ -272,6 +345,10 @@ class HealthRecordController extends Controller
             ],
         ]);
 
+        /*
+         * Clear vaccination-specific fields when the
+         * record type is changed to a non-vaccination record.
+         */
         if ($validated['record_type'] !== 'Vaccination') {
             $validated['vaccine_name'] = null;
             $validated['dose'] = null;
@@ -295,7 +372,6 @@ class HealthRecordController extends Controller
     public function destroy(
         HealthRecord $healthRecord
     ): RedirectResponse {
-
         $healthRecord->delete();
 
         return redirect()
@@ -306,6 +382,9 @@ class HealthRecordController extends Controller
             );
     }
 
+    /**
+     * Display the complete health history of a swine.
+     */
     public function history(Swine $swine): View
     {
         $swine->load([
@@ -328,15 +407,4 @@ class HealthRecordController extends Controller
             )
         );
     }
-
-    public function historyIndex(): View
-    {
-        $swine = Swine::query()
-            ->with('farm')
-            ->orderBy('tag_number')
-            ->get();
-
-        return view('health-records.history-index', compact('swine'));
-    }
-    
 }

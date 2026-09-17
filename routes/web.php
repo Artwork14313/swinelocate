@@ -17,8 +17,10 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\RoleController;
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('login');
 });
+
+
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
@@ -214,6 +216,10 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:manage-health')
         ->name('health-records.create');
 
+    Route::get('/health-records/history/{swine}', [HealthRecordController::class, 'history'])
+        ->middleware('permission:manage-health')
+        ->name('health-records.history');
+
     Route::post('/health-records', [HealthRecordController::class, 'store'])
         ->middleware('permission:manage-health')
         ->name('health-records.store');
@@ -237,15 +243,6 @@ Route::middleware('auth')->group(function () {
     Route::delete('/health-records/{health_record}', [HealthRecordController::class, 'destroy'])
         ->middleware('permission:manage-health')
         ->name('health-records.destroy');
-
-    Route::get('/health-history', [HealthRecordController::class, 'historyIndex'])
-        ->middleware('permission:manage-health')
-        ->name('health-records.history.index');
-
-    Route::get('/health-history/{swine}/history', [HealthRecordController::class, 'history'])
-        ->middleware('permission:manage-health')
-        ->name('health-records.history');
-
 
     /*
     |--------------------------------------------------------------------------

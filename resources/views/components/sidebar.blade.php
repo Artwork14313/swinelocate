@@ -251,27 +251,13 @@ MOBILE SIDEBAR OVERLAY
                             <a href="{{ route('health-records.index') }}" @click="sidebarOpen = false" class="flex items-center gap-3 rounded-lg px-3 py-2
                                                                                            text-sm font-medium
                                                                                            {{
-                request()->routeIs('health-records.index') ||
-                request()->routeIs('health-records.show') ||
-                request()->routeIs('health-records.create') ||
-                request()->routeIs('health-records.edit')
+                request()->routeIs('health-records.*')
                 ? 'bg-blue-700 text-white'
                 : 'text-gray-700 hover:bg-gray-50'
                                                                                            }}">
                                 Health Records
                             </a>
 
-
-                            <a href="{{ route('health-records.history.index') }}" @click="sidebarOpen = false" class="flex items-center gap-3 rounded-lg px-3 py-2
-                                                                                           text-sm font-medium
-                                                                                           {{
-                request()->routeIs('health-records.history.index') ||
-                request()->routeIs('health-records.history')
-                ? 'bg-blue-700 text-white'
-                : 'text-gray-700 hover:bg-gray-50'
-                                                                                           }}">
-                                Health History
-                            </a>
 
                         </div>
 
@@ -370,7 +356,10 @@ MOBILE SIDEBAR OVERLAY
 
                     <div class="space-y-1">
 
-                        @if(Auth::user()->hasPermission('scan-qr'))
+                        @if(
+                                Auth::user()->hasPermission('scan-qr') ||
+                                Auth::user()->hasPermission('view-traceability')
+                            )
 
                                     <a href="{{ route('qr.scanner') }}" @click="sidebarOpen = false"
                                         class="flex items-center gap-3 rounded-lg px-3 py-2
@@ -744,26 +733,11 @@ DESKTOP SIDEBAR
                     <a href="{{ route('health-records.index') }}" class="flex items-center gap-3 rounded-lg px-3 py-2
                                                            text-sm font-medium
                                                            {{
-            request()->routeIs('health-records.index') ||
-            request()->routeIs('health-records.show') ||
-            request()->routeIs('health-records.create') ||
-            request()->routeIs('health-records.edit')
+            request()->routeIs('health-records.*')
             ? 'bg-blue-700 text-white'
             : 'text-gray-700 hover:bg-gray-50'
                                                            }}">
                         Health Records
-                    </a>
-
-
-                    <a href="{{ route('health-records.history.index') }}" class="flex items-center gap-3 rounded-lg px-3 py-2
-                                                           text-sm font-medium
-                                                           {{
-            request()->routeIs('health-records.history.index') ||
-            request()->routeIs('health-records.history')
-            ? 'bg-blue-700 text-white'
-            : 'text-gray-700 hover:bg-gray-50'
-                                                           }}">
-                        Health History
                     </a>
 
                 </div>
@@ -860,7 +834,10 @@ DESKTOP SIDEBAR
 
                 <div class="space-y-1">
 
-                    @if(Auth::user()->hasPermission('scan-qr'))
+                    @if(
+                            Auth::user()->hasPermission('scan-qr') ||
+                            Auth::user()->hasPermission('view-traceability')
+                        )
 
                             <a href="{{ route('qr.scanner') }}" class="flex items-center gap-3 rounded-lg px-3 py-2
                                                                                                                        text-sm font-medium transition

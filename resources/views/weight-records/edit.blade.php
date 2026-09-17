@@ -21,7 +21,6 @@
 
         <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
 
-            {{-- Validation Errors --}}
             @if ($errors->any())
 
                 <div class="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-4">
@@ -33,7 +32,11 @@
                     <ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-red-700">
 
                         @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
+
+                            <li>
+                                {{ $error }}
+                            </li>
+
                         @endforeach
 
                     </ul>
@@ -43,247 +46,403 @@
             @endif
 
 
-            <form
-                method="POST"
-                action="{{ route('weight-records.update', $weightRecord) }}"
-                class="space-y-6"
-            >
+            @if(auth()->user()->hasPermission('record-weight'))
 
-                @csrf
-                @method('PUT')
+                <form
+                    method="POST"
+                    action="{{ route('weight-records.update', $weightRecord) }}"
+                    class="space-y-6"
+                >
 
-
-                {{-- Weight Information --}}
-                <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
-
-                    <div class="border-b border-gray-200 px-6 py-5">
-
-                        <h3 class="text-lg font-semibold text-gray-900">
-                            Weight Information
-                        </h3>
-
-                        <p class="mt-1 text-sm text-gray-500">
-                            Update the weight information recorded for this swine.
-                        </p>
-
-                    </div>
+                    @csrf
+                    @method('PUT')
 
 
-                    <div class="space-y-5 px-6 py-6">
+                    {{-- Weight Information --}}
+                    <div class="overflow-hidden rounded-xl bg-white
+                                shadow-sm ring-1 ring-gray-200">
+
+                        <div class="border-b border-gray-200 px-6 py-5">
+
+                            <h3 class="text-lg font-semibold text-gray-900">
+                                Weight Information
+                            </h3>
+
+                            <p class="mt-1 text-sm text-gray-500">
+                                Update the weight information recorded for this swine.
+                            </p>
+
+                        </div>
 
 
-                        {{-- Swine --}}
-                        <div>
+                        <div class="space-y-6 px-6 py-6">
 
-                            <label class="block text-sm font-medium text-gray-700">
-                                Swine
-                            </label>
 
-                            <div class="mt-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                            {{-- Swine --}}
+                            <div>
 
-                                <p class="text-sm font-semibold text-gray-900">
-                                    {{ $weightRecord->swine?->tag_number ?? 'Unknown' }}
-                                </p>
+                                <label
+                                    class="block text-sm font-medium text-gray-700"
+                                >
 
-                                @if ($weightRecord->swine?->name)
+                                    Swine
 
-                                    <p class="mt-1 text-xs text-gray-500">
-                                        {{ $weightRecord->swine->name }}
+                                </label>
+
+
+                                <div
+                                    class="mt-2 rounded-lg border border-gray-200
+                                           bg-gray-50 px-4 py-3"
+                                >
+
+                                    <p class="text-sm font-semibold text-gray-900">
+
+                                        {{ $weightRecord->swine?->tag_number ?? 'Unknown' }}
+
                                     </p>
 
-                                @endif
+
+                                    @if ($weightRecord->swine?->name)
+
+                                        <p class="mt-1 text-xs text-gray-500">
+
+                                            {{ $weightRecord->swine->name }}
+
+                                        </p>
+
+                                    @endif
+
+                                </div>
+
+
+                                <p class="mt-1 text-xs text-gray-500">
+                                    The swine associated with this historical record cannot be changed.
+                                </p>
 
                             </div>
 
-                            <p class="mt-1 text-xs text-gray-500">
-                                The swine associated with this historical record cannot be changed.
-                            </p>
 
-                        </div>
+                            {{-- Record Date --}}
+                            <div>
 
+                                <label
+                                    for="record_date"
+                                    class="block text-sm font-medium text-gray-700"
+                                >
 
-                        {{-- Record Date --}}
-                        <div>
+                                    Record Date
+                                    <span class="text-red-500">*</span>
 
-                            <label
-                                for="record_date"
-                                class="block text-sm font-medium text-gray-700"
-                            >
-                                Record Date
-                            </label>
+                                </label>
 
-                            <input
-                                type="date"
-                                id="record_date"
-                                name="record_date"
-                                value="{{ old('record_date', $weightRecord->record_date?->format('Y-m-d')) }}"
-                                max="{{ now()->format('Y-m-d') }}"
-                                class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm
-                                       focus:border-indigo-500 focus:ring-indigo-500"
-                            >
-
-                            <p class="mt-1 text-xs text-gray-500">
-                                Date when the swine was weighed.
-                            </p>
-
-                            @error('record_date')
-
-                                <p class="mt-1 text-sm text-red-600">
-                                    {{ $message }}
-                                </p>
-
-                            @enderror
-
-                        </div>
-
-
-                        {{-- Weight --}}
-                        <div>
-
-                            <label
-                                for="weight"
-                                class="block text-sm font-medium text-gray-700"
-                            >
-                                Weight (kg)
-                            </label>
-
-                            <div class="relative mt-2">
 
                                 <input
-                                    type="number"
-                                    id="weight"
-                                    name="weight"
-                                    value="{{ old('weight', $weightRecord->weight) }}"
-                                    step="0.01"
-                                    min="0.01"
-                                    max="9999.99"
-                                    class="block w-full rounded-lg border-gray-300 pr-14 shadow-sm
-                                           focus:border-indigo-500 focus:ring-indigo-500"
-                                    placeholder="e.g. 45.50"
+                                    type="date"
+                                    id="record_date"
+                                    name="record_date"
+                                    value="{{ old('record_date', $weightRecord->record_date?->format('Y-m-d')) }}"
+                                    max="{{ now()->format('Y-m-d') }}"
+                                    required
+                                    class="mt-2 block w-full rounded-lg border-gray-300
+                                           shadow-sm focus:border-indigo-500
+                                           focus:ring-indigo-500"
                                 >
 
-                                <span
-                                    class="absolute inset-y-0 right-0 flex items-center pr-4
-                                           text-sm text-gray-500"
-                                >
-                                    kg
-                                </span>
+
+                                <p class="mt-1 text-xs text-gray-500">
+                                    Date when the swine was weighed. Future dates are not allowed.
+                                </p>
+
+
+                                @error('record_date')
+
+                                    <p class="mt-1 text-sm text-red-600">
+                                        {{ $message }}
+                                    </p>
+
+                                @enderror
 
                             </div>
 
-                            @error('weight')
 
-                                <p class="mt-1 text-sm text-red-600">
-                                    {{ $message }}
+                            {{-- Weight --}}
+                            <div>
+
+                                <label
+                                    for="weight"
+                                    class="block text-sm font-medium text-gray-700"
+                                >
+
+                                    Weight (kg)
+                                    <span class="text-red-500">*</span>
+
+                                </label>
+
+
+                                <div class="relative mt-2">
+
+                                    <input
+                                        type="number"
+                                        id="weight"
+                                        name="weight"
+                                        value="{{ old('weight', $weightRecord->weight) }}"
+                                        step="0.01"
+                                        min="0.01"
+                                        max="9999.99"
+                                        required
+                                        inputmode="decimal"
+                                        class="block w-full rounded-lg border-gray-300
+                                               pr-14 shadow-sm focus:border-indigo-500
+                                               focus:ring-indigo-500"
+                                        placeholder="e.g. 45.50"
+                                    >
+
+
+                                    <span
+                                        class="absolute inset-y-0 right-0
+                                               flex items-center pr-4
+                                               text-sm text-gray-500"
+                                    >
+
+                                        kg
+
+                                    </span>
+
+                                </div>
+
+
+                                <p class="mt-1 text-xs text-gray-500">
+                                    Enter the recorded body weight in kilograms.
                                 </p>
 
-                            @enderror
 
-                        </div>
+                                @error('weight')
+
+                                    <p class="mt-1 text-sm text-red-600">
+                                        {{ $message }}
+                                    </p>
+
+                                @enderror
+
+                            </div>
 
 
-                        {{-- Notes --}}
-                        <div>
+                            {{-- Notes --}}
+                            <div>
 
-                            <label
-                                for="notes"
-                                class="block text-sm font-medium text-gray-700"
-                            >
-                                Notes
-                            </label>
+                                <label
+                                    for="notes"
+                                    class="block text-sm font-medium text-gray-700"
+                                >
 
-                            <textarea
-                                id="notes"
-                                name="notes"
-                                rows="4"
-                                maxlength="2000"
-                                class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm
-                                       focus:border-indigo-500 focus:ring-indigo-500"
-                                placeholder="Optional notes about the weighing..."
-                            >{{ old('notes', $weightRecord->notes) }}</textarea>
+                                    Notes
 
-                            @error('notes')
+                                </label>
 
-                                <p class="mt-1 text-sm text-red-600">
-                                    {{ $message }}
-                                </p>
 
-                            @enderror
+                                <textarea
+                                    id="notes"
+                                    name="notes"
+                                    rows="4"
+                                    maxlength="2000"
+                                    class="mt-2 block w-full rounded-lg border-gray-300
+                                           shadow-sm focus:border-indigo-500
+                                           focus:ring-indigo-500"
+                                    placeholder="Optional notes about the weighing..."
+                                >{{ old('notes', $weightRecord->notes) }}</textarea>
+
+
+                                <div class="mt-1 flex justify-between gap-4">
+
+                                    <p class="text-xs text-gray-500">
+                                        Optional information about the weight measurement.
+                                    </p>
+
+                                    <p
+                                        id="notes-counter"
+                                        class="shrink-0 text-xs text-gray-400"
+                                    >
+                                        0 / 2000
+                                    </p>
+
+                                </div>
+
+
+                                @error('notes')
+
+                                    <p class="mt-1 text-sm text-red-600">
+                                        {{ $message }}
+                                    </p>
+
+                                @enderror
+
+                            </div>
 
                         </div>
 
                     </div>
 
-                </div>
+
+                    {{-- Record Information --}}
+                    <div
+                        class="rounded-xl bg-gray-50 p-5 ring-1 ring-gray-200"
+                    >
+
+                        <p
+                            class="text-xs font-medium uppercase
+                                   tracking-wide text-gray-500"
+                        >
+
+                            Record Information
+
+                        </p>
 
 
-                {{-- Record Information --}}
-                <div class="rounded-xl bg-gray-50 p-5 ring-1 ring-gray-200">
+                        <div class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
 
-                    <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
-                        Record Information
+
+                            {{-- Recorded By --}}
+                            <div>
+
+                                <p class="text-xs text-gray-500">
+                                    Recorded By
+                                </p>
+
+                                <p class="mt-1 text-sm font-medium text-gray-900">
+
+                                    {{ $weightRecord->recordedBy?->name ?? 'Unknown' }}
+
+                                </p>
+
+                            </div>
+
+
+                            {{-- Last Updated --}}
+                            <div>
+
+                                <p class="text-xs text-gray-500">
+                                    Last Updated
+                                </p>
+
+                                <p class="mt-1 text-sm font-medium text-gray-900">
+
+                                    {{ $weightRecord->updated_at?->format('M d, Y h:i A') ?? '—' }}
+
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    {{-- Actions --}}
+                    <div
+                        class="flex flex-col-reverse gap-3
+                               sm:flex-row sm:items-center sm:justify-between"
+                    >
+
+                        <a
+                            href="{{ route('weight-records.show', $weightRecord) }}"
+                            class="inline-flex items-center justify-center
+                                   rounded-lg border border-gray-300 bg-white
+                                   px-4 py-2 text-sm font-semibold text-gray-700
+                                   shadow-sm transition hover:bg-gray-50
+                                   focus:outline-none focus:ring-2
+                                   focus:ring-gray-400 focus:ring-offset-2"
+                        >
+
+                            Cancel
+
+                        </a>
+
+
+                        <button
+                            type="submit"
+                            class="inline-flex items-center justify-center
+                                   rounded-lg bg-[#3368A0] px-5 py-2
+                                   text-sm font-semibold text-white shadow-sm
+                                   transition hover:bg-[#28557F]
+                                   focus:outline-none focus:ring-2
+                                   focus:ring-[#3368A0]
+                                   focus:ring-offset-2"
+                        >
+
+                            Update Weight Record
+
+                        </button>
+
+                    </div>
+
+                </form>
+
+            @else
+
+                <div
+                    class="rounded-xl bg-white px-6 py-12 text-center
+                           shadow-sm ring-1 ring-gray-200"
+                >
+
+                    <p class="text-sm font-semibold text-gray-900">
+                        You do not have permission to edit weight records.
                     </p>
 
-                    <div class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
-
-                        <div>
-
-                            <p class="text-xs text-gray-500">
-                                Recorded By
-                            </p>
-
-                            <p class="mt-1 text-sm font-medium text-gray-900">
-                                {{ $weightRecord->recordedBy?->name ?? 'Unknown' }}
-                            </p>
-
-                        </div>
-
-
-                        <div>
-
-                            <p class="text-xs text-gray-500">
-                                Last Updated
-                            </p>
-
-                            <p class="mt-1 text-sm font-medium text-gray-900">
-                                {{ $weightRecord->updated_at?->format('M d, Y h:i A') ?? '—' }}
-                            </p>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                {{-- Actions --}}
-                <div class="flex items-center justify-between gap-3">
+                    <p class="mt-1 text-sm text-gray-500">
+                        Contact an administrator if you need access to this function.
+                    </p>
 
                     <a
                         href="{{ route('weight-records.show', $weightRecord) }}"
-                        class="rounded-lg border border-gray-300 bg-white px-4 py-2
-                               text-sm font-semibold text-gray-700 shadow-sm
+                        class="mt-4 inline-flex rounded-lg border border-gray-300
+                               bg-white px-4 py-2 text-sm font-semibold text-gray-700
                                hover:bg-gray-50"
                     >
-                        Cancel
+
+                        Back to Weight Record
+
                     </a>
-
-
-                    <button
-                        type="submit"
-                        class="rounded-lg bg-[#3368A0] px-5 py-2
-                               text-sm font-semibold text-white shadow-sm
-                               hover:bg-[#28557F]"
-                    >
-                        Update Weight Record
-                    </button>
 
                 </div>
 
-            </form>
+            @endif
 
         </div>
 
     </div>
+
+
+    {{-- Character Counter --}}
+    <script>
+
+        document.addEventListener('DOMContentLoaded', function () {
+
+            const notes = document.getElementById('notes');
+            const counter = document.getElementById('notes-counter');
+
+            if (!notes || !counter) {
+                return;
+            }
+
+
+            function updateCounter() {
+
+                counter.textContent =
+                    `${notes.value.length} / 2000`;
+
+            }
+
+
+            notes.addEventListener(
+                'input',
+                updateCounter
+            );
+
+
+            updateCounter();
+
+        });
+
+    </script>
 
 </x-app-layout>
