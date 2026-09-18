@@ -256,10 +256,21 @@
                                             class="inline-flex rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
                                             Healthy
                                         </span>
-                                    @elseif(in_array($healthStatus, ['sick', 'ill', 'critical']))
+                                    @elseif($healthStatus === 'under_observation')
+                                        <span
+                                            class="inline-flex rounded-full px-3 py-1 text-xs font-semibold bg-yellow-100 text-yellow-700">
+                                            Under Observation
+                                        </span>
+                                    @elseif($healthStatus === 'sick')
                                         <span
                                             class="inline-flex rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700">
-                                            {{ ucfirst($latestHealth->health_status) }}
+                                            Sick
+                                        </span>
+
+                                    @elseif($healthStatus === 'recovering')
+                                        <span
+                                            class="inline-flex rounded-full px-3 py-1 text-xs font-semibold bg-blue-100 text-blue-700">
+                                            Recovering
                                         </span>
                                     @else
                                         <span
@@ -713,8 +724,8 @@
                                             @if($movementStatus === 'completed')
 
                                                 <span class="inline-flex rounded-full
-                                                       bg-green-100 px-3 py-1
-                                                       text-xs font-semibold text-green-700">
+                                                                               bg-green-100 px-3 py-1
+                                                                               text-xs font-semibold text-green-700">
                                                     Completed
                                                 </span>
 
@@ -722,8 +733,8 @@
                                             @elseif($movementStatus === 'superseded')
 
                                                 <span class="inline-flex rounded-full
-                                                       bg-yellow-100 px-3 py-1
-                                                       text-xs font-semibold text-yellow-700">
+                                                                               bg-yellow-100 px-3 py-1
+                                                                               text-xs font-semibold text-yellow-700">
                                                     Superseded
                                                 </span>
 
@@ -731,8 +742,8 @@
                                             @elseif($movementStatus === 'conflict')
 
                                                 <span class="inline-flex rounded-full
-                                                       bg-red-100 px-3 py-1
-                                                       text-xs font-semibold text-red-700">
+                                                                               bg-red-100 px-3 py-1
+                                                                               text-xs font-semibold text-red-700">
                                                     Conflict
                                                 </span>
 
@@ -740,8 +751,8 @@
                                             @elseif($movementStatus === 'pending')
 
                                                 <span class="inline-flex rounded-full
-                                                       bg-yellow-100 px-3 py-1
-                                                       text-xs font-semibold text-yellow-700">
+                                                                               bg-yellow-100 px-3 py-1
+                                                                               text-xs font-semibold text-yellow-700">
                                                     Pending
                                                 </span>
 
@@ -749,8 +760,8 @@
                                             @elseif($movementStatus === 'cancelled')
 
                                                 <span class="inline-flex rounded-full
-                                                       bg-red-100 px-3 py-1
-                                                       text-xs font-semibold text-red-700">
+                                                                               bg-red-100 px-3 py-1
+                                                                               text-xs font-semibold text-red-700">
                                                     Cancelled
                                                 </span>
 
@@ -758,8 +769,8 @@
                                             @else
 
                                                 <span class="inline-flex rounded-full
-                                                       bg-gray-100 px-3 py-1
-                                                       text-xs font-semibold text-gray-700">
+                                                                               bg-gray-100 px-3 py-1
+                                                                               text-xs font-semibold text-gray-700">
                                                     {{ ucfirst($movementStatus) }}
                                                 </span>
 

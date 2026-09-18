@@ -42,24 +42,22 @@ class DashboardController extends Controller
 
 
         /*
-|--------------------------------------------------------------------------
-| Current Health Status Overview
-|--------------------------------------------------------------------------
-|
-| Count only the latest health record of each swine.
-|
-*/
+        |--------------------------------------------------------------------------
+        | Current Health Status Overview
+        |--------------------------------------------------------------------------
+        |
+        | Count only the latest health record of each swine.
+        | The latest record is determined by record_date, then id.
+        |
+        */
 
         $latestHealthRecords = HealthRecord::query()
-            ->whereIn('id', function ($query) {
-
-                $query->selectRaw('MAX(id)')
-                    ->from('health_records')
-                    ->whereNull('deleted_at')
-                    ->groupBy('swine_id');
-
-            })
-            ->get();
+            ->whereNull('deleted_at')
+            ->orderByDesc('record_date')
+            ->orderByDesc('id')
+            ->get()
+            ->unique('swine_id')
+            ->values();
 
         $healthStatusTotals = $latestHealthRecords
             ->groupBy('health_status')
