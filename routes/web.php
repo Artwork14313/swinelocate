@@ -15,6 +15,7 @@ use App\Http\Controllers\QrTraceabilityController;
 use App\Http\Controllers\SyncStatusController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\ReportsController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -363,6 +364,14 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/sync-status', [SyncStatusController::class, 'index'])
         ->name('sync-status.index');
+
+    Route::get('/reports', [ReportsController::class, 'index'])
+        ->middleware('permission:view-reports')
+        ->name('reports.index');
+
+    Route::get('/reports/export', [ReportsController::class, 'export'])
+        ->middleware('permission:view-reports')
+        ->name('reports.export');
 });
 
 require __DIR__ . '/auth.php';

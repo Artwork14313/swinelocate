@@ -442,15 +442,9 @@ MOBILE SIDEBAR OVERLAY
 
                     <div class="space-y-1">
 
-                        <span class="flex cursor-not-allowed items-center gap-3
-                                                               rounded-lg px-3 py-2 text-sm text-gray-400">
-                            Reports
-                        </span>
-
-                        <span class="flex cursor-not-allowed items-center gap-3
-                                                               rounded-lg px-3 py-2 text-sm text-gray-400">
-                            Analytics
-                        </span>
+                        <a href="{{ route('reports.index') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium {{ request()->routeIs('reports.*') ? 'bg-blue-700 text-white' : 'text-gray-700 hover:bg-gray-50' }}">
+                            Reports &amp; Analytics
+                        </a>
 
                     </div>
 
@@ -918,15 +912,9 @@ DESKTOP SIDEBAR
 
                 <div class="space-y-1">
 
-                    <span class="flex cursor-not-allowed items-center gap-3
-                                                           rounded-lg px-3 py-2 text-sm text-gray-400">
-                        Reports
-                    </span>
-
-                    <span class="flex cursor-not-allowed items-center gap-3
-                                                           rounded-lg px-3 py-2 text-sm text-gray-400">
-                        Analytics
-                    </span>
+                    <a href="{{ route('reports.index') }}" @click="sidebarOpen = false" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium {{ request()->routeIs('reports.*') ? 'bg-blue-700 text-white' : 'text-gray-700 hover:bg-gray-50' }}">
+                        Reports &amp; Analytics
+                    </a>
 
                 </div>
 
