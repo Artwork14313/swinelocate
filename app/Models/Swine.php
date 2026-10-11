@@ -16,6 +16,8 @@ class Swine extends Model
 
     protected $fillable = [
         'farm_id',
+        'farmer_id',
+        'local_id',
         'current_location_id',
         'tag_number',
         'qr_token',
@@ -37,6 +39,11 @@ class Swine extends Model
     public function farm(): BelongsTo
     {
         return $this->belongsTo(Farm::class);
+    }
+
+    public function farmer(): BelongsTo
+    {
+        return $this->belongsTo(Farmer::class);
     }
 
     public function currentLocation(): BelongsTo

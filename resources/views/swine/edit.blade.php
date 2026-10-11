@@ -121,6 +121,34 @@
                                 @enderror
                             </div>
 
+                            {{-- Farmer --}}
+                            <div>
+                                <label for="farmer_id" class="block text-sm font-medium text-gray-700">
+                                    Farmer <span class="text-red-500">*</span>
+                                </label>
+                                <select
+                                    id="farmer_id"
+                                    name="farmer_id"
+                                    required
+                                    class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
+                                           focus:border-indigo-500 focus:ring-indigo-500"
+                                >
+                                    <option value="">Select farmer</option>
+                                    @foreach ($farmers as $farmer)
+                                        <option
+                                            value="{{ $farmer->id }}"
+                                            data-farm-id="{{ $farmer->farm_id }}"
+                                            @selected(old('farmer_id', $swine->farmer_id) == $farmer->id)
+                                        >
+                                            {{ $farmer->name }} — {{ $farmer->farm->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('farmer_id')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+
                             {{-- Current Location --}}
                             <div>
                                 <label
@@ -471,10 +499,40 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const farmSelect = document.getElementById('farm_id');
+            const farmerSelect = document.getElementById('farmer_id');
             const locationSelect = document.getElementById('current_location_id');
 
-            if (!farmSelect || !locationSelect) {
+            if (!farmSelect || !farmerSelect || !locationSelect) {
                 return;
+            }
+
+            function filterFarmers() {
+                const selectedFarmId = String(farmSelect.value);
+
+                Array.from(farmerSelect.options).forEach(function (option) {
+                    if (!option.value) {
+                        option.hidden = false;
+                        option.disabled = false;
+                        return;
+                    }
+
+                    const belongsToSelectedFarm =
+                        String(option.dataset.farmId) === selectedFarmId;
+
+                    option.hidden = !belongsToSelectedFarm;
+                    option.disabled = !belongsToSelectedFarm;
+                });
+
+                const selectedOption =
+                    farmerSelect.options[farmerSelect.selectedIndex];
+
+                if (
+                    selectedOption &&
+                    selectedOption.value &&
+                    String(selectedOption.dataset.farmId) !== selectedFarmId
+                ) {
+                    farmerSelect.value = '';
+                }
             }
 
             function filterLocations() {
@@ -506,8 +564,10 @@
                 }
             }
 
+            farmSelect.addEventListener('change', filterFarmers);
             farmSelect.addEventListener('change', filterLocations);
 
+            filterFarmers();
             filterLocations();
         });
     </script>

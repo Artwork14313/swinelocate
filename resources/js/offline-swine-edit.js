@@ -127,6 +127,9 @@ function initializeOfflineSwineEdit() {
                     'current_location_id'
                 ) || null;
 
+            const farmerId =
+                formData.get('farmer_id');
+
 
             const tagNumber =
                 formData.get(
@@ -191,6 +194,15 @@ function initializeOfflineSwineEdit() {
                 return;
             }
 
+            if (!farmerId) {
+
+                alert(
+                    'Please select a farmer.'
+                );
+
+                return;
+            }
+
 
             if (!tagNumber) {
 
@@ -232,6 +244,9 @@ function initializeOfflineSwineEdit() {
 
                 farm_id:
                     Number(farmId),
+
+                farmer_id:
+                    Number(farmerId),
 
                 current_location_id:
                     currentLocationId
@@ -326,6 +341,9 @@ function initializeOfflineSwineEdit() {
 
                         farm_id:
                             Number(farmId),
+
+                        farmer_id:
+                            Number(farmerId),
 
                         current_location_id:
                             currentLocationId

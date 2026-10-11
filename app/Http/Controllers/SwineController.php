@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Farm;
 use App\Models\FarmLocation;
+use App\Models\Farmer;
 use App\Models\Swine;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -21,16 +22,18 @@ class SwineController extends Controller
         $swine = Swine::query()
             ->with([
                 'farm',
+                'farmer',
                 'currentLocation',
             ])
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = trim($request->search);
 
-                $query->where(
-                    'tag_number',
-                    'like',
-                    "%{$search}%"
-                );
+                $query->where(function ($query) use ($search) {
+                    $query->where('tag_number', 'like', "%{$search}%")
+                        ->orWhereHas('farmer', function ($query) use ($search) {
+                            $query->where('name', 'like', "%{$search}%");
+                        });
+                });
             })
             ->when($request->filled('status'), function ($query) use ($request) {
                 $query->where(
@@ -60,9 +63,15 @@ class SwineController extends Controller
             ->orderBy('name')
             ->get();
 
+        $farmers = Farmer::query()
+            ->with('farm')
+            ->orderBy('name')
+            ->get();
+
         return view('swine.create', compact(
             'farms',
-            'locations'
+            'locations',
+            'farmers'
         ));
     }
 
@@ -75,6 +84,12 @@ class SwineController extends Controller
             'farm_id' => [
                 'required',
                 'exists:farms,id',
+            ],
+
+            'farmer_id' => [
+                'required',
+                'integer',
+                'exists:farmers,id',
             ],
 
             'current_location_id' => [
@@ -150,6 +165,19 @@ class SwineController extends Controller
                 ]);
         }
 
+        $farmerBelongsToFarm = Farmer::query()
+            ->whereKey($validated['farmer_id'])
+            ->where('farm_id', $validated['farm_id'])
+            ->exists();
+
+        if (!$farmerBelongsToFarm) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'farmer_id' => 'The selected farmer is not registered to the selected farm.',
+                ]);
+        }
+
         /*
         |--------------------------------------------------------------------------
         | Validate Farm Location
@@ -205,6 +233,7 @@ class SwineController extends Controller
     {
         $swine->load([
             'farm',
+            'farmer',
             'currentLocation',
         ]);
 
@@ -242,10 +271,15 @@ class SwineController extends Controller
             ->orderBy('name')
             ->get();
 
+        $farmers = Farmer::query()
+            ->orderBy('name')
+            ->get();
+
         return view('swine.edit', compact(
             'swine',
             'farms',
-            'locations'
+            'locations',
+            'farmers'
         ));
     }
 
@@ -263,6 +297,7 @@ class SwineController extends Controller
 
         $validated = $request->validate([
             'farm_id' => ['required', 'exists:farms,id'],
+            'farmer_id' => ['required', 'integer', 'exists:farmers,id'],
             'current_location_id' => ['nullable', 'exists:farm_locations,id'],
             'tag_number' => [
                 'required',
@@ -295,6 +330,19 @@ class SwineController extends Controller
                 ->withInput()
                 ->withErrors([
                     'farm_id' => 'The selected farm is inactive.',
+                ]);
+        }
+
+        $farmerBelongsToFarm = Farmer::query()
+            ->whereKey($validated['farmer_id'])
+            ->where('farm_id', $farm->id)
+            ->exists();
+
+        if (!$farmerBelongsToFarm) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'farmer_id' => 'The selected farmer is not registered to the selected farm.',
                 ]);
         }
 
@@ -517,6 +565,18 @@ class SwineController extends Controller
                 'exists:farms,id',
             ],
 
+            'farmer_id' => [
+                'nullable',
+                'integer',
+                'exists:farmers,id',
+            ],
+
+            'farmer_id' => [
+                'nullable',
+                'integer',
+                'exists:farmers,id',
+            ],
+
             'current_location_id' => [
                 'nullable',
                 'exists:farm_locations,id',
@@ -610,6 +670,20 @@ class SwineController extends Controller
             ], 422);
         }
 
+        if (!empty($validated['farmer_id'])) {
+            $farmerBelongsToFarm = Farmer::query()
+                ->whereKey($validated['farmer_id'])
+                ->where('farm_id', $farm->id)
+                ->exists();
+
+            if (!$farmerBelongsToFarm) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'The selected farmer is not registered to the selected farm.',
+                ], 422);
+            }
+        }
+
         /*
         |--------------------------------------------------------------------------
         | Verify Location
@@ -670,6 +744,9 @@ class SwineController extends Controller
                     'farm_id' =>
                         $swine->farm_id,
 
+                    'farmer_id' =>
+                        $swine->farmer_id,
+
                     'current_location_id' =>
                         $swine->current_location_id,
 
@@ -722,6 +799,9 @@ class SwineController extends Controller
         $swine->update([
             'farm_id' =>
                 $validated['farm_id'],
+
+            'farmer_id' =>
+                $validated['farmer_id'] ?? null,
 
             'current_location_id' =>
                 $validated['current_location_id'] ?? null,
@@ -778,6 +858,7 @@ class SwineController extends Controller
             ->where('qr_token', $qr_token)
             ->with([
                 'farm',
+                'farmer',
                 'currentLocation',
                 'movements.fromLocation',
                 'movements.toLocation',
@@ -796,10 +877,42 @@ class SwineController extends Controller
      */
     public function syncStore(Request $request): JsonResponse
     {
+        $request->validate([
+            'local_id' => ['nullable', 'uuid'],
+        ]);
+
+        if ($request->filled('local_id')) {
+            $existingSwine = Swine::withTrashed()
+                ->where('local_id', $request->input('local_id'))
+                ->first();
+
+            if ($existingSwine) {
+                return response()->json([
+                    'success' => true,
+                    'already_synced' => true,
+                    'message' => 'Swine registration was already synchronized.',
+                    'swine_id' => $existingSwine->id,
+                    'qr_token' => $existingSwine->qr_token,
+                ]);
+            }
+        }
+
         $validated = $request->validate([
+            'local_id' => [
+                'nullable',
+                'uuid',
+                'unique:swine,local_id',
+            ],
+
             'farm_id' => [
                 'required',
                 'exists:farms,id',
+            ],
+
+            'farmer_id' => [
+                'nullable',
+                'integer',
+                'exists:farmers,id',
             ],
 
             'current_location_id' => [
@@ -881,6 +994,20 @@ class SwineController extends Controller
             ], 422);
         }
 
+        if (!empty($validated['farmer_id'])) {
+            $farmerBelongsToFarm = Farmer::query()
+                ->whereKey($validated['farmer_id'])
+                ->where('farm_id', $farm->id)
+                ->exists();
+
+            if (!$farmerBelongsToFarm) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'The selected farmer is not registered to the selected farm.',
+                ], 422);
+            }
+        }
+
         /*
         |--------------------------------------------------------------------------
         | Validate Farm Location
@@ -929,6 +1056,9 @@ class SwineController extends Controller
             'swine_id' =>
                 $swine->id,
 
+            'qr_token' =>
+                $swine->qr_token,
+
         ], 201);
     }
 
@@ -947,6 +1077,12 @@ class SwineController extends Controller
             'farm_id' => [
                 'required',
                 'exists:farms,id',
+            ],
+
+            'farmer_id' => [
+                'nullable',
+                'integer',
+                'exists:farmers,id',
             ],
 
             'current_location_id' => [
@@ -1024,6 +1160,20 @@ class SwineController extends Controller
                 'message' =>
                     'The selected farm is inactive and cannot receive this swine.',
             ], 422);
+        }
+
+        if (!empty($validated['farmer_id'])) {
+            $farmerBelongsToFarm = Farmer::query()
+                ->whereKey($validated['farmer_id'])
+                ->where('farm_id', $farm->id)
+                ->exists();
+
+            if (!$farmerBelongsToFarm) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'The selected farmer is not registered to the selected farm.',
+                ], 422);
+            }
         }
 
         /*

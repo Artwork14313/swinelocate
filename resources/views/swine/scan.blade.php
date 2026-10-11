@@ -120,6 +120,20 @@
 
                     <div>
                         <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                            Farmer
+                        </p>
+                        <p class="mt-1 font-semibold text-gray-900">
+                            {{ $swine->farmer->name ?? '—' }}
+                        </p>
+                        @if ($swine->farmer?->contact_number)
+                            <p class="mt-1 text-sm text-gray-500">
+                                {{ $swine->farmer->contact_number }}
+                            </p>
+                        @endif
+                    </div>
+
+                    <div>
+                        <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
                             Birth Date
                         </p>
                         <p class="mt-1 font-semibold text-gray-900">

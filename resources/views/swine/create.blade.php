@@ -65,6 +65,7 @@
                 id="swine-form"
                 method="POST"
                 action="{{ route('swine.store') }}"
+                data-sync-endpoint="{{ route('swine.sync.store') }}"
             >
 
                 @csrf
@@ -127,6 +128,57 @@
 
                         </div>
 
+
+                        {{-- Farmer --}}
+                        <div>
+                            <label
+                                for="farmer_id"
+                                class="block text-sm font-medium text-gray-700"
+                            >
+                                Farmer <span class="text-red-500">*</span>
+                            </label>
+
+                            <select
+                                id="farmer_id"
+                                name="farmer_id"
+                                required
+                                class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
+                                       focus:border-indigo-500 focus:ring-indigo-500"
+                            >
+                                <option value="">Select farmer</option>
+                                @foreach ($farmers as $farmer)
+                                    <option
+                                        value="{{ $farmer->id }}"
+                                        data-farm-id="{{ $farmer->farm_id }}"
+                                        @selected(old('farmer_id') == $farmer->id)
+                                    >
+                                        {{ $farmer->name }} — {{ $farmer->farm->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+
+                            <p class="mt-1 text-xs text-gray-500">
+                                Select a farm first to see farmers registered to that farm.
+                            </p>
+                            <p
+                                id="farmer-empty-state"
+                                class="mt-2 hidden text-sm text-amber-700"
+                                aria-live="polite"
+                            >
+                                No farmers are registered to this farm.
+                                <a
+                                    id="register-farmer-link"
+                                    href="{{ route('farmers.create') }}"
+                                    data-create-url="{{ route('farmers.create') }}"
+                                    class="font-semibold underline hover:text-amber-900"
+                                >
+                                    Register a farmer for this farm
+                                </a>
+                            </p>
+                            @error('farmer_id')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
 
                         {{-- Current Location --}}
                         <div>
@@ -479,10 +531,68 @@
     document.addEventListener('DOMContentLoaded', function () {
 
         const farmSelect = document.getElementById('farm_id');
+        const farmerSelect = document.getElementById('farmer_id');
+        const farmerEmptyState = document.getElementById('farmer-empty-state');
+        const registerFarmerLink = document.getElementById('register-farmer-link');
         const locationSelect = document.getElementById('current_location_id');
 
-        if (!farmSelect || !locationSelect) {
+        if (
+            !farmSelect ||
+            !farmerSelect ||
+            !farmerEmptyState ||
+            !registerFarmerLink ||
+            !locationSelect
+        ) {
             return;
+        }
+
+        function filterFarmers() {
+            const selectedFarmId = String(farmSelect.value);
+            let matchingFarmers = 0;
+
+            Array.from(farmerSelect.options).forEach(function (option) {
+                if (!option.value) {
+                    option.hidden = false;
+                    option.disabled = false;
+                    return;
+                }
+
+                const belongsToSelectedFarm =
+                    String(option.dataset.farmId) === selectedFarmId;
+
+                if (belongsToSelectedFarm) {
+                    matchingFarmers++;
+                }
+
+                option.hidden = !belongsToSelectedFarm;
+                option.disabled = !belongsToSelectedFarm;
+            });
+
+            farmerEmptyState.classList.toggle(
+                'hidden',
+                !selectedFarmId || matchingFarmers > 0
+            );
+
+            farmerSelect.disabled =
+                !selectedFarmId || matchingFarmers === 0;
+
+            const createUrl = new URL(
+                registerFarmerLink.dataset.createUrl,
+                window.location.origin
+            );
+            createUrl.searchParams.set('farm_id', selectedFarmId);
+            registerFarmerLink.href = createUrl.toString();
+
+            const selectedOption =
+                farmerSelect.options[farmerSelect.selectedIndex];
+
+            if (
+                selectedOption &&
+                selectedOption.value &&
+                String(selectedOption.dataset.farmId) !== selectedFarmId
+            ) {
+                farmerSelect.value = '';
+            }
         }
 
         function filterLocations() {
@@ -523,10 +633,12 @@
         }
 
 
+        farmSelect.addEventListener('change', filterFarmers);
         farmSelect.addEventListener('change', filterLocations);
 
         // Apply filtering immediately so old()
         // values are handled correctly after validation errors.
+        filterFarmers();
         filterLocations();
 
     });

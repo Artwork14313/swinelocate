@@ -15,8 +15,7 @@
 
             <div class="flex flex-wrap gap-3">
 
-                <a href="{{ route('swine.index') }}"
-                    class="rounded-lg border border-gray-300 bg-white px-4 py-2
+                <a href="{{ route('swine.index') }}" class="rounded-lg border border-gray-300 bg-white px-4 py-2
                            text-sm font-semibold text-gray-700 hover:bg-gray-50">
                     Back to Swine
                 </a>
@@ -35,7 +34,7 @@
             @if (session('success'))
 
                 <div class="mb-6 rounded-lg border border-green-200
-                            bg-green-50 px-4 py-3 text-sm text-green-700">
+                                        bg-green-50 px-4 py-3 text-sm text-green-700">
 
                     {{ session('success') }}
 
@@ -48,7 +47,7 @@
             @if (session('error'))
 
                 <div class="mb-6 rounded-lg border border-red-200
-                            bg-red-50 px-4 py-3 text-sm text-red-700">
+                                        bg-red-50 px-4 py-3 text-sm text-red-700">
 
                     {{ session('error') }}
 
@@ -79,40 +78,40 @@
                                 @if ($swine->status === 'active')
 
                                     <span class="inline-flex rounded-full bg-green-100
-                                                 px-2.5 py-1 text-xs font-semibold
-                                                 text-green-700">
+                                                             px-2.5 py-1 text-xs font-semibold
+                                                             text-green-700">
                                         Active
                                     </span>
 
                                 @elseif ($swine->status === 'inactive')
 
                                     <span class="inline-flex rounded-full bg-gray-100
-                                                 px-2.5 py-1 text-xs font-semibold
-                                                 text-gray-700">
+                                                             px-2.5 py-1 text-xs font-semibold
+                                                             text-gray-700">
                                         Inactive
                                     </span>
 
                                 @elseif ($swine->status === 'sold')
 
                                     <span class="inline-flex rounded-full bg-blue-100
-                                                 px-2.5 py-1 text-xs font-semibold
-                                                 text-blue-700">
+                                                             px-2.5 py-1 text-xs font-semibold
+                                                             text-blue-700">
                                         Sold
                                     </span>
 
                                 @elseif ($swine->status === 'deceased')
 
                                     <span class="inline-flex rounded-full bg-red-100
-                                                 px-2.5 py-1 text-xs font-semibold
-                                                 text-red-700">
+                                                             px-2.5 py-1 text-xs font-semibold
+                                                             text-red-700">
                                         Deceased
                                     </span>
 
                                 @else
 
                                     <span class="inline-flex rounded-full bg-gray-100
-                                                 px-2.5 py-1 text-xs font-semibold
-                                                 text-gray-700">
+                                                             px-2.5 py-1 text-xs font-semibold
+                                                             text-gray-700">
                                         {{ ucfirst($swine->status) }}
                                     </span>
 
@@ -288,32 +287,49 @@
 
                         </div>
 
+                        {{-- Farmer --}}
+                        <div>
+                            <dt class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                Farmer
+                            </dt>
+                            @if ($swine->farmer)
+                                <dd class="mt-1 text-sm font-medium text-gray-900">
+                                    <a href="{{ route('farmers.show', $swine->farmer) }}" class="text-indigo-600 hover:text-indigo-800">
+                                        {{ $swine->farmer->name }}
+                                    </a>
+                                </dd>
+                                <dd class="mt-1 text-xs text-gray-500">
+                                    {{ $swine->farmer->contact_number }}
+                                </dd>
+                            @else
+                                <dd class="mt-1 text-sm text-gray-400">No farmer assigned</dd>
+                            @endif
+                        </div>
+
                     </div>
 
 
                     {{-- Location Action --}}
                     @if (
-                        $swine->status === 'active' &&
-                        auth()->user()->hasPermission('manage-movements')
-                    )
+                            $swine->status === 'active' &&
+                            auth()->user()->hasPermission('manage-movements')
+                        )
 
                         <div class="mt-6">
 
                             @if ($swine->currentLocation)
 
-                                <a href="{{ route('swine.movements.create', $swine) }}"
-                                    class="inline-flex items-center justify-center rounded-lg
-                                           bg-[#3368A0] px-4 py-2 text-sm font-semibold
-                                           text-white hover:bg-[#28557F]">
+                                <a href="{{ route('swine.movements.create', $swine) }}" class="inline-flex items-center justify-center rounded-lg
+                                                                   bg-[#3368A0] px-4 py-2 text-sm font-semibold
+                                                                   text-white hover:bg-[#28557F]">
                                     Move Swine
                                 </a>
 
                             @else
 
-                                <a href="{{ route('swine.movements.create', $swine) }}"
-                                    class="inline-flex items-center justify-center rounded-lg
-                                           bg-[#3368A0] px-4 py-2 text-sm font-semibold
-                                           text-white hover:bg-[#28557F]">
+                                <a href="{{ route('swine.movements.create', $swine) }}" class="inline-flex items-center justify-center rounded-lg
+                                                                   bg-[#3368A0] px-4 py-2 text-sm font-semibold
+                                                                   text-white hover:bg-[#28557F]">
                                     Assign Location
                                 </a>
 
@@ -431,42 +447,38 @@
                     <div>
 
                         @if (
-                            $swine->status === 'active' &&
-                            auth()->user()->hasPermission('manage-swine')
-                        )
+                                $swine->status === 'active' &&
+                                auth()->user()->hasPermission('manage-swine')
+                            )
 
-                            <form method="POST"
-                                action="{{ route('swine.destroy', $swine) }}"
+                            <form method="POST" action="{{ route('swine.destroy', $swine) }}"
                                 onsubmit="return confirm('Are you sure you want to deactivate this swine?');">
 
                                 @csrf
                                 @method('DELETE')
 
-                                <button type="submit"
-                                    class="w-full rounded-lg border border-red-200
-                                           bg-white px-4 py-2.5 text-sm font-semibold
-                                           text-red-600 hover:bg-red-50 sm:w-auto">
+                                <button type="submit" class="w-full rounded-lg border border-red-200
+                                                       bg-white px-4 py-2.5 text-sm font-semibold
+                                                       text-red-600 hover:bg-red-50 sm:w-auto">
                                     Deactivate Swine
                                 </button>
 
                             </form>
 
                         @elseif (
-                            $swine->status === 'inactive' &&
-                            auth()->user()->hasPermission('manage-swine')
-                        )
+                                $swine->status === 'inactive' &&
+                                auth()->user()->hasPermission('manage-swine')
+                            )
 
-                            <form method="POST"
-                                action="{{ route('swine.activate', $swine) }}"
+                            <form method="POST" action="{{ route('swine.activate', $swine) }}"
                                 onsubmit="return confirm('Are you sure you want to activate this swine?');">
 
                                 @csrf
                                 @method('PATCH')
 
-                                <button type="submit"
-                                    class="w-full rounded-lg border border-green-200
-                                           bg-white px-4 py-2.5 text-sm font-semibold
-                                           text-green-600 hover:bg-green-50 sm:w-auto">
+                                <button type="submit" class="w-full rounded-lg border border-green-200
+                                                       bg-white px-4 py-2.5 text-sm font-semibold
+                                                       text-green-600 hover:bg-green-50 sm:w-auto">
                                     Activate Swine
                                 </button>
 
@@ -482,10 +494,9 @@
 
                         <div class="flex flex-col gap-3 sm:flex-row">
 
-                            <a href="{{ route('swine.edit', $swine) }}"
-                                class="rounded-lg bg-indigo-600 px-5 py-2.5
-                                       text-center text-sm font-semibold text-white
-                                       hover:bg-indigo-700">
+                            <a href="{{ route('swine.edit', $swine) }}" class="rounded-lg bg-indigo-600 px-5 py-2.5
+                                                   text-center text-sm font-semibold text-white
+                                                   hover:bg-indigo-700">
                                 Edit Swine
                             </a>
 
@@ -500,11 +511,9 @@
 
 
             {{-- QR Code --}}
-            <div class="mt-6 overflow-hidden rounded-xl bg-white
-                        shadow-sm ring-1 ring-gray-200">
+            <div class="mt-6 overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
 
                 <div class="border-b border-gray-200 px-6 py-6 text-center">
-
                     <h4 class="text-lg font-semibold text-gray-900">
                         QR Code Identification
                     </h4>
@@ -512,39 +521,57 @@
                     <p class="mt-1 text-sm text-gray-500">
                         Scan this QR code to access the swine traceability record.
                     </p>
-
                 </div>
 
-
-                <div class="px-6 py-8">
+                {{-- Printable QR Area --}}
+                <div id="printable-qr" class="px-6 py-8">
 
                     <div class="flex flex-col items-center">
 
+                        {{-- Title shown when printed --}}
+                        <div class="print-only mb-4 text-center">
+                            <h2 class="text-xl font-bold text-gray-900">
+                                SwineLocate
+                            </h2>
 
-                        {{-- QR --}}
-                        <div class="rounded-xl border border-gray-200
-                                    bg-white p-5 shadow-sm">
+                            <p class="text-sm text-gray-600">
+                                Swine QR Code Identification
+                            </p>
 
-                            {!! $qrCode !!}
-
+                            <p class="mt-2 text-sm font-medium text-gray-800">
+                                Tag Number: {{ $swine->tag_number }}
+                            </p>
                         </div>
 
+                        {{-- QR --}}
+                        <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                            {!! $qrCode !!}
+                        </div>
 
-                        {{-- Traceability Button --}}
-                        @if (auth()->user()->hasPermission('scan-qr'))
+                        <div class="mt-5 flex items-center justify-center gap-3">
 
-                            <a href="{{ route('swine.scan', ['qr_token' => $swine->qr_token]) }}"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="mt-5 inline-flex items-center justify-center
-                                       rounded-lg bg-indigo-600 px-5 py-2.5
-                                       text-sm font-semibold text-white
-                                       hover:bg-indigo-700">
-                                View Traceability
-                            </a>
+                            {{-- Traceability Button --}}
+                            @if (auth()->user()->hasPermission('scan-qr'))
 
-                        @endif
+                                            <a href="{{ route('swine.scan', ['qr_token' => $swine->qr_token]) }}" target="_blank"
+                                                rel="noopener noreferrer" class="inline-flex items-center justify-center
+                                   rounded-lg bg-indigo-600 px-5 py-2.5
+                                   text-sm font-semibold text-white
+                                   hover:bg-indigo-700">
+                                                View Traceability
+                                            </a>
 
+                            @endif
+
+                            {{-- Print Button --}}
+                            <button type="button" onclick="printQRCode()" class="inline-flex items-center justify-center
+               rounded-lg bg-gray-800 px-5 py-2.5
+               text-sm font-semibold text-white
+               hover:bg-gray-900">
+                                Print QR Code
+                            </button>
+
+                        </div>
 
                     </div>
 
@@ -556,5 +583,144 @@
         </div>
 
     </div>
+    <style>
+        .print-only {
+            display: none;
+        }
 
+        @media print {
+
+            body * {
+                visibility: hidden;
+            }
+
+            #printable-qr,
+            #printable-qr * {
+                visibility: visible;
+            }
+
+            #printable-qr {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                padding: 20px;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .print-only {
+                display: block;
+            }
+
+            @page {
+                size: A4;
+                margin: 20mm;
+            }
+        }
+    </style>
+
+    <script>
+        function printQRCode() {
+            const qr = document.querySelector('#printable-qr');
+
+            if (!qr) {
+                alert('QR code area not found.');
+                return;
+            }
+
+            const printWindow = window.open('', '_blank', 'width=600,height=700');
+
+            printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>SwineLocate QR Code</title>
+
+                <style>
+                    @page {
+                        size: A4;
+                        margin: 15mm;
+                    }
+
+                    * {
+                        box-sizing: border-box;
+                    }
+
+                    body {
+                        margin: 0;
+                        padding: 0;
+                        font-family: Arial, sans-serif;
+                        text-align: center;
+                    }
+
+                    .print-container {
+                        width: 100%;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: flex-start;
+                        padding-top: 20px;
+                    }
+
+                    h2 {
+                        margin: 0 0 5px;
+                        font-size: 22px;
+                    }
+
+                    p {
+                        margin: 4px 0;
+                        font-size: 14px;
+                    }
+
+                    .qr {
+                        margin-top: 20px;
+                        padding: 15px;
+                        border: 1px solid #ddd;
+                        border-radius: 10px;
+                        background: white;
+                    }
+
+                    .qr svg {
+                        display: block;
+                        width: 250px;
+                        height: 250px;
+                    }
+                </style>
+            </head>
+
+            <body>
+
+                <div class="print-container">
+
+                    <h2>SwineLocate</h2>
+
+                    <p>Swine QR Code Identification</p>
+
+                    <p>
+                        <strong>Tag Number:</strong>
+                        {{ $swine->tag_number }}
+                    </p>
+
+                    <div class="qr">
+                        {!! $qrCode !!}
+                    </div>
+
+                </div>
+
+            </body>
+            </html>
+        `);
+
+            printWindow.document.close();
+
+            printWindow.onload = function () {
+                printWindow.focus();
+                printWindow.print();
+                printWindow.close();
+            };
+        }
+    </script>
 </x-app-layout>

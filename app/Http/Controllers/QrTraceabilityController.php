@@ -24,6 +24,7 @@ class QrTraceabilityController extends Controller
         $swine = Swine::query()
             ->with([
                 'farm',
+                'farmer',
                 'currentLocation',
             ])
             ->when($request->filled('search'), function ($query) use ($request) {
@@ -31,10 +32,11 @@ class QrTraceabilityController extends Controller
                 $search = trim($request->search);
 
                 $query->where(function ($query) use ($search) {
-
                     $query->where('tag_number', 'like', "%{$search}%")
-                        ->orWhere('name', 'like', "%{$search}%");
-
+                        ->orWhere('name', 'like', "%{$search}%")
+                        ->orWhereHas('farmer', function ($farmerQuery) use ($search) {
+                            $farmerQuery->where('name', 'like', "%{$search}%");
+                        });
                 });
 
             })

@@ -184,6 +184,7 @@ MOBILE SIDEBAR OVERLAY
 
             @if(
                     Auth::user()->hasPermission('manage-farms') ||
+                    Auth::user()->hasPermission('manage-farmers') ||
                     Auth::user()->hasPermission('manage-swine')
                 )
 
@@ -208,6 +209,13 @@ MOBILE SIDEBAR OVERLAY
                                         Farms
                                     </a>
 
+                        @endif
+
+                        @if(Auth::user()->hasPermission('manage-farmers'))
+                            <a href="{{ route('farmers.index') }}" @click="sidebarOpen = false" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium
+                                {{ request()->routeIs('farmers.*') ? 'bg-blue-700 text-white' : 'text-gray-700 hover:bg-gray-50' }}">
+                                Farmers
+                            </a>
                         @endif
 
 
@@ -656,8 +664,9 @@ DESKTOP SIDEBAR
 
         @if(
                 Auth::user()->hasPermission('manage-farms') ||
-                Auth::user()->hasPermission('manage-swine')
-            )
+            Auth::user()->hasPermission('manage-farmers') ||
+            Auth::user()->hasPermission('manage-swine')
+        )
 
             <div class="mb-6">
 
@@ -682,6 +691,13 @@ DESKTOP SIDEBAR
                                 Farms
                             </a>
 
+                    @endif
+
+                    @if(Auth::user()->hasPermission('manage-farmers'))
+                            <a href="{{ route('farmers.index') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium
+                                {{ request()->routeIs('farmers.*') ? 'bg-blue-700 text-white' : 'text-gray-700 hover:bg-gray-50' }}">
+                                Farmers
+                            </a>
                     @endif
 
 

@@ -57,3 +57,43 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## Testing on a mobile device
+
+SwineLocate is responsive and can be installed as a PWA. To test it from a phone on
+the same local network as the development computer, set `VITE_DEV_SERVER_HOST` in
+your local `.env` file to that computer's LAN IP address (without a scheme or port),
+then start Laravel and Vite so they listen on all interfaces:
+
+```powershell
+# In .env:
+VITE_DEV_SERVER_HOST=192.168.1.25
+
+# In separate terminals:
+php artisan serve --host=0.0.0.0
+npm run dev
+```
+
+Open `http://192.168.1.25:8000` on the phone, replacing the example IP with the
+development computer's address. When `VITE_DEV_SERVER_HOST` is unset, Vite uses its
+default host detection, so desktop development does not depend on a fixed LAN IP.
+Camera-based QR scanning requires a secure browser context, such as HTTPS, outside
+localhost.
+
+## Farmer, swine, and offline workflow
+
+Register farms before adding farmer profiles. A farmer profile stores the farmer's
+name, contact number, email, address, and associated farm; each swine registration
+must select a farmer from the same farm. A farmer can be linked to multiple swine.
+Existing swine records are retained with an unassigned farmer until updated.
+
+Apply the new schema with `php artisan migrate`. The `manage-farmers` permission is
+included in `RolePermissionSeeder`; seed role permissions with
+`php artisan db:seed --class=RolePermissionSeeder` when setting up or upgrading
+the role permissions.
+
+When registering swine offline, the form stores the record and its QR token locally
+and queues it for `/swine/sync`. Each local registration carries an idempotency ID,
+so retries after an interrupted response do not create duplicate server records.
+The sync status page shows records waiting to synchronize or requiring conflict
+resolution. Only pages/data already loaded on a device are available offline.

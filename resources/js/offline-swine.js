@@ -54,6 +54,9 @@ function initializeOfflineSwine() {
                     'current_location_id'
                 ) || null;
 
+            const farmerId =
+                formData.get('farmer_id');
+
 
             const tagNumber =
                 formData.get('tag_number');
@@ -101,6 +104,15 @@ function initializeOfflineSwine() {
 
                 alert(
                     'Please select a farm.'
+                );
+
+                return;
+            }
+
+            if (!farmerId) {
+
+                alert(
+                    'Please select a farmer.'
                 );
 
                 return;
@@ -162,6 +174,9 @@ function initializeOfflineSwine() {
 
                 farm_id:
                     Number(farmId),
+
+                farmer_id:
+                    Number(farmerId),
 
                 current_location_id:
                     currentLocationId
@@ -237,15 +252,21 @@ function initializeOfflineSwine() {
                         'swine',
 
                     endpoint:
-                        form.action,
+                        form.dataset.syncEndpoint,
 
                     method:
                         'POST',
 
                     payload: {
 
+                        local_id:
+                            localId,
+
                         farm_id:
                             Number(farmId),
+
+                        farmer_id:
+                            Number(farmerId),
 
                         current_location_id:
                             currentLocationId

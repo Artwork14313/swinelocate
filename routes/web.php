@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\FarmController;
+use App\Http\Controllers\FarmerController;
 use App\Http\Controllers\FarmLocationController;
 use App\Http\Controllers\SwineController;
 use App\Http\Controllers\SwineMovementController;
@@ -76,6 +77,10 @@ Route::middleware('auth')->group(function () {
 
     Route::resource('farms', FarmController::class)
         ->middleware('permission:manage-farms');
+
+    Route::resource('farmers', FarmerController::class)
+        ->except('destroy')
+        ->middleware('permission:manage-farmers');
 
     Route::prefix('farms/{farm}')
         ->name('farms.')

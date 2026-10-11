@@ -100,7 +100,7 @@ class ReportsController extends Controller
     private function exportSwine(int|string|null $farmId, string $startDate, string $endDate): StreamedResponse
     {
         $swines = Swine::query()
-            ->with('farm')
+            ->with(['farm', 'farmer'])
             ->when($farmId, fn ($query) => $query->where('farm_id', $farmId))
             ->with([
                 'healthRecords' => fn ($query) => $query
@@ -115,7 +115,7 @@ class ReportsController extends Controller
             ->orderBy('tag_number');
 
         return $this->downloadCsv('swine-report', [
-            'Tag Number', 'Farm', 'Breed', 'Sex', 'Status',
+            'Tag Number', 'Farmer', 'Farm', 'Breed', 'Sex', 'Status',
             'Latest Health Date', 'Latest Health Status', 'Latest Weight Date', 'Latest Weight (kg)',
         ], function ($output) use ($swines): void {
             $swines->chunk(500, function ($records) use ($output): void {
@@ -124,6 +124,7 @@ class ReportsController extends Controller
                     $latestWeight = $swine->weightRecords->first();
                     $this->writeCsvRow($output, [
                         $swine->tag_number,
+                        $swine->farmer?->name,
                         $swine->farm?->name,
                         $swine->breed,
                         $swine->sex,

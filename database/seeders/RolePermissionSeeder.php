@@ -69,6 +69,11 @@ class RolePermissionSeeder extends Seeder
                 'description' => 'Create and manage farms',
             ],
             [
+                'name' => 'Manage Farmers',
+                'slug' => 'manage-farmers',
+                'description' => 'Register and manage farmer profiles',
+            ],
+            [
                 'name' => 'Manage Locations',
                 'slug' => 'manage-locations',
                 'description' => 'Manage farm locations and pens',
@@ -166,6 +171,7 @@ class RolePermissionSeeder extends Seeder
         $farmManager->permissions()->sync(
             Permission::whereIn('slug', [
                 'manage-farms',
+                'manage-farmers',
                 'manage-locations',
                 'register-swine',
                 'manage-swine',

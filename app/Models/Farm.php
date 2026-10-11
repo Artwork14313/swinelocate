@@ -41,4 +41,9 @@ class Farm extends Model
     {
         return $this->hasMany(Swine::class);
     }
+
+    public function farmers(): HasMany
+    {
+        return $this->hasMany(Farmer::class);
+    }
 }

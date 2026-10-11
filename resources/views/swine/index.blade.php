@@ -202,6 +202,12 @@
                                 <th scope="col" class="px-6 py-4 text-left text-xs
                                        font-semibold uppercase tracking-wider
                                        text-gray-500">
+                                    Farmer
+                                </th>
+
+                                <th scope="col" class="px-6 py-4 text-left text-xs
+                                       font-semibold uppercase tracking-wider
+                                       text-gray-500">
                                     Current Location
                                 </th>
 
@@ -276,6 +282,18 @@
 
                                         @endif
 
+                                    </td>
+
+
+                                    {{-- Farmer --}}
+                                    <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-700">
+                                        @if ($pig->farmer)
+                                            <a href="{{ route('farmers.show', $pig->farmer) }}" class="font-medium text-indigo-600 hover:text-indigo-800">
+                                                {{ $pig->farmer->name }}
+                                            </a>
+                                        @else
+                                            <span class="text-gray-400">Not assigned</span>
+                                        @endif
                                     </td>
 
 
