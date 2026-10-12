@@ -69,7 +69,8 @@
                 =========================================================== --}}
 
                 <form method="POST" action="{{ route('swine-movements.store', $swine) }}" id="swine-movement-form"
-                    data-swine-id="{{ $swine->id }}" data-current-location-id="{{ $swine->current_location_id }}">
+                    data-swine-id="{{ $swine->id }}" data-current-location-id="{{ $swine->current_location_id }}"
+                    data-farm-id="{{ $swine->farm_id }}">
                     @csrf
 
 
@@ -110,13 +111,60 @@
 
                         <div>
 
+                            <label for="to_farm_id" class="block text-sm font-medium text-gray-700">
+                                Destination Farm <span class="text-red-500">*</span>
+                            </label>
+
+                            <select id="to_farm_id" name="to_farm_id" required data-offline-reference="farms"
+                                data-current-farm-id="{{ $swine->farm_id }}"
+                                class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <option value="">Select destination farm</option>
+                                @foreach ($farms as $farm)
+                                    <option value="{{ $farm->id }}" @selected(old('to_farm_id', $swine->farm_id) == $farm->id)>
+                                        {{ $farm->farm_code }} - {{ $farm->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('to_farm_id')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+
+                        </div>
+
+                        <div>
+
+                            <label for="to_farmer_id" class="block text-sm font-medium text-gray-700">
+                                Destination Farmer
+                            </label>
+
+                            <select id="to_farmer_id" name="to_farmer_id" data-offline-reference="farmers"
+                                data-current-farmer-id="{{ $swine->farmer_id }}"
+                                class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <option value="">Select destination farmer</option>
+                                @foreach ($farmers as $farmer)
+                                    <option value="{{ $farmer->id }}" data-farm-id="{{ $farmer->farm_id }}"
+                                        @selected(old('to_farmer_id', $swine->farmer_id) == $farmer->id)>
+                                        {{ $farmer->name }} — {{ $farmer->farm?->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500">A farmer registered to the destination farm is required for transfers to another farm.</p>
+                            @error('to_farmer_id')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+
+                        </div>
+
+                        <div>
+
                             <label for="to_location_id" class="block text-sm font-medium text-gray-700">
                                 Destination Location
 
                                 <span class="text-red-500">*</span>
                             </label>
 
-                            <select id="to_location_id" name="to_location_id" required class="mt-2 block w-full rounded-lg border-gray-300
+                            <select id="to_location_id" name="to_location_id" required data-offline-reference="locations"
+                                data-offline-farm-id="{{ old('to_farm_id', $swine->farm_id) }}" class="mt-2 block w-full rounded-lg border-gray-300
                shadow-sm focus:border-indigo-500
                focus:ring-indigo-500">
 
@@ -141,7 +189,7 @@
                             </select>
 
                             <p class="mt-1 text-xs text-gray-500">
-                                Only active locations in the swine's current farm are available.
+                                Locations are filtered by the selected destination farm.
                             </p>
 
                             @error('to_location_id')

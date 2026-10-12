@@ -13,6 +13,8 @@ import './offline-weight-records.js';
 import './offline-movements.js';
 import './offline-swine.js';
 import './offline-swine-edit.js';
+import './offline-record-edits.js';
+import { initializeOfflineReferenceData } from './offline-reference-data';
 
 openOfflineDB()
     .then(() => {
@@ -24,6 +26,10 @@ openOfflineDB()
             error
         );
     });
+
+initializeOfflineReferenceData().catch(error => {
+    console.error('Failed to initialize offline reference data:', error);
+});
 
 window.Chart = Chart;
 

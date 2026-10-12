@@ -1635,6 +1635,14 @@ async function keepServerVersion(recordId) {
                 localSwine.current_location_id =
                     Number(toLocationId);
 
+                if (serverData.farm_id) {
+                    localSwine.farm_id = Number(serverData.farm_id);
+                }
+
+                if (serverData.farmer_id) {
+                    localSwine.farmer_id = Number(serverData.farmer_id);
+                }
+
 
                 localSwine.sync_status =
                     'synced';
@@ -2238,6 +2246,18 @@ async function keepOfflineVersion(recordId) {
             to_location_id:
                 Number(payload.to_location_id),
 
+            from_farm_id:
+                payload.from_farm_id ?? payload.original_farm_id ?? null,
+
+            original_farm_id:
+                payload.original_farm_id ?? payload.from_farm_id ?? null,
+
+            to_farm_id:
+                Number(payload.to_farm_id),
+
+            to_farmer_id:
+                payload.to_farmer_id ? Number(payload.to_farmer_id) : null,
+
             movement_date:
                 payload.movement_date,
 
@@ -2334,6 +2354,14 @@ async function keepOfflineVersion(recordId) {
 
             localSwine.current_location_id =
                 Number(payload.to_location_id);
+
+            if (payload.to_farm_id) {
+                localSwine.farm_id = Number(payload.to_farm_id);
+            }
+
+            if (payload.to_farmer_id) {
+                localSwine.farmer_id = Number(payload.to_farmer_id);
+            }
 
 
             localSwine.sync_status =

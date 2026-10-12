@@ -172,6 +172,9 @@ function initializeOfflineSwine() {
                 id:
                     localId,
 
+                owner_user_id:
+                    document.querySelector('meta[name="offline-user-id"]')?.content,
+
                 farm_id:
                     Number(farmId),
 

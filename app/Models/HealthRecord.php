@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class HealthRecord extends Model
 {
@@ -12,6 +12,7 @@ class HealthRecord extends Model
 
     protected $fillable = [
         'swine_id',
+        'local_id',
         'recorded_by',
         'record_date',
         'record_type',

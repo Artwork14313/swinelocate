@@ -49,6 +49,9 @@
             @if(auth()->user()->hasPermission('record-weight'))
 
                 <form
+                    id="weight-record-edit-form"
+                    data-record-id="{{ $weightRecord->id }}"
+                    data-swine-id="{{ $weightRecord->swine_id }}"
                     method="POST"
                     action="{{ route('weight-records.update', $weightRecord) }}"
                     class="space-y-6"

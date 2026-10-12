@@ -8,6 +8,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="offline-user-id" content="{{ auth()->id() }}">
+    <meta name="offline-reference-data-url" content="{{ route('offline.reference-data') }}">
 
     <link rel="manifest" href="{{ asset('manifest.json') }}">
 
@@ -117,6 +119,13 @@
 
             {{-- Page Content --}}
             <main>
+
+                <div
+                    id="offline-reference-data-status"
+                    role="status"
+                    aria-live="polite"
+                    class="mx-4 mt-4 hidden rounded-lg border px-4 py-3 text-sm sm:mx-6 lg:mx-8"
+                ></div>
 
                 {{ $slot }}
 

@@ -1,28 +1,26 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-
-use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FarmController;
 use App\Http\Controllers\FarmerController;
 use App\Http\Controllers\FarmLocationController;
+use App\Http\Controllers\GrowthMonitoringController;
+use App\Http\Controllers\HealthRecordController;
+use App\Http\Controllers\OfflineReferenceDataController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\QrTraceabilityController;
+use App\Http\Controllers\ReportsController;
+use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SwineController;
 use App\Http\Controllers\SwineMovementController;
-use App\Http\Controllers\HealthRecordController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\WeightRecordController;
-use App\Http\Controllers\GrowthMonitoringController;
-use App\Http\Controllers\QrTraceabilityController;
 use App\Http\Controllers\SyncStatusController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\RoleController;
-use App\Http\Controllers\ReportsController;
+use App\Http\Controllers\WeightRecordController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return redirect()->route('login');
 });
-
-
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
@@ -30,7 +28,10 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
 
 Route::middleware('auth')->group(function () {
 
-    //USER MANAGEMENT
+    Route::get('/offline/reference-data', OfflineReferenceDataController::class)
+        ->name('offline.reference-data');
+
+    // USER MANAGEMENT
     Route::resource('users', UserController::class)
         ->middleware('permission:manage-users');
 
@@ -38,7 +39,7 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:manage-users')
         ->name('users.toggle-status');
 
-    //ROLE MANAGEMENT
+    // ROLE MANAGEMENT
     Route::middleware('permission:manage-roles')->group(function () {
         Route::get('/roles', [RoleController::class, 'index'])
             ->name('roles.index');
@@ -67,7 +68,6 @@ Route::middleware('auth')->group(function () {
 
     Route::delete('/profile', [ProfileController::class, 'destroy'])
         ->name('profile.destroy');
-
 
     /*
     |--------------------------------------------------------------------------
@@ -189,7 +189,6 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:scan-qr')
         ->name('qr.scanner');
 
-
     /*
     |--------------------------------------------------------------------------
     | Traceability
@@ -202,7 +201,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/traceability', [QrTraceabilityController::class, 'index'])
         ->middleware('permission:view-traceability')
         ->name('traceability.index');
-
 
     /*
     |--------------------------------------------------------------------------
@@ -229,6 +227,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/health-records', [HealthRecordController::class, 'store'])
         ->middleware('permission:manage-health')
         ->name('health-records.store');
+
+    Route::post('/health-records/sync', [HealthRecordController::class, 'syncStore'])
+        ->middleware('permission:manage-health')
+        ->name('health-records.sync');
 
     Route::get('/health-records/{health_record}', [HealthRecordController::class, 'show'])
         ->middleware('permission:manage-health')
@@ -266,7 +268,6 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:record-weight')
         ->name('growth-monitoring.index');
 
-
     /*
     |--------------------------------------------------------------------------
     | Swine Movement
@@ -292,7 +293,6 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:manage-movements')
         ->name('swine-movements.show');
 
-
     /*
     |--------------------------------------------------------------------------
     | Offline Movement
@@ -305,13 +305,11 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:manage-movements')
         ->name('swine.movements.offline');
 
-
     /*
     |--------------------------------------------------------------------------
     | Swine Offline Synchronization
     |--------------------------------------------------------------------------
     */
-
 
     Route::post('/swine/sync', [SwineController::class, 'syncStore'])
         ->middleware('permission:register-swine')
@@ -324,7 +322,6 @@ Route::middleware('auth')->group(function () {
     Route::put('/swine/{swine}/resolve-conflict', [SwineController::class, 'resolveConflict'])
         ->middleware('permission:manage-swine')
         ->name('swine.resolve-conflict');
-
 
     /*
     |--------------------------------------------------------------------------
@@ -346,7 +343,6 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:manage-movements')
         ->name('swine-movements.resolve-conflict');
 
-
     /*
     |--------------------------------------------------------------------------
     | Weight Synchronization
@@ -359,7 +355,6 @@ Route::middleware('auth')->group(function () {
     Route::post('/weight-records/sync', [WeightRecordController::class, 'syncStore'])
         ->middleware('permission:record-weight')
         ->name('weight-records.sync');
-
 
     /*
     |--------------------------------------------------------------------------
@@ -379,4 +374,4 @@ Route::middleware('auth')->group(function () {
         ->name('reports.export');
 });
 
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';

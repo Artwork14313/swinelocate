@@ -1,7 +1,10 @@
 import {
     saveOffline,
-    addToSyncQueue
+    addToSyncQueue,
+    getOffline,
 } from './offline-db';
+
+const SWINE_STORE = 'swine';
 
 
 /*
@@ -96,6 +99,15 @@ function initializeOfflineMovement() {
             const toLocationId =
                 formData.get('to_location_id');
 
+            const fromFarmId = form.dataset.farmId
+                ? Number(form.dataset.farmId)
+                : null;
+            const toFarmId = formData.get('to_farm_id')
+                ? Number(formData.get('to_farm_id'))
+                : null;
+            const toFarmerId = formData.get('to_farmer_id')
+                ? Number(formData.get('to_farmer_id'))
+                : null;
 
             const movementDate =
                 formData.get('movement_date');
@@ -131,6 +143,16 @@ function initializeOfflineMovement() {
                     'Please select a destination location.'
                 );
 
+                return;
+            }
+
+            if (!toFarmId) {
+                alert('Please select a destination farm.');
+                return;
+            }
+
+            if (fromFarmId !== toFarmId && !toFarmerId) {
+                alert('Please select a farmer registered to the destination farm.');
                 return;
             }
 
@@ -231,6 +253,18 @@ function initializeOfflineMovement() {
                 original_location_id:
                     originalLocationId,
 
+                from_farm_id:
+                    fromFarmId,
+
+                original_farm_id:
+                    fromFarmId,
+
+                to_farm_id:
+                    toFarmId,
+
+                to_farmer_id:
+                    toFarmerId,
+
                 /*
                  * Same value used for movement history.
                  */
@@ -276,6 +310,17 @@ function initializeOfflineMovement() {
                     'movements',
                     movement
                 );
+
+                const localSwine = await getOffline(SWINE_STORE, Number(swineId));
+
+                if (localSwine) {
+                    await saveOffline(SWINE_STORE, {
+                        ...localSwine,
+                        farm_id: toFarmId,
+                        farmer_id: toFarmerId ?? localSwine.farmer_id,
+                        current_location_id: Number(toLocationId),
+                    });
+                }
 
 
                 console.log(
@@ -338,12 +383,24 @@ function initializeOfflineMovement() {
                             from_location_id:
                                 originalLocationId,
 
+                            from_farm_id:
+                                fromFarmId,
+
+                            original_farm_id:
+                                fromFarmId,
+
 
                             /*
                              * Offline destination.
                              */
                             to_location_id:
                                 Number(toLocationId),
+
+                            to_farm_id:
+                                toFarmId,
+
+                            to_farmer_id:
+                                toFarmerId,
 
 
                             movement_date:

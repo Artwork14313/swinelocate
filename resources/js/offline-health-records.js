@@ -35,6 +35,11 @@ function initializeOfflineHealthRecords() {
             const swineId =
                 formData.get('swine_id');
 
+            const swineLocalId =
+                Number.isNaN(Number(swineId))
+                    ? String(swineId)
+                    : null;
+
             const recordDate =
                 formData.get('record_date');
 
@@ -110,7 +115,10 @@ function initializeOfflineHealthRecords() {
             const data = {
 
                 swine_id:
-                    Number(swineId),
+                    swineLocalId ? null : Number(swineId),
+
+                swine_local_id:
+                    swineLocalId,
 
                 record_date:
                     recordDate,
@@ -182,6 +190,8 @@ function initializeOfflineHealthRecords() {
 
             try {
 
+                const localId = crypto.randomUUID();
+
                 /*
                  * Save the complete health record
                  * locally in IndexedDB.
@@ -189,7 +199,8 @@ function initializeOfflineHealthRecords() {
                 await saveOffline(
                     'health_records',
                     {
-                        id: crypto.randomUUID(),
+                        id: localId,
+                        local_id: localId,
                         ...data
                     }
                 );
@@ -205,15 +216,21 @@ function initializeOfflineHealthRecords() {
                         'health_record',
 
                     endpoint:
-                        '/health-records',
+                        '/health-records/sync',
 
                     method:
                         'POST',
 
                     payload: {
 
+                        local_id:
+                            localId,
+
                         swine_id:
                             data.swine_id,
+
+                        swine_local_id:
+                            data.swine_local_id,
 
                         record_date:
                             data.record_date,

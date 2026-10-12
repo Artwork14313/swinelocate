@@ -89,6 +89,7 @@
                             <select
                                 id="farm_id"
                                 name="farm_id"
+                                data-offline-reference="farms"
                                 required
                                 autocomplete="organization"
                                 class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
@@ -141,6 +142,7 @@
                             <select
                                 id="farmer_id"
                                 name="farmer_id"
+                                data-offline-reference="farmers"
                                 required
                                 class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
                                        focus:border-indigo-500 focus:ring-indigo-500"
@@ -193,6 +195,8 @@
                             <select
                                 id="current_location_id"
                                 name="current_location_id"
+                                data-offline-reference="locations"
+                                data-offline-placeholder="No location assigned"
                                 autocomplete="off"
                                 class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm
                                        focus:border-indigo-500 focus:ring-indigo-500"

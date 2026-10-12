@@ -152,33 +152,6 @@ async function markLocalRecordAsSynced(
         return;
     }
 
-    if (record.type === 'swine') {
-        const localId = payload.local_id;
-
-        if (!localId) {
-            return;
-        }
-
-        const localSwine = await getOffline(
-            SWINE_STORE,
-            localId
-        );
-
-        if (!localSwine) {
-            return;
-        }
-
-        await saveOffline(SWINE_STORE, {
-            ...localSwine,
-            sync_status: 'synced',
-            synced_at: new Date().toISOString(),
-            server_id: responseData?.swine_id ?? null,
-            qr_token: responseData?.qr_token ?? localSwine.qr_token,
-        });
-
-        return;
-    }
-
 
     /*
      * Weight record
@@ -186,6 +159,7 @@ async function markLocalRecordAsSynced(
     if (
         record.type ===
         'weight_record'
+        || record.type === 'weight_record_update'
     ) {
 
         const localId =
@@ -221,7 +195,11 @@ async function markLocalRecordAsSynced(
                 server_id:
                     responseData
                         ?.weight_record_id
-                    ?? null
+                    ?? localRecord.server_id,
+
+                swine_id:
+                    responseData?.swine_id
+                    ?? localRecord.swine_id
 
             }
         );
@@ -236,6 +214,7 @@ async function markLocalRecordAsSynced(
     if (
         record.type ===
         'health_record'
+        || record.type === 'health_record_update'
     ) {
 
         const localId =
@@ -271,7 +250,16 @@ async function markLocalRecordAsSynced(
                 server_id:
                     responseData
                         ?.health_record_id
-                    ?? null
+                    ?? localRecord.server_id,
+
+                swine_id:
+                    responseData?.swine_id
+                    ?? localRecord.swine_id,
+
+                swine_local_id:
+                    responseData?.swine_id
+                        ? null
+                        : localRecord.swine_local_id
 
             }
         );
@@ -521,8 +509,34 @@ async function syncPendingRecordsInternal() {
 
             try {
 
-                const payload =
-                    record.payload || {};
+                const payload = {
+                    ...(record.payload || {}),
+                };
+
+                if (payload.swine_local_id) {
+                    const localSwine = await getOffline(
+                        SWINE_STORE,
+                        payload.swine_local_id
+                    );
+
+                    if (!localSwine?.server_id) {
+                        await updateQueueStatus(
+                            record,
+                            'pending',
+                            {
+                                last_error:
+                                    'Waiting for the offline swine registration to synchronize.',
+                                last_error_at:
+                                    new Date().toISOString(),
+                            }
+                        );
+
+                        continue;
+                    }
+
+                    payload.swine_id = localSwine.server_id;
+                    delete payload.swine_local_id;
+                }
 
 
                 console.log(

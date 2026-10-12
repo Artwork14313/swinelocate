@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Farm;
+use App\Models\Farmer;
 use App\Models\FarmLocation;
 use App\Models\Swine;
 use App\Models\SwineMovement;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -88,7 +91,6 @@ class SwineMovementController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-
         /*
         |--------------------------------------------------------------------------
         | Summary
@@ -106,7 +108,6 @@ class SwineMovementController extends Controller
             ->whereYear('movement_date', now()->year)
             ->count();
 
-
         return view('swine-movements.index', compact(
             'movements',
             'totalMovements',
@@ -114,7 +115,6 @@ class SwineMovementController extends Controller
             'thisMonthMovements'
         ));
     }
-
 
     /**
      * Display the form for recording a movement.
@@ -135,7 +135,7 @@ class SwineMovementController extends Controller
             );
         }
 
-        if (!$swine->farm || $swine->farm->status !== 'active') {
+        if (! $swine->farm || $swine->farm->status !== 'active') {
             abort(
                 403,
                 'This swine cannot be moved because its farm is inactive.'
@@ -149,29 +149,30 @@ class SwineMovementController extends Controller
 
         $swine->load([
             'farm',
+            'farmer',
             'currentLocation',
         ]);
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Get Active Farm Locations
-        |--------------------------------------------------------------------------
-        */
-
+        $farms = Farm::query()
+            ->where('status', 'active')
+            ->orderBy('name')
+            ->get(['id', 'farm_code', 'name']);
         $locations = FarmLocation::query()
-            ->where('farm_id', $swine->farm_id)
             ->where('status', 'active')
             ->orderBy('name')
             ->get();
-
+        $farmers = Farmer::query()
+            ->with('farm:id,name')
+            ->orderBy('name')
+            ->get();
 
         return view('swine-movements.create', [
             'swine' => $swine,
+            'farms' => $farms,
+            'farmers' => $farmers,
             'locations' => $locations,
         ]);
     }
-
 
     /**
      * Store a normal ONLINE swine movement.
@@ -197,7 +198,7 @@ class SwineMovementController extends Controller
                 );
         }
 
-        if (!$swine->farm || $swine->farm->status !== 'active') {
+        if (! $swine->farm || $swine->farm->status !== 'active') {
             return redirect()
                 ->route('swine-movements.index')
                 ->with(
@@ -205,7 +206,6 @@ class SwineMovementController extends Controller
                     'This swine cannot be moved because its farm is inactive.'
                 );
         }
-
 
         /*
         |--------------------------------------------------------------------------
@@ -215,10 +215,22 @@ class SwineMovementController extends Controller
 
         $validated = $request->validate([
 
+            'to_farm_id' => [
+                'required',
+                'integer',
+                'exists:farms,id',
+            ],
+
             'to_location_id' => [
                 'required',
                 'integer',
                 'exists:farm_locations,id',
+            ],
+
+            'to_farmer_id' => [
+                'nullable',
+                'integer',
+                'exists:farmers,id',
             ],
 
             'movement_date' => [
@@ -239,21 +251,16 @@ class SwineMovementController extends Controller
 
         ]);
 
-
         /*
         |--------------------------------------------------------------------------
         | Validate Destination
         |--------------------------------------------------------------------------
         */
 
-        $destination = FarmLocation::query()
+        $destinationFarm = Farm::query()
             ->where(
                 'id',
-                $validated['to_location_id']
-            )
-            ->where(
-                'farm_id',
-                $swine->farm_id
+                $validated['to_farm_id']
             )
             ->where(
                 'status',
@@ -261,17 +268,46 @@ class SwineMovementController extends Controller
             )
             ->first();
 
+        $destination = FarmLocation::query()
+            ->whereKey($validated['to_location_id'])
+            ->where('farm_id', $validated['to_farm_id'])
+            ->where('status', 'active')
+            ->first();
 
-        if (!$destination) {
+        if (! $destinationFarm || ! $destination) {
 
             return back()
                 ->withErrors([
-                    'to_location_id' =>
-                        'The selected destination is not a valid location for this farm.',
+                    'to_location_id' => 'Select an active location in the destination farm.',
                 ])
                 ->withInput();
         }
 
+        $isFarmTransfer = (int) $destinationFarm->id !== (int) $swine->farm_id;
+        $destinationFarmerId = $isFarmTransfer
+            ? ($validated['to_farmer_id'] ?? null)
+            : $swine->farmer_id;
+        $farmerBelongsToDestination = $destinationFarmerId !== null
+            && Farmer::query()
+                ->whereKey($destinationFarmerId)
+                ->where('farm_id', $destinationFarm->id)
+                ->exists();
+
+        if ($isFarmTransfer && ! $farmerBelongsToDestination) {
+            return back()
+                ->withErrors([
+                    'to_farmer_id' => 'Select a farmer registered to the destination farm.',
+                ])
+                ->withInput();
+        }
+
+        if (! $isFarmTransfer && $destinationFarmerId !== null && ! $farmerBelongsToDestination) {
+            return back()
+                ->withErrors([
+                    'to_farmer_id' => 'The selected farmer is not registered to this farm.',
+                ])
+                ->withInput();
+        }
 
         /*
         |--------------------------------------------------------------------------
@@ -287,12 +323,10 @@ class SwineMovementController extends Controller
 
             return back()
                 ->withErrors([
-                    'to_location_id' =>
-                        'The swine is already assigned to this location.',
+                    'to_location_id' => 'The swine is already assigned to this location.',
                 ])
                 ->withInput();
         }
-
 
         /*
         |--------------------------------------------------------------------------
@@ -300,34 +334,28 @@ class SwineMovementController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        DB::transaction(function () use ($swine, $destination, $validated) {
+        DB::transaction(function () use ($swine, $destination, $destinationFarm, $destinationFarmerId, $validated) {
 
             $fromLocationId =
                 $swine->current_location_id;
 
-
             SwineMovement::create([
 
-                'swine_id' =>
-                    $swine->id,
+                'swine_id' => $swine->id,
 
-                'from_location_id' =>
-                    $fromLocationId,
+                'from_location_id' => $fromLocationId,
 
-                'to_location_id' =>
-                    $destination->id,
+                'to_location_id' => $destination->id,
 
-                'movement_date' =>
-                    $validated['movement_date'],
+                'to_farmer_id' => $destinationFarmerId,
 
-                'reason' =>
-                    $validated['reason'] ?? null,
+                'movement_date' => $validated['movement_date'],
 
-                'notes' =>
-                    $validated['notes'] ?? null,
+                'reason' => $validated['reason'] ?? null,
 
-                'recorded_by' =>
-                    auth()->id(),
+                'notes' => $validated['notes'] ?? null,
+
+                'recorded_by' => auth()->id(),
 
                 /*
                 |--------------------------------------------------------------------------
@@ -335,8 +363,7 @@ class SwineMovementController extends Controller
                 |--------------------------------------------------------------------------
                 */
 
-                'status' =>
-                    'completed',
+                'status' => 'completed',
 
                 /*
                 |--------------------------------------------------------------------------
@@ -344,10 +371,8 @@ class SwineMovementController extends Controller
                 |--------------------------------------------------------------------------
                 */
 
-                'conflict_resolution' =>
-                    null,
+                'conflict_resolution' => null,
             ]);
-
 
             /*
             |--------------------------------------------------------------------------
@@ -357,12 +382,14 @@ class SwineMovementController extends Controller
 
             $swine->update([
 
-                'current_location_id' =>
-                    $destination->id,
+                'farm_id' => $destinationFarm->id,
+
+                'farmer_id' => $destinationFarmerId,
+
+                'current_location_id' => $destination->id,
 
             ]);
         });
-
 
         return redirect()
             ->route('swine-movements.index')
@@ -371,7 +398,6 @@ class SwineMovementController extends Controller
                 'Swine movement recorded successfully.'
             );
     }
-
 
     /**
      * Synchronize an OFFLINE swine movement.
@@ -402,6 +428,24 @@ class SwineMovementController extends Controller
                 'nullable',
                 'string',
                 'max:255',
+            ],
+
+            'from_farm_id' => [
+                'nullable',
+                'integer',
+                'exists:farms,id',
+            ],
+
+            'to_farm_id' => [
+                'nullable',
+                'integer',
+                'exists:farms,id',
+            ],
+
+            'to_farmer_id' => [
+                'nullable',
+                'integer',
+                'exists:farmers,id',
             ],
 
             'from_location_id' => [
@@ -437,6 +481,11 @@ class SwineMovementController extends Controller
                 'integer',
             ],
 
+            'original_farm_id' => [
+                'nullable',
+                'integer',
+            ],
+
             'force' => [
                 'nullable',
                 'boolean',
@@ -450,7 +499,6 @@ class SwineMovementController extends Controller
 
         ]);
 
-
         /*
         |--------------------------------------------------------------------------
         | Get Swine
@@ -460,7 +508,6 @@ class SwineMovementController extends Controller
         $swine = Swine::findOrFail(
             $validated['swine_id']
         );
-
 
         /*
         |--------------------------------------------------------------------------
@@ -474,19 +521,17 @@ class SwineMovementController extends Controller
 
                 'success' => false,
 
-                'message' =>
-                    'Only active swine can be moved.',
+                'message' => 'Only active swine can be moved.',
 
             ], 422);
         }
 
-        if (!$swine->farm || $swine->farm->status !== 'active') {
+        if (! $swine->farm || $swine->farm->status !== 'active') {
             return response()->json([
                 'success' => false,
                 'message' => 'This swine cannot be moved because its farm is inactive.',
             ], 422);
         }
-
 
         /*
         |--------------------------------------------------------------------------
@@ -494,34 +539,51 @@ class SwineMovementController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        $destination = FarmLocation::query()
-            ->where(
-                'id',
-                $validated['to_location_id']
-            )
-            ->where(
-                'farm_id',
-                $swine->farm_id
-            )
-            ->where(
-                'status',
-                'active'
-            )
+        $destinationFarmId = $validated['to_farm_id']
+            ?? FarmLocation::query()
+                ->whereKey($validated['to_location_id'])
+                ->value('farm_id');
+        $destinationFarm = Farm::query()
+            ->whereKey($destinationFarmId)
+            ->where('status', 'active')
             ->first();
 
+        $destination = FarmLocation::query()
+            ->whereKey($validated['to_location_id'])
+            ->where('farm_id', $destinationFarmId)
+            ->where('status', 'active')
+            ->first();
 
-        if (!$destination) {
+        if (! $destinationFarm || ! $destination) {
 
             return response()->json([
 
                 'success' => false,
 
-                'message' =>
-                    'The selected destination is not a valid location for this farm.',
+                'message' => 'Select an active location in the destination farm.',
 
             ], 422);
         }
 
+        $isFarmTransfer = (int) $destinationFarm->id !== (int) $swine->farm_id;
+        $destinationFarmerId = $validated['to_farmer_id'] ?? (
+            $isFarmTransfer ? null : $swine->farmer_id
+        );
+        $farmerBelongsToDestination = $destinationFarmerId !== null
+            && Farmer::query()
+                ->whereKey($destinationFarmerId)
+                ->where('farm_id', $destinationFarm->id)
+                ->exists();
+
+        if (($isFarmTransfer && ! $farmerBelongsToDestination)
+            || ($destinationFarmerId !== null && ! $farmerBelongsToDestination)) {
+            return response()->json([
+                'success' => false,
+                'message' => $isFarmTransfer
+                    ? 'A farmer registered to the destination farm is required.'
+                    : 'The selected farmer is not registered to the destination farm.',
+            ], 422);
+        }
 
         /*
         |--------------------------------------------------------------------------
@@ -537,7 +599,7 @@ class SwineMovementController extends Controller
 
         if ($request->boolean('force')) {
 
-            return DB::transaction(function () use ($swine, $destination, $validated) {
+            return DB::transaction(function () use ($swine, $destination, $destinationFarm, $destinationFarmerId, $validated) {
 
                 /*
                 |--------------------------------------------------------------------------
@@ -553,7 +615,6 @@ class SwineMovementController extends Controller
                     ->lockForUpdate()
                     ->firstOrFail();
 
-
                 /*
                 |--------------------------------------------------------------------------
                 | Find Exact Server Movement
@@ -563,9 +624,9 @@ class SwineMovementController extends Controller
                 $serverMovement = null;
 
                 if (
-                    !empty(
-                    $validated['server_movement_id']
-                )
+                    ! empty(
+                        $validated['server_movement_id']
+                    )
                 ) {
 
                     $serverMovement = SwineMovement::query()
@@ -581,14 +642,13 @@ class SwineMovementController extends Controller
                         ->first();
                 }
 
-
                 /*
                 |--------------------------------------------------------------------------
                 | Fallback Server Movement
                 |--------------------------------------------------------------------------
                 */
 
-                if (!$serverMovement) {
+                if (! $serverMovement) {
 
                     $serverMovement = SwineMovement::query()
                         ->where(
@@ -610,7 +670,6 @@ class SwineMovementController extends Controller
                         ->first();
                 }
 
-
                 /*
                 |--------------------------------------------------------------------------
                 | Server Movement ID
@@ -619,7 +678,6 @@ class SwineMovementController extends Controller
 
                 $serverMovementId =
                     $serverMovement?->id;
-
 
                 /*
                 |--------------------------------------------------------------------------
@@ -651,7 +709,6 @@ class SwineMovementController extends Controller
                     ->latest('id')
                     ->first();
 
-
                 /*
                 |--------------------------------------------------------------------------
                 | Already Applied
@@ -662,41 +719,34 @@ class SwineMovementController extends Controller
 
                     $swine->update([
 
-                        'current_location_id' =>
-                            $destination->id,
+                        'farm_id' => $destinationFarm->id,
+
+                        'farmer_id' => $destinationFarmerId,
+
+                        'current_location_id' => $destination->id,
 
                     ]);
-
 
                     return response()->json([
 
-                        'success' =>
-                            true,
+                        'success' => true,
 
-                        'conflict' =>
-                            false,
+                        'conflict' => false,
 
-                        'resolved' =>
-                            true,
+                        'resolved' => true,
 
-                        'resolution' =>
-                            'offline',
+                        'resolution' => 'offline',
 
-                        'already_applied' =>
-                            true,
+                        'already_applied' => true,
 
-                        'movement_id' =>
-                            $existingOfflineMovement->id,
+                        'movement_id' => $existingOfflineMovement->id,
 
-                        'superseded_movement_id' =>
-                            $serverMovementId,
+                        'superseded_movement_id' => $serverMovementId,
 
-                        'message' =>
-                            'Offline movement was already applied.',
+                        'message' => 'Offline movement was already applied.',
 
                     ]);
                 }
-
 
                 /*
                 |--------------------------------------------------------------------------
@@ -706,7 +756,6 @@ class SwineMovementController extends Controller
 
                 $serverFromLocationId =
                     $swine->current_location_id;
-
 
                 /*
                 |--------------------------------------------------------------------------
@@ -727,18 +776,14 @@ class SwineMovementController extends Controller
                         )
                         ->update([
 
-                            'status' =>
-                                'superseded',
+                            'status' => 'superseded',
 
-                            'conflict_resolution' =>
-                                'offline',
+                            'conflict_resolution' => 'offline',
 
-                            'updated_at' =>
-                                now(),
+                            'updated_at' => now(),
 
                         ]);
                 }
-
 
                 /*
                 |--------------------------------------------------------------------------
@@ -749,41 +794,31 @@ class SwineMovementController extends Controller
                 $movementId = DB::table('swine_movements')
                     ->insertGetId([
 
-                        'swine_id' =>
-                            $swine->id,
+                        'swine_id' => $swine->id,
 
-                        'from_location_id' =>
-                            $serverFromLocationId,
+                        'from_location_id' => $serverFromLocationId,
 
-                        'to_location_id' =>
-                            $destination->id,
+                        'to_location_id' => $destination->id,
 
-                        'movement_date' =>
-                            $validated['movement_date'],
+                        'to_farmer_id' => $destinationFarmerId,
 
-                        'reason' =>
-                            $validated['reason'] ?? null,
+                        'movement_date' => $validated['movement_date'],
 
-                        'notes' =>
-                            $validated['notes'] ?? null,
+                        'reason' => $validated['reason'] ?? null,
 
-                        'recorded_by' =>
-                            auth()->id(),
+                        'notes' => $validated['notes'] ?? null,
 
-                        'status' =>
-                            'completed',
+                        'recorded_by' => auth()->id(),
 
-                        'conflict_resolution' =>
-                            'offline',
+                        'status' => 'completed',
 
-                        'created_at' =>
-                            now(),
+                        'conflict_resolution' => 'offline',
 
-                        'updated_at' =>
-                            now(),
+                        'created_at' => now(),
+
+                        'updated_at' => now(),
 
                     ]);
-
 
                 /*
                 |--------------------------------------------------------------------------
@@ -798,14 +833,15 @@ class SwineMovementController extends Controller
                     )
                     ->update([
 
-                        'current_location_id' =>
-                            $destination->id,
+                        'farm_id' => $destinationFarm->id,
 
-                        'updated_at' =>
-                            now(),
+                        'farmer_id' => $destinationFarmerId,
+
+                        'current_location_id' => $destination->id,
+
+                        'updated_at' => now(),
 
                     ]);
-
 
                 /*
                 |--------------------------------------------------------------------------
@@ -815,38 +851,29 @@ class SwineMovementController extends Controller
 
                 return response()->json([
 
-                    'success' =>
-                        true,
+                    'success' => true,
 
-                    'conflict' =>
-                        false,
+                    'conflict' => false,
 
-                    'resolved' =>
-                        true,
+                    'resolved' => true,
 
-                    'resolution' =>
-                        'offline',
+                    'resolution' => 'offline',
 
-                    'movement_id' =>
-                        $movementId,
+                    'movement_id' => $movementId,
 
-                    'superseded_movement_id' =>
-                        $serverMovementId,
+                    'superseded_movement_id' => $serverMovementId,
 
-                    'message' =>
-                        'Offline movement kept. The online movement was marked as superseded.',
+                    'message' => 'Offline movement kept. The online movement was marked as superseded.',
 
                 ]);
             });
         }
-
 
         /*
         |--------------------------------------------------------------------------
         | NORMAL SYNCHRONIZATION
         |--------------------------------------------------------------------------
         */
-
 
         /*
         |--------------------------------------------------------------------------
@@ -874,7 +901,6 @@ class SwineMovementController extends Controller
             ?? $validated['original_location_id']
             ?? null;
 
-
         /*
         |--------------------------------------------------------------------------
         | Find Identical Server Movement
@@ -896,7 +922,6 @@ class SwineMovementController extends Controller
                 'superseded'
             );
 
-
         if ($offlineFromLocationId !== null) {
 
             $sameMovementQuery->where(
@@ -904,7 +929,6 @@ class SwineMovementController extends Controller
                 $offlineFromLocationId
             );
         }
-
 
         /*
         |--------------------------------------------------------------------------
@@ -918,10 +942,9 @@ class SwineMovementController extends Controller
         */
 
         $offlineMovementDate =
-            \Carbon\Carbon::parse(
+            Carbon::parse(
                 $validated['movement_date']
             );
-
 
         $sameMovementQuery->whereBetween(
             'movement_date',
@@ -931,12 +954,10 @@ class SwineMovementController extends Controller
             ]
         );
 
-
         $sameMovement =
             $sameMovementQuery
                 ->latest('id')
                 ->first();
-
 
         /*
         |--------------------------------------------------------------------------
@@ -952,43 +973,28 @@ class SwineMovementController extends Controller
             |--------------------------------------------------------------------------
             */
 
-            if (
-                (int) $swine->current_location_id !==
-                (int) $sameMovement->to_location_id
-            ) {
-
-                $swine->update([
-
-                    'current_location_id' =>
-                        $sameMovement->to_location_id,
-
-                ]);
-            }
-
+            $swine->update([
+                'farm_id' => $destinationFarm->id,
+                'farmer_id' => $destinationFarmerId,
+                'current_location_id' => $sameMovement->to_location_id,
+            ]);
 
             return response()->json([
 
-                'success' =>
-                    true,
+                'success' => true,
 
-                'conflict' =>
-                    false,
+                'conflict' => false,
 
-                'already_applied' =>
-                    true,
+                'already_applied' => true,
 
-                'movement_id' =>
-                    $sameMovement->id,
+                'movement_id' => $sameMovement->id,
 
-                'swine_id' =>
-                    $swine->id,
+                'swine_id' => $swine->id,
 
-                'message' =>
-                    'This movement was already synchronized on the server.',
+                'message' => 'This movement was already synchronized on the server.',
 
             ]);
         }
-
 
         /*
         |--------------------------------------------------------------------------
@@ -999,12 +1005,10 @@ class SwineMovementController extends Controller
         $originalLocationId =
             $validated['original_location_id'] ?? null;
 
-
         if ($originalLocationId !== null) {
 
             $serverLocationId =
                 $swine->current_location_id;
-
 
             /*
             |--------------------------------------------------------------------------
@@ -1012,9 +1016,15 @@ class SwineMovementController extends Controller
             |--------------------------------------------------------------------------
             */
 
+            $originalFarmId = $validated['original_farm_id']
+                ?? $validated['from_farm_id']
+                ?? null;
+            $farmChanged = $originalFarmId !== null
+                && (int) $swine->farm_id !== (int) $originalFarmId;
+
             if (
-                (int) $serverLocationId !==
-                (int) $originalLocationId
+                (int) $serverLocationId !== (int) $originalLocationId
+                || $farmChanged
             ) {
 
                 /*
@@ -1046,7 +1056,6 @@ class SwineMovementController extends Controller
                         ->first();
                 }
 
-
                 /*
                 |--------------------------------------------------------------------------
                 | Return Conflict
@@ -1055,90 +1064,75 @@ class SwineMovementController extends Controller
 
                 return response()->json([
 
-                    'success' =>
-                        false,
+                    'success' => false,
 
-                    'conflict' =>
-                        true,
+                    'conflict' => true,
 
-                    'message' =>
-                        'This swine was moved by another user while this device was offline.',
+                    'message' => 'This swine was moved by another user while this device was offline.',
 
-                    'swine_id' =>
-                        $swine->id,
+                    'swine_id' => $swine->id,
 
-                    'server_movement_id' =>
-                        $serverMovement?->id,
+                    'server_movement_id' => $serverMovement?->id,
 
                     'offline_data' => [
 
-                        'local_id' =>
-                            $validated['local_id'] ?? null,
+                        'local_id' => $validated['local_id'] ?? null,
 
-                        'swine_id' =>
-                            $swine->id,
+                        'swine_id' => $swine->id,
 
-                        'original_location_id' =>
-                            $originalLocationId,
+                        'original_location_id' => $originalLocationId,
 
-                        'from_location_id' =>
-                            $validated['from_location_id'] ?? null,
+                        'from_location_id' => $validated['from_location_id'] ?? null,
 
-                        'to_location_id' =>
-                            $destination->id,
+                        'to_location_id' => $destination->id,
 
-                        'movement_date' =>
-                            $validated['movement_date'],
+                        'from_farm_id' => $validated['from_farm_id'] ?? null,
 
-                        'reason' =>
-                            $validated['reason'] ?? null,
+                        'to_farm_id' => $destinationFarm->id,
 
-                        'notes' =>
-                            $validated['notes'] ?? null,
+                        'to_farmer_id' => $destinationFarmerId,
+
+                        'movement_date' => $validated['movement_date'],
+
+                        'reason' => $validated['reason'] ?? null,
+
+                        'notes' => $validated['notes'] ?? null,
 
                     ],
 
                     'server_data' => [
 
-                        'movement_id' =>
-                            $serverMovement?->id,
+                        'movement_id' => $serverMovement?->id,
 
-                        'swine_id' =>
-                            $swine->id,
+                        'swine_id' => $swine->id,
 
-                        'current_location_id' =>
-                            $swine->current_location_id,
+                        'current_location_id' => $swine->current_location_id,
 
-                        'from_location_id' =>
-                            $serverMovement?->from_location_id,
+                        'farm_id' => $swine->farm_id,
 
-                        'to_location_id' =>
-                            $serverMovement?->to_location_id,
+                        'farmer_id' => $swine->farmer_id,
 
-                        'movement_date' =>
-                            $serverMovement?->movement_date?->toISOString(),
+                        'from_location_id' => $serverMovement?->from_location_id,
 
-                        'reason' =>
-                            $serverMovement?->reason,
+                        'to_location_id' => $serverMovement?->to_location_id,
 
-                        'notes' =>
-                            $serverMovement?->notes,
+                        'movement_date' => $serverMovement?->movement_date?->toISOString(),
 
-                        'tag_number' =>
-                            $swine->tag_number,
+                        'reason' => $serverMovement?->reason,
 
-                        'status' =>
-                            $swine->status,
+                        'notes' => $serverMovement?->notes,
 
-                        'updated_at' =>
-                            $swine->updated_at?->toISOString(),
+                        'tag_number' => $swine->tag_number,
+
+                        'status' => $swine->status,
+
+                        'updated_at' => $swine->updated_at?->toISOString(),
 
                     ],
 
                 ], 409);
             }
         }
-
 
         /*
         |--------------------------------------------------------------------------
@@ -1154,21 +1148,16 @@ class SwineMovementController extends Controller
 
             return response()->json([
 
-                'success' =>
-                    false,
+                'success' => false,
 
-                'conflict' =>
-                    false,
+                'conflict' => false,
 
-                'already_applied' =>
-                    true,
+                'already_applied' => true,
 
-                'message' =>
-                    'The swine is already assigned to this location.',
+                'message' => 'The swine is already assigned to this location.',
 
             ], 422);
         }
-
 
         /*
         |--------------------------------------------------------------------------
@@ -1176,73 +1165,60 @@ class SwineMovementController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        return DB::transaction(function () use ($swine, $destination, $validated) {
+        return DB::transaction(function () use ($swine, $destination, $destinationFarm, $destinationFarmerId, $validated) {
 
             $fromLocationId =
                 $swine->current_location_id;
 
-
             $movement = SwineMovement::create([
 
-                'swine_id' =>
-                    $swine->id,
+                'swine_id' => $swine->id,
 
-                'from_location_id' =>
-                    $fromLocationId,
+                'from_location_id' => $fromLocationId,
 
-                'to_location_id' =>
-                    $destination->id,
+                'to_location_id' => $destination->id,
 
-                'movement_date' =>
-                    $validated['movement_date'],
+                'to_farmer_id' => $destinationFarmerId,
 
-                'reason' =>
-                    $validated['reason'] ?? null,
+                'movement_date' => $validated['movement_date'],
 
-                'notes' =>
-                    $validated['notes'] ?? null,
+                'reason' => $validated['reason'] ?? null,
 
-                'recorded_by' =>
-                    auth()->id(),
+                'notes' => $validated['notes'] ?? null,
 
-                'status' =>
-                    'completed',
+                'recorded_by' => auth()->id(),
 
-                'conflict_resolution' =>
-                    null,
+                'status' => 'completed',
+
+                'conflict_resolution' => null,
 
             ]);
-
 
             $swine->update([
 
-                'current_location_id' =>
-                    $destination->id,
+                'farm_id' => $destinationFarm->id,
+
+                'farmer_id' => $destinationFarmerId,
+
+                'current_location_id' => $destination->id,
 
             ]);
 
-
             return response()->json([
 
-                'success' =>
-                    true,
+                'success' => true,
 
-                'conflict' =>
-                    false,
+                'conflict' => false,
 
-                'movement_id' =>
-                    $movement->id,
+                'movement_id' => $movement->id,
 
-                'swine_id' =>
-                    $swine->id,
+                'swine_id' => $swine->id,
 
-                'message' =>
-                    'Offline movement synchronized successfully.',
+                'message' => 'Offline movement synchronized successfully.',
 
             ]);
         });
     }
-
 
     /**
      * Resolve an offline movement conflict.
@@ -1288,6 +1264,18 @@ class SwineMovementController extends Controller
                 'exists:farm_locations,id',
             ],
 
+            'to_farm_id' => [
+                'required_if:resolution,keep_offline',
+                'nullable',
+                'exists:farms,id',
+            ],
+
+            'to_farmer_id' => [
+                'nullable',
+                'integer',
+                'exists:farmers,id',
+            ],
+
             'movement_date' => [
                 'required_if:resolution,keep_offline',
                 'nullable',
@@ -1326,25 +1314,22 @@ class SwineMovementController extends Controller
             )
             ->first();
 
-
         /*
         |--------------------------------------------------------------------------
         | Server Movement Must Exist
         |--------------------------------------------------------------------------
         */
 
-        if (!$serverMovement) {
+        if (! $serverMovement) {
 
             return response()->json([
 
                 'success' => false,
 
-                'message' =>
-                    'The server movement could not be found for this swine.',
+                'message' => 'The server movement could not be found for this swine.',
 
             ], 404);
         }
-
 
         /*
 |--------------------------------------------------------------------------
@@ -1359,7 +1344,10 @@ class SwineMovementController extends Controller
                 'conflict_resolution' => 'online',
             ]);
 
+            $onlineDestination = FarmLocation::findOrFail($serverMovement->to_location_id);
             $swine->update([
+                'farm_id' => $onlineDestination->farm_id,
+                'farmer_id' => $serverMovement->to_farmer_id ?? $swine->farmer_id,
                 'current_location_id' => $serverMovement->to_location_id,
             ]);
 
@@ -1370,11 +1358,9 @@ class SwineMovementController extends Controller
                 'resolution' => 'online',
                 'movement_id' => $serverMovement->id,
                 'current_location_id' => $serverMovement->to_location_id,
-                'message' =>
-                    'Online movement was kept. The offline version was not applied.',
+                'message' => 'Online movement was kept. The offline version was not applied.',
             ]);
         }
-
 
         /*
         |--------------------------------------------------------------------------
@@ -1382,35 +1368,41 @@ class SwineMovementController extends Controller
         |--------------------------------------------------------------------------
         */
 
+        $destinationFarm = Farm::query()
+            ->whereKey($validated['to_farm_id'])
+            ->where('status', 'active')
+            ->first();
         $destination = FarmLocation::query()
             ->where(
                 'id',
                 $validated['to_location_id']
             )
-            ->where(
-                'farm_id',
-                $swine->farm_id
-            )
+            ->where('farm_id', $validated['to_farm_id'])
             ->where(
                 'status',
                 'active'
             )
             ->first();
 
+        $destinationFarmerId = $validated['to_farmer_id'] ?? null;
+        $isFarmTransfer = $destinationFarm
+            && (int) $destinationFarm->id !== (int) $swine->farm_id;
+        $farmerBelongsToDestination = $destinationFarmerId !== null
+            && Farmer::query()
+                ->whereKey($destinationFarmerId)
+                ->where('farm_id', $validated['to_farm_id'])
+                ->exists();
 
-        if (!$destination) {
+        if (! $destinationFarm || ! $destination || ($isFarmTransfer && ! $farmerBelongsToDestination)) {
 
             return response()->json([
 
-                'success' =>
-                    false,
+                'success' => false,
 
-                'message' =>
-                    'The selected destination does not belong to the swine farm.',
+                'message' => 'The selected destination does not belong to the swine farm.',
 
             ], 422);
         }
-
 
         /*
         |--------------------------------------------------------------------------
@@ -1418,7 +1410,7 @@ class SwineMovementController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        return DB::transaction(function () use ($swine, $serverMovement, $destination, $validated) {
+        return DB::transaction(function () use ($swine, $serverMovement, $destination, $destinationFarm, $destinationFarmerId, $validated) {
 
             /*
             |--------------------------------------------------------------------------
@@ -1428,14 +1420,11 @@ class SwineMovementController extends Controller
 
             $serverMovement->update([
 
-                'status' =>
-                    'superseded',
+                'status' => 'superseded',
 
-                'conflict_resolution' =>
-                    'offline',
+                'conflict_resolution' => 'offline',
 
             ]);
-
 
             /*
             |--------------------------------------------------------------------------
@@ -1467,46 +1456,38 @@ class SwineMovementController extends Controller
                 ->latest('id')
                 ->first();
 
-
             if ($existingMovement) {
 
                 $swine->update([
 
-                    'current_location_id' =>
-                        $destination->id,
+                    'farm_id' => $destinationFarm->id,
+
+                    'farmer_id' => $destinationFarmerId,
+
+                    'current_location_id' => $destination->id,
 
                 ]);
-
 
                 return response()->json([
 
-                    'success' =>
-                        true,
+                    'success' => true,
 
-                    'conflict' =>
-                        false,
+                    'conflict' => false,
 
-                    'resolved' =>
-                        true,
+                    'resolved' => true,
 
-                    'resolution' =>
-                        'offline',
+                    'resolution' => 'offline',
 
-                    'already_applied' =>
-                        true,
+                    'already_applied' => true,
 
-                    'movement_id' =>
-                        $existingMovement->id,
+                    'movement_id' => $existingMovement->id,
 
-                    'superseded_movement_id' =>
-                        $serverMovement->id,
+                    'superseded_movement_id' => $serverMovement->id,
 
-                    'message' =>
-                        'Offline movement was already applied.',
+                    'message' => 'Offline movement was already applied.',
 
                 ]);
             }
-
 
             /*
             |--------------------------------------------------------------------------
@@ -1523,32 +1504,25 @@ class SwineMovementController extends Controller
                     |--------------------------------------------------------------------------
                     */
 
-                    'from_location_id' =>
-                        $swine->current_location_id,
+                    'from_location_id' => $swine->current_location_id,
 
-                    'to_location_id' =>
-                        $destination->id,
+                    'to_location_id' => $destination->id,
 
-                    'movement_date' =>
-                        $validated['movement_date'],
+                    'to_farmer_id' => $destinationFarmerId,
 
-                    'reason' =>
-                        $validated['reason'] ?? null,
+                    'movement_date' => $validated['movement_date'],
 
-                    'notes' =>
-                        $validated['notes'] ?? null,
+                    'reason' => $validated['reason'] ?? null,
 
-                    'recorded_by' =>
-                        auth()->id(),
+                    'notes' => $validated['notes'] ?? null,
 
-                    'status' =>
-                        'completed',
+                    'recorded_by' => auth()->id(),
 
-                    'conflict_resolution' =>
-                        'offline',
+                    'status' => 'completed',
+
+                    'conflict_resolution' => 'offline',
 
                 ]);
-
 
             /*
             |--------------------------------------------------------------------------
@@ -1558,11 +1532,13 @@ class SwineMovementController extends Controller
 
             $swine->update([
 
-                'current_location_id' =>
-                    $destination->id,
+                'farm_id' => $destinationFarm->id,
+
+                'farmer_id' => $destinationFarmerId,
+
+                'current_location_id' => $destination->id,
 
             ]);
-
 
             /*
             |--------------------------------------------------------------------------
@@ -1572,34 +1548,25 @@ class SwineMovementController extends Controller
 
             return response()->json([
 
-                'success' =>
-                    true,
+                'success' => true,
 
-                'conflict' =>
-                    false,
+                'conflict' => false,
 
-                'resolved' =>
-                    true,
+                'resolved' => true,
 
-                'resolution' =>
-                    'offline',
+                'resolution' => 'offline',
 
-                'movement_id' =>
-                    $movement->id,
+                'movement_id' => $movement->id,
 
-                'superseded_movement_id' =>
-                    $serverMovement->id,
+                'superseded_movement_id' => $serverMovement->id,
 
-                'current_location_id' =>
-                    $destination->id,
+                'current_location_id' => $destination->id,
 
-                'message' =>
-                    'Offline movement was kept and the online movement was superseded.',
+                'message' => 'Offline movement was kept and the online movement was superseded.',
 
             ]);
         });
     }
-
 
     /**
      * Display a single movement record.
@@ -1617,11 +1584,9 @@ class SwineMovementController extends Controller
 
         ]);
 
-
         return view('swine-movements.show', [
 
-            'movement' =>
-                $swineMovement,
+            'movement' => $swineMovement,
 
         ]);
     }

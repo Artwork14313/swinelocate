@@ -314,7 +314,7 @@ class WeightRecordController extends Controller
     public function update(
         Request $request,
         WeightRecord $weightRecord
-    ): RedirectResponse {
+    ): RedirectResponse|JsonResponse {
 
         $validated = $request->validate([
 
@@ -343,6 +343,14 @@ class WeightRecordController extends Controller
         $weightRecord->update(
             $validated
         );
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'weight_record_id' => $weightRecord->id,
+                'message' => 'Weight record updated successfully.',
+            ]);
+        }
 
 
         return redirect()

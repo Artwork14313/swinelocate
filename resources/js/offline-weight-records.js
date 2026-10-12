@@ -48,6 +48,11 @@ function initializeOfflineWeightRecords() {
             const swineId =
                 formData.get('swine_id');
 
+            const swineLocalId =
+                Number.isNaN(Number(swineId))
+                    ? String(swineId)
+                    : null;
+
 
             /*
              * Validate swine.
@@ -127,7 +132,10 @@ function initializeOfflineWeightRecords() {
                 local_id: localId,
 
                 swine_id:
-                    Number(swineId),
+                    swineLocalId ? null : Number(swineId),
+
+                swine_local_id:
+                    swineLocalId,
 
                 record_date:
                     recordDate,
@@ -191,6 +199,9 @@ function initializeOfflineWeightRecords() {
 
                         swine_id:
                             Number(swineId),
+
+                        swine_local_id:
+                            swineLocalId,
 
                         record_date:
                             recordDate,

@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class SwineMovement extends Model
 {
@@ -14,6 +14,7 @@ class SwineMovement extends Model
         'swine_id',
         'from_location_id',
         'to_location_id',
+        'to_farmer_id',
         'movement_date',
         'reason',
         'notes',
@@ -61,6 +62,11 @@ class SwineMovement extends Model
             FarmLocation::class,
             'to_location_id'
         );
+    }
+
+    public function toFarmer(): BelongsTo
+    {
+        return $this->belongsTo(Farmer::class, 'to_farmer_id');
     }
 
     /*

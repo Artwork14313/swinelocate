@@ -1,5 +1,5 @@
 const DB_NAME = 'SwineLocateDB';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 const STORES = {
     swine: 'swine',
@@ -7,6 +7,7 @@ const STORES = {
     weightRecords: 'weight_records',
     movements: 'movements',
     syncQueue: 'sync_queue',
+    referenceData: 'reference_data',
 };
 
 
@@ -87,6 +88,13 @@ export function openOfflineDB() {
                     { unique: false }
                 );
 
+            }
+
+            if (!db.objectStoreNames.contains(STORES.referenceData)) {
+                db.createObjectStore(
+                    STORES.referenceData,
+                    { keyPath: 'id' }
+                );
             }
 
 

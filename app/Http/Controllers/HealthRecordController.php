@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\HealthRecord;
 use App\Models\Swine;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -191,6 +192,78 @@ class HealthRecordController extends Controller
     }
 
     /**
+     * Store an offline health record without creating duplicates on retry.
+     */
+    public function syncStore(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'local_id' => ['required', 'uuid'],
+            'swine_id' => [
+                'required',
+                Rule::exists('swine', 'id')
+                    ->where(fn ($query) => $query->where('status', 'active')),
+            ],
+            'record_date' => ['required', 'date', 'before_or_equal:today'],
+            'record_type' => [
+                'required',
+                Rule::in([
+                    'Routine Examination',
+                    'Vaccination',
+                    'Illness',
+                    'Treatment',
+                    'Injury',
+                    'Follow-up',
+                    'Other',
+                ]),
+            ],
+            'vaccine_name' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::requiredIf(
+                    fn () => $request->input('record_type') === 'Vaccination'
+                ),
+            ],
+            'dose' => ['nullable', 'string', 'max:255'],
+            'batch_number' => ['nullable', 'string', 'max:255'],
+            'next_due_date' => ['nullable', 'date', 'after_or_equal:record_date'],
+            'symptoms' => ['nullable', 'string'],
+            'diagnosis' => ['nullable', 'string'],
+            'treatment' => ['nullable', 'string'],
+            'observations' => ['nullable', 'string'],
+            'veterinary_assessment' => ['nullable', 'string'],
+            'health_status' => [
+                'required',
+                Rule::in(['healthy', 'under_observation', 'sick', 'recovering']),
+            ],
+            'notes' => ['nullable', 'string'],
+        ]);
+
+        if ($validated['record_type'] !== 'Vaccination') {
+            $validated['vaccine_name'] = null;
+            $validated['dose'] = null;
+            $validated['batch_number'] = null;
+            $validated['next_due_date'] = null;
+        }
+
+        $validated['recorded_by'] = $request->user()->id;
+
+        $healthRecord = HealthRecord::query()->firstOrCreate(
+            ['local_id' => $validated['local_id']],
+            $validated
+        );
+
+        return response()->json([
+            'success' => true,
+            'health_record_id' => $healthRecord->id,
+            'already_synced' => ! $healthRecord->wasRecentlyCreated,
+            'message' => $healthRecord->wasRecentlyCreated
+                ? 'Offline health record synchronized successfully.'
+                : 'Health record was already synchronized.',
+        ], $healthRecord->wasRecentlyCreated ? 201 : 200);
+    }
+
+    /**
      * Display the specified health record.
      */
     public function show(HealthRecord $healthRecord): View
@@ -247,7 +320,7 @@ class HealthRecordController extends Controller
     public function update(
         Request $request,
         HealthRecord $healthRecord
-    ): RedirectResponse {
+    ): RedirectResponse|JsonResponse {
         $validated = $request->validate([
             'swine_id' => [
                 'required',
@@ -357,6 +430,15 @@ class HealthRecordController extends Controller
         }
 
         $healthRecord->update($validated);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'health_record_id' => $healthRecord->id,
+                'swine_id' => $healthRecord->swine_id,
+                'message' => 'Health record updated successfully.',
+            ]);
+        }
 
         return redirect()
             ->route('health-records.index')

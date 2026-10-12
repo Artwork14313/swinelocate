@@ -96,4 +96,32 @@ When registering swine offline, the form stores the record and its QR token loca
 and queues it for `/swine/sync`. Each local registration carries an idempotency ID,
 so retries after an interrupted response do not create duplicate server records.
 The sync status page shows records waiting to synchronize or requiring conflict
-resolution. Only pages/data already loaded on a device are available offline.
+resolution. Signed-in pages refresh a user-scoped cache of active farms, farmers,
+locations, and swine for offline form selection; the cache refreshes when the
+device reconnects. Farm, farmer, and location creation or editing remains
+online-only. Open the relevant forms and data while online before relying on them
+offline; this lookup cache does not make uncached pages available offline.
+
+Health and weight records created offline keep a stable local identifier and
+wait in the synchronization queue until a swine registered offline has a
+server ID. Health synchronization is idempotent, so retrying a request does
+not create a second health record. The queue preserves insertion order; keep
+the device's pending registration and dependent records on the same signed-in
+account until synchronization completes.
+
+Health and weight records that already exist on the server can also be edited
+offline. Open the relevant edit page while online first; offline edits are
+saved on the device and queued for the server update endpoint, then retried
+when connectivity returns. Server-side validation still applies during sync.
+
+Movement records can transfer a swine between active farms. Choose an active
+destination farm, one of its active locations, and a farmer registered to that
+farm; the transfer updates the swine's current farm, farmer, and location while
+preserving the movement history. Offline transfers are queued with their farm
+and farmer details and are subject to the same server-side validation.
+
+The mobile deliverable is an installable, responsive web application/PWA, not
+a native mobile app. Offline caching supports previously visited pages and
+cached form lookup choices, but QR camera scanning and animal-detail retrieval
+are not guaranteed to work offline. Test those flows with the target devices
+and network conditions before claiming offline QR capability.

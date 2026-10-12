@@ -465,7 +465,7 @@ MOBILE SIDEBAR OVERLAY
             8. BACKUP & RESTORE
             ==================================================== --}}
 
-            @if(Auth::user()->hasPermission('manage-backups'))
+            <!-- @if(Auth::user()->hasPermission('manage-backups'))
 
                 <div class="mb-6">
 
@@ -492,7 +492,7 @@ MOBILE SIDEBAR OVERLAY
 
                 </div>
 
-            @endif
+            @endif -->
 
         </div>
 
@@ -943,7 +943,7 @@ DESKTOP SIDEBAR
         8. BACKUP & RESTORE
         ======================================================== --}}
 
-        @if(Auth::user()->hasPermission('manage-backups'))
+        <!-- @if(Auth::user()->hasPermission('manage-backups'))
 
             <div class="mb-6">
 
@@ -970,7 +970,7 @@ DESKTOP SIDEBAR
 
             </div>
 
-        @endif
+        @endif -->
 
     </div>
 

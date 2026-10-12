@@ -40,7 +40,8 @@
             @endif
 
 
-            <form method="POST" action="{{ route('health-records.update', $healthRecord) }}" class="space-y-6">
+            <form id="health-record-edit-form" data-record-id="{{ $healthRecord->id }}"
+                method="POST" action="{{ route('health-records.update', $healthRecord) }}" class="space-y-6">
 
                 @csrf
                 @method('PUT')
@@ -67,7 +68,8 @@
                                 Swine <span class="text-red-500">*</span>
                             </label>
 
-                            <select id="swine_id" name="swine_id" required class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm
+                            <select id="swine_id" name="swine_id" required
+                                class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm
                                        focus:border-indigo-500 focus:ring-indigo-500">
 
                                 @foreach ($swine as $animal)

@@ -84,6 +84,7 @@
                             <select
                                 id="swine_id"
                                 name="swine_id"
+                                data-offline-reference="swine"
                                 required
                                 class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm
                                        focus:border-indigo-500 focus:ring-indigo-500"
