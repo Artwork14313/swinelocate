@@ -15,8 +15,8 @@
                     @if($farm->status === 'active')
 
                         <span class="inline-flex items-center rounded-full
-                                         bg-green-100 px-2.5 py-1
-                                         text-xs font-semibold text-green-700">
+                                             bg-green-100 px-2.5 py-1
+                                             text-xs font-semibold text-green-700">
 
                             <span class="mr-1.5 h-1.5 w-1.5 rounded-full bg-green-500"></span>
 
@@ -27,8 +27,8 @@
                     @else
 
                         <span class="inline-flex items-center rounded-full
-                                         bg-gray-100 px-2.5 py-1
-                                         text-xs font-semibold text-gray-600">
+                                             bg-gray-100 px-2.5 py-1
+                                             text-xs font-semibold text-gray-600">
 
                             <span class="mr-1.5 h-1.5 w-1.5 rounded-full bg-gray-400"></span>
 
@@ -76,13 +76,13 @@
             @if($farm->status === 'inactive')
 
                 <div class="rounded-lg border border-gray-200
-                                bg-gray-50 px-4 py-4">
+                                    bg-gray-50 px-4 py-4">
 
                     <div class="flex items-start gap-3">
 
                         <div class="mt-0.5 flex h-8 w-8 shrink-0
-                                        items-center justify-center
-                                        rounded-full bg-gray-200">
+                                            items-center justify-center
+                                            rounded-full bg-gray-200">
 
                             <svg class="h-4 w-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 
@@ -153,7 +153,18 @@
                             </p>
 
                         </div>
+                        {{-- Brgy. --}}
+                        <div class="md:col-span-2">
 
+                            <p class="text-sm text-gray-500">
+                                Barangay
+                            </p>
+
+                            <p class="font-medium text-gray-900">
+                                {{ $farm->address ?? '—' }}
+                            </p>
+
+                        </div>
 
                         {{-- Municipality --}}
                         <div>
@@ -225,18 +236,7 @@
                         </div>
 
 
-                        {{-- Address --}}
-                        <div class="md:col-span-2">
 
-                            <p class="text-sm text-gray-500">
-                                Address
-                            </p>
-
-                            <p class="font-medium text-gray-900">
-                                {{ $farm->address ?? '—' }}
-                            </p>
-
-                        </div>
 
 
                         {{-- Coordinates --}}
@@ -282,9 +282,9 @@
                                 @if($farm->status === 'active')
 
                                     <span class="inline-flex items-center rounded-full
-                                                     bg-green-100 px-2.5 py-1
-                                                     text-xs font-semibold
-                                                     text-green-700">
+                                                         bg-green-100 px-2.5 py-1
+                                                         text-xs font-semibold
+                                                         text-green-700">
 
                                         <span class="mr-1.5 h-1.5 w-1.5 rounded-full bg-green-500"></span>
 
@@ -295,9 +295,9 @@
                                 @else
 
                                     <span class="inline-flex items-center rounded-full
-                                                     bg-gray-100 px-2.5 py-1
-                                                     text-xs font-semibold
-                                                     text-gray-600">
+                                                         bg-gray-100 px-2.5 py-1
+                                                         text-xs font-semibold
+                                                         text-gray-600">
 
                                         <span class="mr-1.5 h-1.5 w-1.5 rounded-full bg-gray-400"></span>
 
@@ -397,19 +397,19 @@
 
 
                         @if(
-                                            $farm->status === 'active' &&
-                                            auth()->user()->hasPermission('manage-locations')
-                                        )
+                                $farm->status === 'active' &&
+                                auth()->user()->hasPermission('manage-locations')
+                            )
 
-                                        <a href="{{ route('farms.locations.index', $farm) }}" class="inline-flex items-center rounded-md
-                              bg-gray-900 px-4 py-2 text-xs
-                              font-semibold uppercase
-                              tracking-widest text-white
-                              hover:bg-gray-700">
+                            <a href="{{ route('farms.locations.index', $farm) }}" class="inline-flex items-center rounded-md
+                                  bg-gray-900 px-4 py-2 text-xs
+                                  font-semibold uppercase
+                                  tracking-widest text-white
+                                  hover:bg-gray-700">
 
-                                            Manage Locations
+                                Manage Locations
 
-                                        </a>
+                            </a>
 
                         @endif
 
@@ -426,8 +426,8 @@
                         <div class="border-b border-gray-200 py-4 last:border-b-0">
 
                             <div class="flex flex-col gap-3
-                                            sm:flex-row sm:items-center
-                                            sm:justify-between">
+                                                sm:flex-row sm:items-center
+                                                sm:justify-between">
 
 
                                 <div>
@@ -448,9 +448,9 @@
                                     @if($location->status === 'active')
 
                                         <span class="inline-flex items-center rounded-full
-                                                             bg-green-100 px-2.5 py-1
-                                                             text-xs font-semibold
-                                                             text-green-700">
+                                                                     bg-green-100 px-2.5 py-1
+                                                                     text-xs font-semibold
+                                                                     text-green-700">
 
                                             <span class="mr-1.5 h-1.5 w-1.5 rounded-full bg-green-500"></span>
 
@@ -461,9 +461,9 @@
                                     @else
 
                                         <span class="inline-flex items-center rounded-full
-                                                             bg-gray-100 px-2.5 py-1
-                                                             text-xs font-semibold
-                                                             text-gray-600">
+                                                                     bg-gray-100 px-2.5 py-1
+                                                                     text-xs font-semibold
+                                                                     text-gray-600">
 
                                             <span class="mr-1.5 h-1.5 w-1.5 rounded-full bg-gray-400"></span>
 
@@ -490,7 +490,7 @@
                             @if($farm->status === 'active' && auth()->user()->hasPermission('manage-locations'))
 
                                 <a href="{{ route('farms.locations.index', $farm) }}" class="mt-3 inline-block text-sm font-semibold
-                                                  text-indigo-600 hover:text-indigo-800">
+                                                          text-indigo-600 hover:text-indigo-800">
                                     Add a location →
                                 </a>
 

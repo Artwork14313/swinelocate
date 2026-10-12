@@ -41,20 +41,23 @@
 </div>
 
 
-{{-- Complete Address --}}
-<div class="md:col-span-2">
+{{-- Barangay --}}
+<div>
 
     <x-input-label
         for="address"
-        value="Complete Address"
+        value="Barangay (Brgy.)"
     />
 
-    <textarea
+    <x-text-input
         id="address"
         name="address"
-        rows="3"
-        class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-    >{{ old('address', $farm->address ?? '') }}</textarea>
+        type="text"
+        class="mt-1 block w-full"
+        value="{{ old('address', $farm->address ?? '') }}"
+        placeholder="Enter barangay"
+        required
+    />
 
     <x-input-error
         :messages="$errors->get('address')"

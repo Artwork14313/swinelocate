@@ -23,6 +23,26 @@
                 </dl>
             </section>
 
+            <section id="farmer-qr-print" class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
+                <div class="text-center">
+                    <h3 class="text-lg font-semibold text-gray-900">Public Farmer QR Code</h3>
+                    <p class="mt-1 text-sm text-gray-500">
+                        Buyers can scan this code to view animals the farmer has listed for sale.
+                    </p>
+                    <div class="mx-auto mt-5 w-fit rounded-xl border border-gray-200 bg-white p-4">
+                        {!! $qrCode !!}
+                    </div>
+                    <div class="no-print mt-5 flex flex-wrap justify-center gap-3">
+                        <button type="button" onclick="window.print()" class="rounded-lg bg-gray-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-gray-900">
+                            Print Farmer QR
+                        </button>
+                        <a href="{{ route('farmers.public-profile', ['qr_token' => $farmer->qr_token]) }}" target="_blank" rel="noopener noreferrer" class="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                            Preview Public Page
+                        </a>
+                    </div>
+                </div>
+            </section>
+
             <section class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
                 <div class="border-b border-gray-200 px-6 py-5">
                     <h3 class="text-lg font-semibold text-gray-900">Registered Swine</h3>
@@ -53,4 +73,27 @@
             </section>
         </div>
     </div>
+    <style>
+        @media print {
+            body * {
+                visibility: hidden !important;
+            }
+
+            #farmer-qr-print,
+            #farmer-qr-print * {
+                visibility: visible !important;
+            }
+
+            #farmer-qr-print {
+                position: absolute;
+                inset: 0;
+                width: 100%;
+                box-shadow: none;
+            }
+
+            #farmer-qr-print .no-print {
+                display: none !important;
+            }
+        }
+    </style>
 </x-app-layout>

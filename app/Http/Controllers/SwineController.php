@@ -143,7 +143,14 @@ class SwineController extends Controller
                 'nullable',
                 'string',
             ],
+            'is_for_sale' => ['sometimes', 'boolean'],
+            'asking_price' => ['nullable', 'numeric', 'min:0.01', 'max:99999999.99'],
         ]);
+
+        $validated['is_for_sale'] = $request->boolean('is_for_sale');
+        $validated['asking_price'] = $validated['is_for_sale']
+            ? ($validated['asking_price'] ?? null)
+            : null;
 
         /*
         |--------------------------------------------------------------------------
@@ -321,7 +328,15 @@ class SwineController extends Controller
             ],
             'source' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
+            'is_for_sale' => ['sometimes', 'boolean'],
+            'asking_price' => ['nullable', 'numeric', 'min:0.01', 'max:99999999.99'],
         ]);
+
+        $validated['is_for_sale'] = $request->boolean('is_for_sale')
+            && $swine->status === 'active';
+        $validated['asking_price'] = $validated['is_for_sale']
+            ? ($validated['asking_price'] ?? null)
+            : null;
 
         $farm = Farm::findOrFail($validated['farm_id']);
 
@@ -398,6 +413,8 @@ class SwineController extends Controller
 
         $swine->update([
             'status' => 'inactive',
+            'is_for_sale' => false,
+            'asking_price' => null,
         ]);
 
         return redirect()
@@ -453,6 +470,8 @@ class SwineController extends Controller
 
         $swine->update([
             'status' => 'active',
+            'is_for_sale' => false,
+            'asking_price' => null,
         ]);
 
         return redirect()
@@ -489,6 +508,8 @@ class SwineController extends Controller
 
         $swine->update([
             'status' => 'sold',
+            'is_for_sale' => false,
+            'asking_price' => null,
         ]);
 
         return redirect()
@@ -525,6 +546,8 @@ class SwineController extends Controller
 
         $swine->update([
             'status' => 'deceased',
+            'is_for_sale' => false,
+            'asking_price' => null,
         ]);
 
         return redirect()
@@ -629,6 +652,9 @@ class SwineController extends Controller
                 'string',
             ],
 
+            'is_for_sale' => ['sometimes', 'boolean'],
+            'asking_price' => ['nullable', 'numeric', 'min:0.01', 'max:99999999.99'],
+
             'original_updated_at' => [
                 'required',
                 'date',
@@ -650,6 +676,12 @@ class SwineController extends Controller
                 'message' => 'Invalid swine record.',
             ], 422);
         }
+
+        $validated['is_for_sale'] = $request->boolean('is_for_sale')
+            && ($validated['status'] ?? $swine->status) === 'active';
+        $validated['asking_price'] = $validated['is_for_sale']
+            ? ($validated['asking_price'] ?? null)
+            : null;
 
         /*
         |--------------------------------------------------------------------------
@@ -967,6 +999,9 @@ class SwineController extends Controller
                 'string',
             ],
 
+            'is_for_sale' => ['sometimes', 'boolean'],
+            'asking_price' => ['nullable', 'numeric', 'min:0.01', 'max:99999999.99'],
+
             'qr_token' => [
                 'required',
                 'string',
@@ -1038,6 +1073,10 @@ class SwineController extends Controller
         */
 
         $validated['status'] = 'active';
+        $validated['is_for_sale'] = $request->boolean('is_for_sale');
+        $validated['asking_price'] = $validated['is_for_sale']
+            ? ($validated['asking_price'] ?? null)
+            : null;
 
         /*
         |--------------------------------------------------------------------------
@@ -1141,7 +1180,16 @@ class SwineController extends Controller
                 'nullable',
                 'string',
             ],
+
+            'is_for_sale' => ['sometimes', 'boolean'],
+            'asking_price' => ['nullable', 'numeric', 'min:0.01', 'max:99999999.99'],
         ]);
+
+        $validated['is_for_sale'] = $request->boolean('is_for_sale')
+            && ($validated['status'] ?? $swine->status) === 'active';
+        $validated['asking_price'] = $validated['is_for_sale']
+            ? ($validated['asking_price'] ?? null)
+            : null;
 
         /*
         |--------------------------------------------------------------------------

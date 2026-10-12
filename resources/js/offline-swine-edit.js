@@ -178,6 +178,13 @@ function initializeOfflineSwineEdit() {
                     'notes'
                 ) || null;
 
+            const isForSale =
+                formData.get('is_for_sale') === '1';
+
+            const askingPrice =
+                formData.get('asking_price')
+                || null;
+
 
             /*
              * ----------------------------------------------------------
@@ -277,6 +284,12 @@ function initializeOfflineSwineEdit() {
                 notes:
                     notes,
 
+                is_for_sale:
+                    isForSale,
+
+                asking_price:
+                    askingPrice,
+
                 sync_status:
                     'pending',
 
@@ -373,6 +386,12 @@ function initializeOfflineSwineEdit() {
 
                         notes:
                             notes,
+
+                        is_for_sale:
+                            isForSale,
+
+                        asking_price:
+                            askingPrice,
 
                         /*
                          * Used by Laravel to detect

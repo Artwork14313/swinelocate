@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
 class Swine extends Model
@@ -28,12 +29,16 @@ class Swine extends Model
         'acquisition_date',
         'source',
         'status',
+        'is_for_sale',
+        'asking_price',
         'notes',
     ];
 
     protected $casts = [
         'birth_date' => 'date',
         'acquisition_date' => 'date',
+        'is_for_sale' => 'boolean',
+        'asking_price' => 'decimal:2',
     ];
 
     public function farm(): BelongsTo
@@ -69,6 +74,11 @@ class Swine extends Model
     public function weightRecords(): HasMany
     {
         return $this->hasMany(WeightRecord::class);
+    }
+
+    public function latestWeightRecord(): HasOne
+    {
+        return $this->hasOne(WeightRecord::class)->latestOfMany('record_date');
     }
 
     protected static function booted(): void

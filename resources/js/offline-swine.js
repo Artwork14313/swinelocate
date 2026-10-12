@@ -96,6 +96,13 @@ function initializeOfflineSwine() {
                 formData.get('notes')
                 || null;
 
+            const isForSale =
+                formData.get('is_for_sale') === '1';
+
+            const askingPrice =
+                formData.get('asking_price')
+                || null;
+
 
             /*
              * Basic validation.
@@ -210,6 +217,12 @@ function initializeOfflineSwine() {
                 status:
                     'active',
 
+                is_for_sale:
+                    isForSale,
+
+                asking_price:
+                    askingPrice,
+
                 qr_token:
                     qrToken,
 
@@ -299,6 +312,12 @@ function initializeOfflineSwine() {
 
                         status:
                             'active',
+
+                        is_for_sale:
+                            isForSale,
+
+                        asking_price:
+                            askingPrice,
 
                         qr_token:
                             qrToken,

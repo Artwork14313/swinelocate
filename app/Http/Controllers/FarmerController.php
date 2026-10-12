@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class FarmerController extends Controller
 {
@@ -72,7 +73,46 @@ class FarmerController extends Controller
                 ->orderBy('tag_number'),
         ]);
 
-        return view('farmers.show', compact('farmer'));
+        $qrCode = QrCode::size(220)->generate(
+            route('farmers.public-profile', [
+                'qr_token' => $farmer->qr_token,
+            ])
+        );
+
+        return view('farmers.show', compact('farmer', 'qrCode'));
+    }
+
+    public function publicProfile(string $qr_token): View
+    {
+        $farmer = Farmer::query()
+            ->where('qr_token', $qr_token)
+            ->with([
+                'farm:id,name,address,municipality,province,region',
+                'swine' => fn ($query) => $query
+                    ->where('status', 'active')
+                    ->where('is_for_sale', true)
+                    ->select([
+                        'id',
+                        'farmer_id',
+                        'sex',
+                        'breed',
+                        'birth_date',
+                        'asking_price',
+                    ])
+                    ->with([
+                        'latestWeightRecord' => fn ($query) => $query->select([
+                            'weight_records.id',
+                            'weight_records.swine_id',
+                            'weight_records.record_date',
+                            'weight_records.weight',
+                        ]),
+                    ])
+                    ->orderBy('breed')
+                    ->orderBy('sex'),
+            ])
+            ->firstOrFail();
+
+        return view('farmers.public-profile', compact('farmer'));
     }
 
     public function edit(Farmer $farmer): View

@@ -22,6 +22,10 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
+Route::get('/public/farmers/{qr_token}', [FarmerController::class, 'publicProfile'])
+    ->middleware('throttle:60,1')
+    ->name('farmers.public-profile');
+
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');

@@ -92,6 +92,13 @@ included in `RolePermissionSeeder`; seed role permissions with
 `php artisan db:seed --class=RolePermissionSeeder` when setting up or upgrading
 the role permissions.
 
+Each farmer has a printable QR code on the farmer profile page. Scanning it opens
+a public page without requiring a SwineLocate account. The public page shows the
+farmer's name, farm name and general location, plus linked swine identification
+details; it does not show farmer contact details, exact addresses, internal notes,
+or health records. Keep the deployed application reachable to buyers for QR links
+to work.
+
 When registering swine offline, the form stores the record and its QR token locally
 and queues it for `/swine/sync`. Each local registration carries an idempotency ID,
 so retries after an interrupted response do not create duplicate server records.

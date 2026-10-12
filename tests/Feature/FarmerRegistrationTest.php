@@ -80,7 +80,31 @@ class FarmerRegistrationTest extends TestCase
             ->assertOk()
             ->assertSee('Riley Farmer')
             ->assertSee('data-farm-id="'.$farm->id.'"', false)
-            ->assertSee('Register a farmer for this farm');
+            ->assertSee('Register a farmer for this farm')
+            ->assertSee('List this swine as available for sale')
+            ->assertSee('Asking Price (optional)');
+    }
+
+    public function test_swine_can_be_listed_for_sale_with_an_optional_asking_price(): void
+    {
+        $this->actingAs($this->userWithPermissions('register-swine'));
+        $farm = $this->createFarm('F-109');
+        $farmer = $this->createFarmer($farm, 'Morgan Farmer');
+
+        $this->post(route('swine.store'), [
+            'farm_id' => $farm->id,
+            'farmer_id' => $farmer->id,
+            'tag_number' => 'SW-109',
+            'sex' => 'female',
+            'is_for_sale' => '1',
+            'asking_price' => '15000.00',
+        ])->assertRedirect(route('swine.index'));
+
+        $this->assertDatabaseHas('swine', [
+            'tag_number' => 'SW-109',
+            'is_for_sale' => true,
+            'asking_price' => '15000.00',
+        ]);
     }
 
     public function test_farmer_registration_can_preselect_the_farm_from_swine_registration(): void

@@ -429,6 +429,57 @@
                                 @enderror
                             </div>
 
+                            <div class="md:col-span-2 rounded-lg border border-indigo-100 bg-indigo-50/50 p-4">
+                                <div class="flex items-start gap-3">
+                                    <input
+                                        id="is_for_sale"
+                                        name="is_for_sale"
+                                        type="checkbox"
+                                        value="1"
+                                        @checked(old('is_for_sale', $swine->is_for_sale))
+                                        @disabled($swine->status !== 'active')
+                                        class="mt-1 rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500"
+                                    >
+                                    <div>
+                                        <label for="is_for_sale" class="font-medium text-gray-900">
+                                            List this swine as available for sale
+                                        </label>
+                                        <p class="mt-1 text-sm text-gray-600">
+                                            Only active swine you list will appear on the public farmer profile.
+                                        </p>
+                                        @if ($swine->status !== 'active')
+                                            <p class="mt-1 text-sm text-amber-700">Activate this swine before listing it for sale.</p>
+                                        @endif
+                                    </div>
+                                </div>
+                                @error('is_for_sale')
+                                    <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+
+                                <div class="mt-4 max-w-sm">
+                                    <label for="asking_price" class="block text-sm font-medium text-gray-700">
+                                        Asking Price (optional)
+                                    </label>
+                                    <div class="mt-1 flex rounded-lg shadow-sm">
+                                        <span class="inline-flex items-center rounded-l-lg border border-r-0 border-gray-300 bg-gray-50 px-3 text-sm text-gray-500">₱</span>
+                                        <input
+                                            id="asking_price"
+                                            name="asking_price"
+                                            type="number"
+                                            min="0.01"
+                                            max="99999999.99"
+                                            step="0.01"
+                                            value="{{ old('asking_price', $swine->asking_price) }}"
+                                            @disabled($swine->status !== 'active')
+                                            class="block w-full rounded-r-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                                        >
+                                    </div>
+                                    @error('asking_price')
+                                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                            </div>
+
                             {{-- Notes --}}
                             <div class="md:col-span-2">
                                 <label
