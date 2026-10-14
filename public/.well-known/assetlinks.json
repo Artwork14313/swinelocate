@@ -1,0 +1,14 @@
+[
+    {
+        "relation": [
+            "delegate_permission/common.handle_all_urls"
+        ],
+        "target": {
+            "namespace": "android_app",
+            "package_name": "com.swine.locate",
+            "sha256_cert_fingerprints": [
+                "51:07:81:E9:DB:A9:C1:46:CA:BA:7F:3C:68:14:72:A4:03:DD:F6:FB:3F:22:B1:49:33:F7:8F:DA:D4:4B:F7:DD"
+            ]
+        }
+    }
+]

@@ -80,6 +80,75 @@ default host detection, so desktop development does not depend on a fixed LAN IP
 Camera-based QR scanning requires a secure browser context, such as HTTPS, outside
 localhost.
 
+## Production hosting and Android app
+
+For production, deploy SwineLocate to Laravel Cloud and use the HTTPS URL assigned
+to the production environment. The local-network IP instructions above are only
+for development; phones should use the hosted URL after deployment.
+The current production URL is
+`https://swinelocate-production-h3g41v.laravel.cloud`.
+
+Laravel Cloud environments use an ephemeral filesystem, so SQLite is not suitable
+for production. Attach a managed Laravel MySQL or Serverless Postgres database to
+the Cloud environment; Cloud supplies the database connection variables. Do not
+commit database credentials or production environment files.
+
+In Laravel Cloud, connect this Git repository, choose the PHP runtime supported
+by `composer.json`, and configure the deployment commands:
+
+```sh
+# Build command
+composer install --no-dev --optimize-autoloader && npm ci && npm run build
+
+# Deploy command
+php artisan migrate --force
+```
+
+Set `APP_KEY` to a securely generated key (`php artisan key:generate --show`),
+`APP_ENV=production`, `APP_DEBUG=false`, and `APP_URL` to the assigned HTTPS
+address. Review the production database before importing data: select the
+authoritative backup, import it securely into the managed database, and verify
+record counts and relationships before directing users to the live system. Do
+not seed demo users or roles into a production database without reviewing the
+seeders and intended accounts first.
+
+### Android app
+
+The Android Trusted Web Activity project is in `android/`. It opens the hosted
+SwineLocate PWA in a full-screen Android app window without browser controls and
+uses the same hosted Laravel application and central database. Its package ID is
+`com.swine.locate`; the Cloud host, manifest, and signing certificate are set for
+`https://swinelocate-production-h3g41v.laravel.cloud`.
+
+Deploy the `public/.well-known/assetlinks.json` file to Laravel Cloud before
+installing or testing the Android app. Android/Chrome verifies that file against
+the signing certificate before showing the site without browser controls. If the
+certificate or production URL changes, update the Digital Asset Links file and
+deploy it before releasing the updated app.
+
+The release keystore (`android/android.keystore`) and its randomly generated
+passwords are deliberately excluded from Git. The passwords are stored locally
+at `$HOME/.bubblewrap/swine-locate-signing.json`. Back up both the keystore and
+passwords securely; without them, you cannot publish updates signed as the same
+Android app. Do not commit, email, or publish either signing secret.
+
+With Node.js, Java 17, and the Android SDK installed, build a signed release:
+
+```powershell
+$signing = Get-Content "$HOME\.bubblewrap\swine-locate-signing.json" | ConvertFrom-Json
+$env:BUBBLEWRAP_KEYSTORE_PASSWORD = $signing.storePassword
+$env:BUBBLEWRAP_KEY_PASSWORD = $signing.keyPassword
+npm run android:build
+Remove-Item Env:BUBBLEWRAP_KEYSTORE_PASSWORD
+Remove-Item Env:BUBBLEWRAP_KEY_PASSWORD
+```
+
+The signed APK and Play Store app bundle are generated in `android/`. Verify
+installation and full-screen domain verification on a real Android device before
+distributing the app. A TWA wrapper does not itself provide guaranteed background
+synchronization while Android has closed the app; offline recording and sync
+continue to use the PWA's existing service worker and IndexedDB queue.
+
 ## Farmer, swine, and offline workflow
 
 Register farms before adding farmer profiles. A farmer profile stores the farmer's

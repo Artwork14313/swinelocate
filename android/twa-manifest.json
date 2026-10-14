@@ -1,0 +1,51 @@
+{
+  "packageId": "com.swine.locate",
+  "host": "swinelocate-production-h3g41v.laravel.cloud",
+  "name": "SwineLocate",
+  "launcherName": "SwineLocate",
+  "display": "standalone",
+  "themeColor": "#3368A0",
+  "themeColorDark": "#000000",
+  "navigationColor": "#000000",
+  "navigationColorDark": "#000000",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
+  "backgroundColor": "#F9FAFB",
+  "enableNotifications": false,
+  "startUrl": "/dashboard",
+  "iconUrl": "https://swinelocate-production-h3g41v.laravel.cloud/icons/SwineLocateLogo-512.png",
+  "maskableIconUrl": "https://swinelocate-production-h3g41v.laravel.cloud/icons/SwineLocateLogo-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "swine-locate-release"
+  },
+  "appVersionName": "1",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://swinelocate-production-h3g41v.laravel.cloud/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://swinelocate-production-h3g41v.laravel.cloud/",
+  "minSdkVersion": 24,
+  "orientation": "portrait",
+  "fingerprints": [
+    {
+      "value": "51:07:81:E9:DB:A9:C1:46:CA:BA:7F:3C:68:14:72:A4:03:DD:F6:FB:3F:22:B1:49:33:F7:8F:DA:D4:4B:F7:DD"
+    }
+  ],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "protocolHandlers": [],
+  "fileHandlers": [],
+  "launchHandlerClientMode": "",
+  "displayOverride": [],
+  "appVersion": "1"
+}

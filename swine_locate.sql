@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 12, 2026 at 04:56 AM
+-- Generation Time: Oct 14, 2026 at 02:59 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -70,6 +70,7 @@ CREATE TABLE `failed_jobs` (
 CREATE TABLE `farmers` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `farm_id` bigint(20) UNSIGNED NOT NULL,
+  `qr_token` varchar(64) DEFAULT NULL,
   `name` varchar(255) NOT NULL,
   `contact_number` varchar(30) NOT NULL,
   `email` varchar(255) DEFAULT NULL,
@@ -82,10 +83,11 @@ CREATE TABLE `farmers` (
 -- Dumping data for table `farmers`
 --
 
-INSERT INTO `farmers` (`id`, `farm_id`, `name`, `contact_number`, `email`, `address`, `created_at`, `updated_at`) VALUES
-(1, 2, 'Ben 10', '09656546', NULL, 'sagay', '2026-10-09 06:25:51', '2026-10-09 06:35:00'),
-(2, 2, 'tests', '2133123', NULL, 'adad', '2026-10-12 00:30:04', '2026-10-12 00:30:04'),
-(3, 2, 'benjo', '123213', NULL, 'asdasd', '2026-10-12 01:23:26', '2026-10-12 01:23:26');
+INSERT INTO `farmers` (`id`, `farm_id`, `qr_token`, `name`, `contact_number`, `email`, `address`, `created_at`, `updated_at`) VALUES
+(1, 2, '0UpCtVxgf9OV9egGiEUKR0v8oRxuHVQOHxFY8mXjc2Qsyfe5', 'Ben 10', '09656546', NULL, 'sagay', '2026-10-09 06:25:51', '2026-10-09 06:35:00'),
+(2, 2, 'bBtn93rH7uXXurIch3PGyeWPuVIc8fU42KIFJcdLHpqRYZus', 'tests', '2133123', NULL, 'adad', '2026-10-12 00:30:04', '2026-10-12 00:30:04'),
+(3, 2, 'QH1o3Hg6Tm6ifYdphmNOs1NDt2rCZjok6yh8oTHImVJcb72W', 'benjo', '123213', NULL, 'asdasd', '2026-10-12 01:23:26', '2026-10-12 01:23:26'),
+(4, 2, 'KUaZP7iL7Ox9tIZQwx7lCzKJvSUXLh9lvIH58ZI5JX6IRFLs', 'Berto', '13123', 'berto@gmail.com', 'Sagay City', '2026-10-12 06:24:29', '2026-10-12 06:24:29');
 
 -- --------------------------------------------------------
 
@@ -117,7 +119,7 @@ CREATE TABLE `farms` (
 
 INSERT INTO `farms` (`id`, `farm_code`, `name`, `address`, `municipality`, `province`, `region`, `latitude`, `longitude`, `contact_number`, `email`, `status`, `created_at`, `updated_at`, `deleted_at`) VALUES
 (1, 'FARM-001', 'Tope Backyard', 'sagay', 'Sagay', 'Negros Occidental', 'VI', 10.0000000, 123.0000000, NULL, NULL, 'active', '2026-09-25 14:06:03', '2026-09-25 14:06:03', NULL),
-(2, 'FARM-002', 'Slaughter', 'Sagay', 'Sagay', 'Negros Occidental', 'VI', 12.0000000, 123.0000000, NULL, NULL, 'active', '2026-10-09 06:30:39', '2026-10-09 06:30:39', NULL);
+(2, 'FARM-002', 'Slaughter', 'Poblacion 1', 'Sagay City', 'Negros Occidental', 'VI', 12.0000000, 123.0000000, NULL, NULL, 'active', '2026-10-09 06:30:39', '2026-10-12 11:06:47', NULL);
 
 -- --------------------------------------------------------
 
@@ -144,8 +146,8 @@ CREATE TABLE `farm_locations` (
 --
 
 INSERT INTO `farm_locations` (`id`, `farm_id`, `location_code`, `name`, `type`, `capacity`, `description`, `status`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 1, 'PEN-001', 'Grower Pen 1', 'Grower', 50, NULL, 'active', '2026-09-25 14:06:33', '2026-09-25 14:06:33', NULL),
-(2, 1, 'PEN-002', 'Grower Pen 2', 'Grower', 50, NULL, 'active', '2026-09-26 10:23:49', '2026-09-26 10:23:49', NULL),
+(1, 1, 'PEN-001', 'Grower Pen 1', 'Grower', 50, NULL, 'inactive', '2026-09-25 14:06:33', '2026-10-12 10:23:32', NULL),
+(2, 1, 'PEN-002', 'Grower Pen 2', 'Grower', 50, NULL, 'inactive', '2026-09-26 10:23:49', '2026-10-12 10:23:26', NULL),
 (3, 2, 'PEN-001', 'Grower Pen 1', 'Grower', 50, NULL, 'active', '2026-10-09 06:31:11', '2026-10-09 06:31:11', NULL),
 (4, 2, 'PEN-002', 'Grower Pen 2', 'Grower', 50, NULL, 'active', '2026-10-12 01:47:13', '2026-10-12 01:47:13', NULL);
 
@@ -261,7 +263,9 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 (20, '2026_10_09_140000_create_farmers_table', 2),
 (21, '2026_10_12_000000_create_system_evaluations_table', 3),
 (22, '2026_10_12_090000_add_local_id_to_health_records_table', 4),
-(23, '2026_10_12_091000_add_destination_farmer_to_swine_movements', 4);
+(23, '2026_10_12_091000_add_destination_farmer_to_swine_movements', 4),
+(24, '2026_10_12_120000_add_qr_token_to_farmers_table', 5),
+(25, '2026_10_12_130000_add_sale_listing_fields_to_swine_table', 6);
 
 -- --------------------------------------------------------
 
@@ -434,20 +438,22 @@ CREATE TABLE `swine` (
   `notes` text DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
-  `deleted_at` timestamp NULL DEFAULT NULL
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  `is_for_sale` tinyint(1) NOT NULL DEFAULT 0,
+  `asking_price` decimal(10,2) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `swine`
 --
 
-INSERT INTO `swine` (`id`, `farm_id`, `farmer_id`, `local_id`, `current_location_id`, `tag_number`, `qr_token`, `name`, `sex`, `breed`, `birth_date`, `acquisition_date`, `source`, `status`, `notes`, `created_at`, `updated_at`, `deleted_at`) VALUES
-(1, 1, NULL, NULL, 1, 'SW-000001', 'SWL-YDUQGTZ29AS0', NULL, 'male', 'Large White', NULL, NULL, NULL, 'active', NULL, '2026-09-25 14:19:57', '2026-09-25 14:19:57', NULL),
-(2, 1, NULL, NULL, 1, 'SW-000002', 'SWL-VLNKGOTK1WP0', NULL, 'male', 'Large White', NULL, NULL, NULL, 'active', NULL, '2026-09-26 10:17:47', '2026-09-26 10:17:47', NULL),
-(3, 1, NULL, NULL, 2, 'SW-000003', 'SWL-ELNLKJWTDNIO', NULL, 'female', 'Small white', NULL, NULL, NULL, 'active', NULL, '2026-09-26 10:18:14', '2026-09-26 10:24:06', NULL),
-(4, 2, 1, NULL, 3, 'SW-000005', 'SWL-KXHEV2DZSB13', NULL, 'male', 'Large white', NULL, NULL, NULL, 'active', NULL, '2026-10-09 06:35:51', '2026-10-09 06:35:51', NULL),
-(5, 2, 3, '6b9c9de7-63fb-4686-8621-76f17c3e3803', 4, 'SW-000006', '98cbc261-e11b-43df-bebe-ef1b75c37af8', NULL, 'female', 'Small White', NULL, NULL, NULL, 'active', 'offline', '2026-10-12 01:37:48', '2026-10-12 01:57:54', NULL),
-(6, 2, 2, 'fa9586e4-a96d-407e-8c62-91da99fa4f76', 3, 'SW-000007', 'b480769d-7f07-42ad-a4b1-461526b7dca4', NULL, 'male', NULL, NULL, NULL, NULL, 'active', NULL, '2026-10-12 02:15:01', '2026-10-12 02:15:01', NULL);
+INSERT INTO `swine` (`id`, `farm_id`, `farmer_id`, `local_id`, `current_location_id`, `tag_number`, `qr_token`, `name`, `sex`, `breed`, `birth_date`, `acquisition_date`, `source`, `status`, `notes`, `created_at`, `updated_at`, `deleted_at`, `is_for_sale`, `asking_price`) VALUES
+(1, 2, 4, NULL, 3, 'SW-000001', 'SWL-YDUQGTZ29AS0', NULL, 'male', 'Large White', NULL, NULL, NULL, 'active', NULL, '2026-09-25 14:19:57', '2026-10-12 10:22:34', NULL, 1, 15000.00),
+(2, 2, 4, NULL, 3, 'SW-000002', 'SWL-VLNKGOTK1WP0', NULL, 'male', 'Large White', NULL, NULL, NULL, 'active', NULL, '2026-09-26 10:17:47', '2026-10-12 10:21:08', NULL, 1, 10000.00),
+(3, 2, 4, NULL, 3, 'SW-000003', 'SWL-ELNLKJWTDNIO', NULL, 'female', 'Small white', NULL, NULL, NULL, 'active', NULL, '2026-09-26 10:18:14', '2026-10-12 10:22:17', NULL, 1, 10000.00),
+(4, 2, 1, NULL, 3, 'SW-000005', 'SWL-KXHEV2DZSB13', NULL, 'male', 'Large white', NULL, NULL, NULL, 'active', NULL, '2026-10-09 06:35:51', '2026-10-09 06:35:51', NULL, 0, NULL),
+(5, 2, 3, '6b9c9de7-63fb-4686-8621-76f17c3e3803', 4, 'SW-000006', '98cbc261-e11b-43df-bebe-ef1b75c37af8', NULL, 'female', 'Small White', NULL, NULL, NULL, 'active', 'offline', '2026-10-12 01:37:48', '2026-10-12 01:57:54', NULL, 0, NULL),
+(6, 2, 4, 'fa9586e4-a96d-407e-8c62-91da99fa4f76', 3, 'SW-000007', 'b480769d-7f07-42ad-a4b1-461526b7dca4', NULL, 'male', NULL, NULL, NULL, NULL, 'active', NULL, '2026-10-12 02:15:01', '2026-10-12 08:52:05', NULL, 1, 15000.00);
 
 -- --------------------------------------------------------
 
@@ -571,6 +577,7 @@ ALTER TABLE `failed_jobs`
 --
 ALTER TABLE `farmers`
   ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `farmers_qr_token_unique` (`qr_token`),
   ADD KEY `farmers_farm_id_foreign` (`farm_id`);
 
 --
@@ -705,7 +712,7 @@ ALTER TABLE `failed_jobs`
 -- AUTO_INCREMENT for table `farmers`
 --
 ALTER TABLE `farmers`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `farms`
@@ -735,7 +742,7 @@ ALTER TABLE `jobs`
 -- AUTO_INCREMENT for table `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
 
 --
 -- AUTO_INCREMENT for table `permissions`

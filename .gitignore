@@ -16,6 +16,14 @@
 /public/build
 /public/hot
 /public/storage
+/android/.gradle
+/android/.idea
+/android/android.keystore
+/android/app/build
+/android/build
+/android/local.properties
+/android/*.aab
+/android/*.apk
 /storage/*.key
 /storage/pail
 /vendor

@@ -60,10 +60,9 @@
                                 w-14 h-14 rounded-2xl
                                 bg-emerald-100 text-emerald-700 mb-3">
 
-                        <svg class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
-                            <path
-                                d="M19 7h-1V5h-2v2h-2V5h-2v2H9V5H7v2H5a3 3 0 0 0-3 3v4c0 1.66 1.34 3 3 3h1v2h2v-2h6v2h2v-2h1c1.66 0 3-1.34 3-3v-1h1c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zm-4 8H5c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h10c.55 0 1 .45 1 1v4c0 .55-.45 1-1 1zm5-4h-1v-2h1v2z" />
-                        </svg>
+                        <div class="bg-white/90 rounded-xl p-2 w-14 h-14 flex items-center justify-center">
+                            <img src="/images/swineicon.svg" alt="SwineLocate" />
+                        </div>
                     </div>
 
                     <h1 class="text-2xl font-bold text-gray-900">
