@@ -38,6 +38,17 @@ class SwineQrAccessTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_qr_scanner_accepts_swine_and_farmer_qr_codes(): void
+    {
+        $this->actingAs($this->userWithPermission('scan-qr'));
+
+        $this->get(route('qr.scanner'))
+            ->assertOk()
+            ->assertSee('public/farmers', false)
+            ->assertSee('qr/scan', false)
+            ->assertSee('swine or farmer QR code');
+    }
+
     private function userWithPermission(string $permissionSlug): User
     {
         $role = Role::create([
