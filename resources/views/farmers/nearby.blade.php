@@ -1,14 +1,8 @@
-<style>
-    @media (max-width: 767px) {
-  .mobile-top-space {
-    margin-top: 44px; 
-  }
-}
-</style>
+
 <x-guest-layout :show-navigation="true">
     <div class="min-h-screen bg-gray-100 px-4 py-8 sm:px-6 lg:px-8">
         <main class="mx-auto max-w-4xl space-y-6">
-            <header class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200 mobile-top-space">
+            <header class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
                 <p class="text-sm font-semibold uppercase tracking-wide text-indigo-600">SwineLocate Marketplace</p>
                 <h1 class="mt-2 text-3xl font-bold text-gray-900">Find swine nearby</h1>
                 <p class="mt-2 text-gray-600">
