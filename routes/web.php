@@ -26,6 +26,14 @@ Route::get('/public/farmers/{qr_token}', [FarmerController::class, 'publicProfil
     ->middleware('throttle:60,1')
     ->name('farmers.public-profile');
 
+Route::get('/public/farmers-nearby', [FarmerController::class, 'nearby'])
+    ->middleware('throttle:60,1')
+    ->name('farmers.nearby');
+
+Route::post('/public/farmers-nearby', [FarmerController::class, 'searchNearby'])
+    ->middleware('throttle:30,1')
+    ->name('farmers.nearby.search');
+
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');

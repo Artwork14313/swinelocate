@@ -10,6 +10,17 @@
                 </p>
             </header>
 
+            <section class="rounded-xl bg-indigo-50 p-5 ring-1 ring-indigo-100 sm:flex sm:items-center sm:justify-between sm:gap-6">
+                <div>
+                    <h2 class="font-semibold text-indigo-950">Looking for a different swine?</h2>
+                    <p class="mt-1 text-sm text-indigo-800">Browse other farmers with swine for sale, sorted by distance from you.</p>
+                </div>
+                <a href="{{ route('farmers.nearby') }}"
+                    class="mt-4 inline-flex shrink-0 items-center justify-center rounded-lg bg-indigo-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-800 sm:mt-0">
+                    Find swine nearby
+                </a>
+            </section>
+
             <section class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
                 <div class="flex items-center justify-between gap-4 border-b border-gray-200 px-6 py-5">
                     <div>

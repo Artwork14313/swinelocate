@@ -168,6 +168,14 @@ details; it does not show farmer contact details, exact addresses, internal note
 or health records. Keep the deployed application reachable to buyers for QR links
 to work.
 
+Buyers who do not find the swine they want can use the **Find swine nearby**
+link on any public farmer profile. The directory lists active swine marked for
+sale and links directly to each farmer's public profile, so another QR scan is
+not needed. Buyers can share their browser location to sort farms by approximate
+distance, or search by municipality/province without sharing device location.
+The directory shows only municipality/province as the farm location, not farm
+coordinates or street addresses.
+
 When registering swine offline, the form stores the record and its QR token locally
 and queues it for `/swine/sync`. Each local registration carries an idempotency ID,
 so retries after an interrupted response do not create duplicate server records.

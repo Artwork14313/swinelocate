@@ -67,6 +67,7 @@ class FarmerPublicProfileTest extends TestCase
             ->assertSee('months old')
             ->assertSee('82.50 kg')
             ->assertSee('₱15,000.00')
+            ->assertSee(route('farmers.nearby'))
             ->assertDontSee('SW-PUBLIC-101')
             ->assertDontSee('SW-PUBLIC-102')
             ->assertDontSee('SW-PUBLIC-103')
@@ -83,6 +84,80 @@ class FarmerPublicProfileTest extends TestCase
     {
         $this->get(route('farmers.public-profile', str_repeat('x', 48)))
             ->assertNotFound();
+    }
+
+    public function test_buyer_can_find_available_farmers_sorted_by_distance_without_scanning_their_qr_codes(): void
+    {
+        $nearFarm = $this->createFarm('F-NEARBY-1', 14.5995, 120.9842);
+        $nearFarmer = $this->createFarmer($nearFarm, 'Nearby Farmer');
+        $this->createSaleListing($nearFarm, $nearFarmer, 'Large White');
+
+        $farFarm = $this->createFarm('F-NEARBY-2', 15.5995, 120.9842);
+        $farFarmer = $this->createFarmer($farFarm, 'Farther Farmer');
+        $this->createSaleListing($farFarm, $farFarmer, 'Duroc');
+
+        $unlistedFarm = $this->createFarm('F-NEARBY-3', 14.6000, 120.9842);
+        $unlistedFarmer = $this->createFarmer($unlistedFarm, 'Unlisted Farmer');
+        Swine::create([
+            'farm_id' => $unlistedFarm->id,
+            'farmer_id' => $unlistedFarmer->id,
+            'tag_number' => 'SW-NEARBY-UNLISTED',
+            'sex' => 'female',
+            'status' => 'active',
+            'is_for_sale' => false,
+        ]);
+
+        $html = $this->post(route('farmers.nearby.search'), [
+            'latitude' => 14.5995,
+            'longitude' => 120.9842,
+        ])
+            ->assertOk()
+            ->assertSee('Find swine nearby')
+            ->assertSee('About 0 km away')
+            ->assertSee('Large White')
+            ->assertSee('Duroc')
+            ->assertSee(route('farmers.public-profile', $nearFarmer->qr_token), false)
+            ->assertDontSee('Unlisted Farmer')
+            ->assertDontSee('Private farm street address')
+            ->getContent();
+
+        $this->assertLessThan(
+            strpos($html, 'Farther Farmer'),
+            strpos($html, 'Nearby Farmer')
+        );
+    }
+
+    public function test_buyer_can_search_listings_by_municipality_without_sharing_location(): void
+    {
+        $matchingFarm = $this->createFarm('F-NEARBY-TOWN');
+        $matchingFarmer = $this->createFarmer($matchingFarm, 'Town Farmer');
+        $this->createSaleListing($matchingFarm, $matchingFarmer, 'Landrace');
+
+        $otherFarm = Farm::create([
+            'farm_code' => 'F-NEARBY-OTHER',
+            'name' => 'Other Town Farm',
+            'municipality' => 'Other Municipality',
+            'province' => 'Sample Province',
+            'status' => 'active',
+        ]);
+        $otherFarmer = $this->createFarmer($otherFarm, 'Other Town Farmer');
+        $this->createSaleListing($otherFarm, $otherFarmer, 'Duroc');
+
+        $this->post(route('farmers.nearby.search'), [
+            'municipality' => 'Sample Municipality',
+        ])
+            ->assertOk()
+            ->assertSee('Town Farmer')
+            ->assertSee('Landrace')
+            ->assertDontSee('Other Town Farmer');
+    }
+
+    public function test_nearby_search_requires_a_location_or_town(): void
+    {
+        $this->from(route('farmers.nearby'))
+            ->post(route('farmers.nearby.search'))
+            ->assertRedirect(route('farmers.nearby'))
+            ->assertSessionHasErrors('municipality');
     }
 
     public function test_authorized_farmer_page_displays_printable_public_qr(): void
@@ -107,7 +182,7 @@ class FarmerPublicProfileTest extends TestCase
             ->assertSee(route('farmers.public-profile', $farmer->qr_token), false);
     }
 
-    private function createFarm(string $code): Farm
+    private function createFarm(string $code, ?float $latitude = null, ?float $longitude = null): Farm
     {
         return Farm::create([
             'farm_code' => $code,
@@ -116,17 +191,33 @@ class FarmerPublicProfileTest extends TestCase
             'municipality' => 'Sample Municipality',
             'province' => 'Sample Province',
             'region' => 'Sample Region',
+            'latitude' => $latitude,
+            'longitude' => $longitude,
         ]);
     }
 
-    private function createFarmer(Farm $farm): Farmer
+    private function createFarmer(Farm $farm, string $name = 'Public Farmer'): Farmer
     {
         return Farmer::create([
             'farm_id' => $farm->id,
-            'name' => 'Public Farmer',
+            'name' => $name,
             'contact_number' => '09171234567',
             'email' => 'private@example.test',
             'address' => 'Private home address',
+        ]);
+    }
+
+    private function createSaleListing(Farm $farm, Farmer $farmer, string $breed): Swine
+    {
+        return Swine::create([
+            'farm_id' => $farm->id,
+            'farmer_id' => $farmer->id,
+            'tag_number' => 'SW-NEARBY-'.strtoupper(str_replace(' ', '-', $breed)),
+            'sex' => 'female',
+            'breed' => $breed,
+            'status' => 'active',
+            'is_for_sale' => true,
+            'asking_price' => 15000,
         ]);
     }
 }
