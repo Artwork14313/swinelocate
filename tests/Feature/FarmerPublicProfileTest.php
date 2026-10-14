@@ -68,6 +68,7 @@ class FarmerPublicProfileTest extends TestCase
             ->assertSee('82.50 kg')
             ->assertSee('₱15,000.00')
             ->assertSee(route('farmers.nearby'))
+            ->assertDontSee('Open navigation menu')
             ->assertDontSee('SW-PUBLIC-101')
             ->assertDontSee('SW-PUBLIC-102')
             ->assertDontSee('SW-PUBLIC-103')
@@ -84,6 +85,34 @@ class FarmerPublicProfileTest extends TestCase
     {
         $this->get(route('farmers.public-profile', str_repeat('x', 48)))
             ->assertNotFound();
+    }
+
+    public function test_authenticated_visitors_see_navigation_on_public_farmer_pages(): void
+    {
+        $role = Role::create([
+            'name' => 'Public Page Test Role',
+            'slug' => 'public-page-test-'.bin2hex(random_bytes(4)),
+        ]);
+        $permission = Permission::firstOrCreate(
+            ['slug' => 'manage-farmers'],
+            ['name' => 'Manage Farmers']
+        );
+        $role->permissions()->attach($permission->id);
+        $user = User::factory()->create(['role_id' => $role->id]);
+        $this->actingAs($user);
+        $this->assertAuthenticatedAs($user);
+
+        $farmer = $this->createFarmer($this->createFarm('F-PUBLIC-AUTH'));
+
+        $this->get(route('farmers.public-profile', $farmer->qr_token))
+            ->assertOk()
+            ->assertSee('Open navigation menu')
+            ->assertSee('Dashboard');
+
+        $this->get(route('farmers.nearby'))
+            ->assertOk()
+            ->assertSee('Open navigation menu')
+            ->assertSee('Dashboard');
     }
 
     public function test_buyer_can_find_available_farmers_sorted_by_distance_without_scanning_their_qr_codes(): void

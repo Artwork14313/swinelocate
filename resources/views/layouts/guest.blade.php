@@ -25,10 +25,18 @@
 
 <body class="font-sans text-gray-900 antialiased">
 
-    <!-- Guest Page -->
-    <main class="min-h-screen">
-        {{ $slot }}
-    </main>
+    @if ($showNavigation && auth()->check())
+        @include('components.sidebar')
+        <div class="pt-16 lg:pl-64 lg:pt-0">
+            <main class="min-h-screen">
+                {{ $slot }}
+            </main>
+        </div>
+    @else
+        <main class="min-h-screen">
+            {{ $slot }}
+        </main>
+    @endif
 
     <script>
         if ('serviceWorker' in navigator) {
