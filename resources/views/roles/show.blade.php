@@ -17,10 +17,12 @@
                     Back to Roles
                 </a>
 
-                <a href="{{ route('roles.edit', $role) }}"
-                   class="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
-                    Edit Permissions
-                </a>
+                @if ($role->slug !== 'superadmin')
+                    <a href="{{ route('roles.edit', $role) }}"
+                       class="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+                        Edit Permissions
+                    </a>
+                @endif
             </div>
         </div>
     </x-slot>
@@ -211,10 +213,12 @@
                     Back to Roles
                 </a>
 
-                <a href="{{ route('roles.edit', $role) }}"
-                   class="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
-                    Edit Permissions
-                </a>
+                @if ($role->slug !== 'superadmin')
+                    <a href="{{ route('roles.edit', $role) }}"
+                       class="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+                        Edit Permissions
+                    </a>
+                @endif
             </div>
 
         </div>

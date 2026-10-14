@@ -91,6 +91,11 @@ class User extends Authenticatable
         return $this->hasRole('administrator');
     }
 
+    public function isSuperadmin(): bool
+    {
+        return $this->hasRole('superadmin');
+    }
+
     /**
      * Check if the user is a farm manager.
      */

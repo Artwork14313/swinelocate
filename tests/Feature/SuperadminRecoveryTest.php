@@ -1,0 +1,144 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Permission;
+use App\Models\Role;
+use App\Models\User;
+use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class SuperadminRecoveryTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_recovery_command_creates_a_verified_active_superadmin_with_all_permissions(): void
+    {
+        $this->seed(RolePermissionSeeder::class);
+
+        $this->artisan('swinelocate:ensure-superadmin')
+            ->expectsQuestion('Superadmin name', 'Recovery Account')
+            ->expectsQuestion('Superadmin email', 'recovery@example.test')
+            ->expectsQuestion('Superadmin password (at least 12 characters)', 'a-very-long-test-password')
+            ->expectsQuestion('Confirm superadmin password', 'a-very-long-test-password')
+            ->expectsOutput('Superadmin account is ready for recovery@example.test.')
+            ->assertExitCode(0);
+
+        $superadmin = User::where('email', 'recovery@example.test')->firstOrFail();
+
+        $this->assertSame('active', $superadmin->status);
+        $this->assertNotNull($superadmin->email_verified_at);
+        $this->assertTrue($superadmin->isSuperadmin());
+        $this->assertTrue($superadmin->hasPermission('manage-users'));
+        $this->assertSame(Permission::count(), $superadmin->role->permissions()->count());
+
+        $this->post(route('login'), [
+            'email' => 'recovery@example.test',
+            'password' => 'a-very-long-test-password',
+        ])->assertRedirect(route('dashboard'));
+    }
+
+    public function test_superadmin_cannot_be_deleted_deactivated_or_demoted_from_user_management(): void
+    {
+        $managerRole = Role::create([
+            'name' => 'User Manager',
+            'slug' => 'user-manager-superadmin-test',
+        ]);
+        $manageUsers = Permission::create([
+            'name' => 'Manage Users',
+            'slug' => 'manage-users',
+        ]);
+        $manageRoles = Permission::create([
+            'name' => 'Manage Roles',
+            'slug' => 'manage-roles',
+        ]);
+        $managerRole->permissions()->attach([$manageUsers->id, $manageRoles->id]);
+
+        $superadminRole = Role::create([
+            'name' => 'Superadmin',
+            'slug' => 'superadmin',
+        ]);
+        $superadminRole->permissions()->attach($manageUsers);
+
+        $manager = User::factory()->create([
+            'role_id' => $managerRole->id,
+        ]);
+        $superadmin = User::factory()->create([
+            'role_id' => $superadminRole->id,
+        ]);
+
+        $this->actingAs($manager);
+
+        $this->delete(route('users.destroy', $superadmin))
+            ->assertRedirect(route('users.index'));
+        $this->patch(route('users.toggle-status', $superadmin))
+            ->assertRedirect(route('users.index'));
+        $this->put(route('users.update', $superadmin), [
+            'name' => $superadmin->name,
+            'email' => $superadmin->email,
+            'role_id' => $managerRole->id,
+            'status' => 'active',
+            'password' => '',
+            'password_confirmation' => '',
+        ])->assertRedirect(route('users.index'));
+        $this->get(route('users.edit', $superadmin))
+            ->assertNotFound();
+        $this->put(route('roles.update', $superadminRole), [
+            'permissions' => [],
+        ])->assertRedirect(route('roles.show', $superadminRole));
+
+        $this->assertDatabaseHas('users', [
+            'id' => $superadmin->id,
+            'role_id' => $superadminRole->id,
+            'status' => 'active',
+            'deleted_at' => null,
+        ]);
+        $this->assertTrue($superadmin->fresh()->hasPermission('manage-users'));
+
+        $this->actingAs($superadmin)
+            ->delete(route('profile.destroy'), [
+                'password' => 'password',
+            ])
+            ->assertRedirect(route('profile.edit'));
+
+        $this->assertDatabaseHas('users', [
+            'id' => $superadmin->id,
+            'deleted_at' => null,
+        ]);
+    }
+
+    public function test_superadmin_role_is_not_available_in_regular_user_creation(): void
+    {
+        $superadminRole = Role::create([
+            'name' => 'Superadmin',
+            'slug' => 'superadmin',
+        ]);
+        $manageUsers = Permission::create([
+            'name' => 'Manage Users',
+            'slug' => 'manage-users',
+        ]);
+        $managerRole = Role::create([
+            'name' => 'User Manager',
+            'slug' => 'user-manager-superadmin-create-test',
+        ]);
+        $managerRole->permissions()->attach($manageUsers);
+
+        $this->actingAs(User::factory()->create([
+            'role_id' => $managerRole->id,
+        ]));
+
+        $this->get(route('users.create'))
+            ->assertOk()
+            ->assertDontSee('value="'.$superadminRole->id.'"', false);
+
+        $this->post(route('users.store'), [
+            'name' => 'Escalation Attempt',
+            'email' => 'escalation@example.test',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'role_id' => $superadminRole->id,
+            'status' => 'active',
+        ])->assertSessionHasErrors('role_id');
+    }
+}

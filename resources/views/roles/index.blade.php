@@ -113,10 +113,12 @@
                                                 View
                                             </a>
 
-                                            <a href="{{ route('roles.edit', $role) }}"
-                                               class="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-medium text-white hover:bg-indigo-700">
-                                                Edit Permissions
-                                            </a>
+                                            @if ($role->slug !== 'superadmin')
+                                                <a href="{{ route('roles.edit', $role) }}"
+                                                   class="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-medium text-white hover:bg-indigo-700">
+                                                    Edit Permissions
+                                                </a>
+                                            @endif
 
                                         </div>
                                     </td>
@@ -204,10 +206,12 @@
                                 View
                             </a>
 
-                            <a href="{{ route('roles.edit', $role) }}"
-                               class="flex-1 rounded-lg bg-indigo-600 px-3 py-2 text-center text-sm font-medium text-white hover:bg-indigo-700">
-                                Edit
-                            </a>
+                            @if ($role->slug !== 'superadmin')
+                                <a href="{{ route('roles.edit', $role) }}"
+                                   class="flex-1 rounded-lg bg-indigo-600 px-3 py-2 text-center text-sm font-medium text-white hover:bg-indigo-700">
+                                    Edit
+                                </a>
+                            @endif
 
                         </div>
 

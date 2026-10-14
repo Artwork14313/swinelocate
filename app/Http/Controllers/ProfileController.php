@@ -42,6 +42,11 @@ class ProfileController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        if ($request->user()->isSuperadmin()) {
+            return Redirect::route('profile.edit')
+                ->with('error', 'The protected superadmin account cannot be deleted from its profile.');
+        }
+
         $request->validateWithBag('userDeletion', [
             'password' => ['required', 'current_password'],
         ]);

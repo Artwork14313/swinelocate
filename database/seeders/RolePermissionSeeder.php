@@ -23,6 +23,11 @@ class RolePermissionSeeder extends Seeder
                 'description' => 'Full system access',
             ],
             [
+                'name' => 'Superadmin',
+                'slug' => 'superadmin',
+                'description' => 'Protected break-glass account with full system access',
+            ],
+            [
                 'name' => 'Farm Manager',
                 'slug' => 'farm-manager',
                 'description' => 'Manages farm and swine operations',
@@ -156,6 +161,9 @@ class RolePermissionSeeder extends Seeder
         $administrator->permissions()->sync(
             Permission::pluck('id')
         );
+
+        $superadmin = Role::where('slug', 'superadmin')->firstOrFail();
+        $superadmin->permissions()->sync(Permission::pluck('id'));
 
         /*
         |--------------------------------------------------------------------------

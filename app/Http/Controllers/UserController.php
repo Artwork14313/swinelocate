@@ -55,6 +55,7 @@ class UserController extends Controller
     public function create(): View
     {
         $roles = Role::query()
+            ->where('slug', '!=', 'superadmin')
             ->orderBy('name')
             ->get();
 
@@ -91,7 +92,8 @@ class UserController extends Controller
 
             'role_id' => [
                 'required',
-                'exists:roles,id',
+                Rule::exists('roles', 'id')
+                    ->where(fn ($query) => $query->where('slug', '!=', 'superadmin')),
             ],
 
             'farm_id' => [
@@ -135,7 +137,10 @@ class UserController extends Controller
      */
     public function edit(User $user): View
     {
+        abort_if($user->isSuperadmin(), 404);
+
         $roles = Role::query()
+            ->where('slug', '!=', 'superadmin')
             ->orderBy('name')
             ->get();
 
@@ -153,6 +158,12 @@ class UserController extends Controller
      */
     public function update(Request $request, User $user): RedirectResponse
     {
+        if ($user->isSuperadmin()) {
+            return redirect()
+                ->route('users.index')
+                ->with('error', 'The protected superadmin account can only be changed with the superadmin recovery command.');
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
 
@@ -173,7 +184,8 @@ class UserController extends Controller
 
             'role_id' => [
                 'required',
-                'exists:roles,id',
+                Rule::exists('roles', 'id')
+                    ->where(fn ($query) => $query->where('slug', '!=', 'superadmin')),
             ],
 
             'farm_id' => [
@@ -211,6 +223,12 @@ class UserController extends Controller
      */
     public function destroy(User $user): RedirectResponse
     {
+        if ($user->isSuperadmin()) {
+            return redirect()
+                ->route('users.index')
+                ->with('error', 'The protected superadmin account cannot be deleted.');
+        }
+
         if (auth()->id() === $user->id) {
             return redirect()
                 ->route('users.index')
@@ -229,6 +247,12 @@ class UserController extends Controller
      */
     public function toggleStatus(User $user): RedirectResponse
     {
+        if ($user->isSuperadmin()) {
+            return redirect()
+                ->route('users.index')
+                ->with('error', 'The protected superadmin account cannot be deactivated.');
+        }
+
         if (auth()->id() === $user->id) {
             return redirect()
                 ->route('users.index')

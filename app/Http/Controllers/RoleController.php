@@ -33,6 +33,8 @@ class RoleController extends Controller
 
     public function edit(Role $role): View
     {
+        abort_if($role->slug === 'superadmin', 404);
+
         $role->load('permissions');
 
         $permissions = Permission::query()
@@ -44,6 +46,12 @@ class RoleController extends Controller
 
     public function update(Request $request, Role $role): RedirectResponse
     {
+        if ($role->slug === 'superadmin') {
+            return redirect()
+                ->route('roles.show', $role)
+                ->with('error', 'Superadmin permissions are protected and cannot be changed.');
+        }
+
         $validated = $request->validate([
             'permissions' => ['nullable', 'array'],
             'permissions.*' => ['integer', 'exists:permissions,id'],

@@ -112,6 +112,25 @@ record counts and relationships before directing users to the live system. Do
 not seed demo users or roles into a production database without reviewing the
 seeders and intended accounts first.
 
+### Superadmin recovery account
+
+Provision a protected break-glass account against the production database after
+the role and permission data has been seeded:
+
+```sh
+php artisan db:seed --class=RolePermissionSeeder --force
+php artisan swinelocate:ensure-superadmin
+```
+
+The command prompts for the account name, email, and password without placing
+the password in shell history or deployment configuration. Use a dedicated
+email and a unique password of at least 12 characters, then store both securely.
+The superadmin role has every configured permission and cannot be assigned,
+edited, deactivated, or deleted through normal user/role management. The command
+can restore or reset an existing superadmin account after explicit confirmation.
+Run it from a trusted shell connected to the intended environment; do not run
+production provisioning against a local or staging database.
+
 ### Android app
 
 The Android Trusted Web Activity project is in `android/`. It opens the hosted
