@@ -1,7 +1,7 @@
 <style>
     @media (max-width: 767px) {
   .mobile-top-space {
-    margin-top: 64px; 
+    margin-top: 44px; 
   }
 }
 </style>
