@@ -122,14 +122,29 @@ php artisan db:seed --class=RolePermissionSeeder --force
 php artisan swinelocate:ensure-superadmin
 ```
 
-The command prompts for the account name, email, and password without placing
-the password in shell history or deployment configuration. Use a dedicated
-email and a unique password of at least 12 characters, then store both securely.
+In an interactive terminal, enter a name and email when prompted, then enter
+and confirm the password. In a non-interactive cloud command runner, provide
+these values as temporary environment variables (mark the password values as
+secrets in the runner), then run with `--no-interaction`:
+
+```text
+SWINELOCATE_SUPERADMIN_NAME
+SWINELOCATE_SUPERADMIN_EMAIL
+SWINELOCATE_SUPERADMIN_PASSWORD
+SWINELOCATE_SUPERADMIN_PASSWORD_CONFIRM
+```
+
+Remove the temporary variables after the command completes. Never put the
+password directly in a command argument or committed configuration. Use a
+dedicated email and a unique password of at least 12 characters, then store
+both securely.
 The superadmin role has every configured permission and cannot be assigned,
 edited, deactivated, or deleted through normal user/role management. The command
 can restore or reset an existing superadmin account after explicit confirmation.
-Run it from a trusted shell connected to the intended environment; do not run
-production provisioning against a local or staging database.
+For a non-interactive reset, also set
+`SWINELOCATE_SUPERADMIN_CONFIRM_RESET=1`. Run the command from a trusted shell
+connected to the intended environment; do not run production provisioning
+against a local or staging database.
 
 ### Android app
 

@@ -28,8 +28,25 @@ class EnsureSuperadmin extends Command
             return self::FAILURE;
         }
 
-        $name = trim((string) $this->ask('Superadmin name'));
-        $email = Str::lower(trim((string) $this->ask('Superadmin email')));
+        $name = $this->valueFromEnvironmentOrPrompt(
+            'SWINELOCATE_SUPERADMIN_NAME',
+            'Superadmin name'
+        );
+        $email = $this->valueFromEnvironmentOrPrompt(
+            'SWINELOCATE_SUPERADMIN_EMAIL',
+            'Superadmin email'
+        );
+
+        if ($name === null || $email === null) {
+            $this->error(
+                'This shell cannot prompt for input. Set SWINELOCATE_SUPERADMIN_NAME and SWINELOCATE_SUPERADMIN_EMAIL, then rerun with --no-interaction.'
+            );
+
+            return self::FAILURE;
+        }
+
+        $name = trim($name);
+        $email = Str::lower(trim($email));
 
         $identityValidator = Validator::make(
             ['name' => $name, 'email' => $email],
@@ -55,17 +72,36 @@ class EnsureSuperadmin extends Command
             return self::FAILURE;
         }
 
-        if (
-            $user &&
-            !$this->confirm("Restore or reset the protected superadmin account for {$email}?", false)
-        ) {
-            $this->info('No changes made.');
+        if ($user) {
+            $confirmedReset = $this->input->isInteractive()
+                ? $this->confirm("Restore or reset the protected superadmin account for {$email}?", false)
+                : getenv('SWINELOCATE_SUPERADMIN_CONFIRM_RESET') === '1';
 
-            return self::SUCCESS;
+            if (!$confirmedReset) {
+                $this->error(
+                    'A superadmin already exists for that email. Confirm the reset interactively or set SWINELOCATE_SUPERADMIN_CONFIRM_RESET=1.'
+                );
+
+                return self::FAILURE;
+            }
         }
 
-        $password = $this->secret('Superadmin password (at least 12 characters)');
-        $passwordConfirmation = $this->secret('Confirm superadmin password');
+        $password = $this->valueFromEnvironmentOrSecretPrompt(
+            'SWINELOCATE_SUPERADMIN_PASSWORD',
+            'Superadmin password (at least 12 characters)'
+        );
+        $passwordConfirmation = $this->valueFromEnvironmentOrSecretPrompt(
+            'SWINELOCATE_SUPERADMIN_PASSWORD_CONFIRM',
+            'Confirm superadmin password'
+        );
+
+        if ($password === null || $passwordConfirmation === null) {
+            $this->error(
+                'This shell cannot prompt for input. Set SWINELOCATE_SUPERADMIN_PASSWORD and SWINELOCATE_SUPERADMIN_PASSWORD_CONFIRM, then rerun with --no-interaction.'
+            );
+
+            return self::FAILURE;
+        }
 
         $passwordValidator = Validator::make(
             ['password' => $password, 'password_confirmation' => $passwordConfirmation],
@@ -113,5 +149,31 @@ class EnsureSuperadmin extends Command
         $this->info("Superadmin account is ready for {$email}.");
 
         return self::SUCCESS;
+    }
+
+    private function valueFromEnvironmentOrPrompt(string $key, string $prompt): ?string
+    {
+        $value = getenv($key);
+
+        if ($value !== false) {
+            return $value;
+        }
+
+        return $this->input->isInteractive()
+            ? $this->ask($prompt)
+            : null;
+    }
+
+    private function valueFromEnvironmentOrSecretPrompt(string $key, string $prompt): ?string
+    {
+        $value = getenv($key);
+
+        if ($value !== false) {
+            return $value;
+        }
+
+        return $this->input->isInteractive()
+            ? $this->secret($prompt)
+            : null;
     }
 }

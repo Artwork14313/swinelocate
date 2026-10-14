@@ -39,6 +39,36 @@ class SuperadminRecoveryTest extends TestCase
         ])->assertRedirect(route('dashboard'));
     }
 
+    public function test_recovery_command_accepts_secret_environment_variables_without_interactive_prompts(): void
+    {
+        $this->seed(RolePermissionSeeder::class);
+
+        $environment = [
+            'SWINELOCATE_SUPERADMIN_NAME' => 'Cloud Recovery',
+            'SWINELOCATE_SUPERADMIN_EMAIL' => 'cloud-recovery@example.test',
+            'SWINELOCATE_SUPERADMIN_PASSWORD' => 'a-very-long-cloud-password',
+            'SWINELOCATE_SUPERADMIN_PASSWORD_CONFIRM' => 'a-very-long-cloud-password',
+        ];
+
+        foreach ($environment as $key => $value) {
+            putenv("{$key}={$value}");
+        }
+
+        try {
+            $this->artisan('swinelocate:ensure-superadmin', ['--no-interaction' => true])
+                ->expectsOutput('Superadmin account is ready for cloud-recovery@example.test.')
+                ->assertExitCode(0);
+        } finally {
+            foreach (array_keys($environment) as $key) {
+                putenv($key);
+            }
+        }
+
+        $superadmin = User::where('email', 'cloud-recovery@example.test')->firstOrFail();
+        $this->assertTrue($superadmin->isSuperadmin());
+        $this->assertSame('active', $superadmin->status);
+    }
+
     public function test_superadmin_cannot_be_deleted_deactivated_or_demoted_from_user_management(): void
     {
         $managerRole = Role::create([
