@@ -1,10 +1,17 @@
+<style>
+    @media (max-width: 767px) {
+  .mobile-top-space {
+    padding-top: 64px; 
+  }
+}
+</style>
 <x-app-layout>
     <div class="py-6">
         <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
 
             {{-- Page Header --}}
             <div class="mb-6">
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mobile-top-space">
                     <div>
                         <h1 class="text-2xl font-bold text-gray-900">
                             Swine Traceability
