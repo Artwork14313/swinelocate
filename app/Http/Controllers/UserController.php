@@ -20,6 +20,7 @@ class UserController extends Controller
     {
         $users = User::query()
             ->with(['role', 'farm'])
+            ->whereDoesntHave('role', fn ($query) => $query->where('slug', 'superadmin'))
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = trim($request->search);
 
@@ -40,6 +41,7 @@ class UserController extends Controller
             ->withQueryString();
 
         $roles = Role::query()
+            ->where('slug', '!=', 'superadmin')
             ->orderBy('name')
             ->get();
 
@@ -127,6 +129,8 @@ class UserController extends Controller
      */
     public function show(User $user): View
     {
+        abort_if($user->isSuperadmin(), 404);
+
         $user->load(['role', 'farm']);
 
         return view('users.show', compact('user'));

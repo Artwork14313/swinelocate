@@ -100,6 +100,13 @@ class SuperadminRecoveryTest extends TestCase
 
         $this->actingAs($manager);
 
+        $this->get(route('users.index'))
+            ->assertOk()
+            ->assertDontSee($superadmin->email)
+            ->assertDontSee($superadmin->name);
+        $this->get(route('users.show', $superadmin))
+            ->assertNotFound();
+
         $this->delete(route('users.destroy', $superadmin))
             ->assertRedirect(route('users.index'));
         $this->patch(route('users.toggle-status', $superadmin))
