@@ -194,6 +194,39 @@ class SuperadminRecoveryTest extends TestCase
         ])->assertSessionHasErrors('permissions.0');
     }
 
+    public function test_only_superadmin_can_see_superadmin_role_in_role_management_list(): void
+    {
+        $manageRoles = Permission::create([
+            'name' => 'Manage Roles',
+            'slug' => 'manage-roles',
+        ]);
+        $administratorRole = Role::create([
+            'name' => 'Administrator',
+            'slug' => 'administrator',
+        ]);
+        $administratorRole->permissions()->attach($manageRoles);
+        $superadminRole = Role::create([
+            'name' => 'Superadmin',
+            'slug' => 'superadmin',
+        ]);
+        $superadminRole->permissions()->attach($manageRoles);
+
+        $this->actingAs(User::factory()->create([
+            'role_id' => $administratorRole->id,
+        ]))
+            ->get(route('roles.index'))
+            ->assertOk()
+            ->assertSee('Administrator')
+            ->assertDontSee('Superadmin');
+
+        $this->actingAs(User::factory()->create([
+            'role_id' => $superadminRole->id,
+        ]))
+            ->get(route('roles.index'))
+            ->assertOk()
+            ->assertSee('Superadmin');
+    }
+
     public function test_superadmin_role_is_not_available_in_regular_user_creation(): void
     {
         $superadminRole = Role::create([

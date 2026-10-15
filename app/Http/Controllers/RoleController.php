@@ -14,6 +14,10 @@ class RoleController extends Controller
     public function index(): View
     {
         $roles = Role::query()
+            ->when(
+                !auth()->user()->isSuperadmin(),
+                fn ($query) => $query->where('slug', '!=', 'superadmin')
+            )
             ->withCount('users')
             ->withCount([
                 'permissions' => fn ($query) => $query
