@@ -145,6 +145,55 @@ class SuperadminRecoveryTest extends TestCase
         ]);
     }
 
+    public function test_superadmin_permission_is_hidden_and_cannot_be_assigned_to_other_roles(): void
+    {
+        $manageRoles = Permission::create([
+            'name' => 'Manage Roles',
+            'slug' => 'manage-roles',
+        ]);
+        $superadminPermission = Permission::create([
+            'name' => 'Superadmin Access',
+            'slug' => 'superadmin',
+        ]);
+        $regularPermission = Permission::create([
+            'name' => 'View Reports',
+            'slug' => 'view-reports',
+        ]);
+
+        $managerRole = Role::create([
+            'name' => 'Role Manager',
+            'slug' => 'role-manager-superadmin-permission-test',
+        ]);
+        $managerRole->permissions()->attach($manageRoles);
+
+        $otherRole = Role::create([
+            'name' => 'Other Role',
+            'slug' => 'other-role-superadmin-permission-test',
+        ]);
+        $otherRole->permissions()->attach([
+            $superadminPermission->id,
+            $regularPermission->id,
+        ]);
+
+        $this->actingAs(User::factory()->create([
+            'role_id' => $managerRole->id,
+        ]));
+
+        $this->get(route('roles.edit', $otherRole))
+            ->assertOk()
+            ->assertSee('View Reports')
+            ->assertDontSee('Superadmin Access');
+
+        $this->get(route('roles.show', $otherRole))
+            ->assertOk()
+            ->assertSee('View Reports')
+            ->assertDontSee('Superadmin Access');
+
+        $this->put(route('roles.update', $otherRole), [
+            'permissions' => [$superadminPermission->id],
+        ])->assertSessionHasErrors('permissions.0');
+    }
+
     public function test_superadmin_role_is_not_available_in_regular_user_creation(): void
     {
         $superadminRole = Role::create([

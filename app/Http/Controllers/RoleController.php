@@ -6,6 +6,7 @@ use App\Models\Permission;
 use App\Models\Role;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class RoleController extends Controller
@@ -14,7 +15,10 @@ class RoleController extends Controller
     {
         $roles = Role::query()
             ->withCount('users')
-            ->withCount('permissions')
+            ->withCount([
+                'permissions' => fn ($query) => $query
+                    ->where('permissions.slug', '!=', 'superadmin'),
+            ])
             ->orderBy('name')
             ->get();
 
@@ -24,7 +28,8 @@ class RoleController extends Controller
     public function show(Role $role): View
     {
         $role->load([
-            'permissions',
+            'permissions' => fn ($query) => $query
+                ->where('permissions.slug', '!=', 'superadmin'),
             'users',
         ]);
 
@@ -35,9 +40,13 @@ class RoleController extends Controller
     {
         abort_if($role->slug === 'superadmin', 404);
 
-        $role->load('permissions');
+        $role->load([
+            'permissions' => fn ($query) => $query
+                ->where('permissions.slug', '!=', 'superadmin'),
+        ]);
 
         $permissions = Permission::query()
+            ->where('slug', '!=', 'superadmin')
             ->orderBy('name')
             ->get();
 
@@ -54,7 +63,11 @@ class RoleController extends Controller
 
         $validated = $request->validate([
             'permissions' => ['nullable', 'array'],
-            'permissions.*' => ['integer', 'exists:permissions,id'],
+            'permissions.*' => [
+                'integer',
+                Rule::exists('permissions', 'id')
+                    ->where(fn ($query) => $query->where('slug', '!=', 'superadmin')),
+            ],
         ]);
 
         $permissionIds = $validated['permissions'] ?? [];
