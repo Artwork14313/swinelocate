@@ -5,12 +5,11 @@
     "scripts": {
         "build": "vite build",
         "dev": "vite",
-        "android:build": "cd android && bubblewrap build"
+        "android:build": "cd android && gradlew.bat assembleDebug"
     },
     "devDependencies": {
         "@tailwindcss/forms": "^0.5.2",
         "@tailwindcss/vite": "^4.0.0",
-        "@bubblewrap/cli": "^1.27.0",
         "alpinejs": "^3.4.2",
         "autoprefixer": "^10.4.2",
         "axios": "^1.11.0",

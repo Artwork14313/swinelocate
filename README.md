@@ -148,40 +148,39 @@ against a local or staging database.
 
 ### Android app
 
-The Android Trusted Web Activity project is in `android/`. It opens the hosted
-SwineLocate PWA in a full-screen Android app window without browser controls and
-uses the same hosted Laravel application and central database. Its package ID is
-`com.swine.locate`; the Cloud host, manifest, and signing certificate are set for
-`https://swinelocate-production-h3g41v.laravel.cloud`.
+The native Android client is in `android/` and uses the package ID
+`com.swine.locate`. It has its own Android interface, QR scanner, and secure
+token-based connection to the Laravel API; it does not display the website in a
+browser or WebView. The current client supports sign-in, permission-filtered
+record browsing/search, dashboard summaries, and swine QR lookup. Data entry,
+editing, and offline synchronization are not yet implemented in the native
+client; the website remains available for those workflows.
 
-Deploy the `public/.well-known/assetlinks.json` file to Laravel Cloud before
-installing or testing the Android app. Android/Chrome verifies that file against
-the signing certificate before showing the site without browser controls. If the
-certificate or production URL changes, update the Digital Asset Links file and
-deploy it before releasing the updated app.
+The API uses Laravel Sanctum bearer tokens. Run `php artisan migrate --force`
+when deploying the new API so the personal access token table is created.
+Accounts must be active and have a verified email address. Tokens expire after
+30 days, and account deactivation invalidates access on the next API request.
+The API returns only the modules granted by the user's existing role permissions.
 
-The release keystore (`android/android.keystore`) and its randomly generated
-passwords are deliberately excluded from Git. The passwords are stored locally
-at `$HOME/.bubblewrap/swine-locate-signing.json`. Back up both the keystore and
-passwords securely; without them, you cannot publish updates signed as the same
-Android app. Do not commit, email, or publish either signing secret.
+The Android app's full API base URL, including `/api/mobile`, is set in
+`android/app/build.gradle` (`API_BASE_URL`). Change it to the HTTPS API URL for
+a different deployment before building. For a local development server, use the
+computer's LAN IP and HTTPS; Android's production build deliberately rejects
+cleartext HTTP. The app stores its bearer token encrypted using the Android
+Keystore.
 
-With Node.js, Java 17, and the Android SDK installed, build a signed release:
+Install Java 17, Android Studio/SDK (API 36), and the Android SDK build tools.
+Build and install a debug APK from PowerShell:
 
 ```powershell
-$signing = Get-Content "$HOME\.bubblewrap\swine-locate-signing.json" | ConvertFrom-Json
-$env:BUBBLEWRAP_KEYSTORE_PASSWORD = $signing.storePassword
-$env:BUBBLEWRAP_KEY_PASSWORD = $signing.keyPassword
-npm run android:build
-Remove-Item Env:BUBBLEWRAP_KEYSTORE_PASSWORD
-Remove-Item Env:BUBBLEWRAP_KEY_PASSWORD
+cd android
+.\gradlew.bat assembleDebug
+.\gradlew.bat installDebug
 ```
 
-The signed APK and Play Store app bundle are generated in `android/`. Verify
-installation and full-screen domain verification on a real Android device before
-distributing the app. A TWA wrapper does not itself provide guaranteed background
-synchronization while Android has closed the app; offline recording and sync
-continue to use the PWA's existing service worker and IndexedDB queue.
+The debug APK is written to `android/app/build/outputs/apk/debug/`. A release
+signing configuration must be set up with a securely held keystore before
+publishing to Google Play; do not commit keystore passwords or signing secrets.
 
 ## Farmer, swine, and offline workflow
 
