@@ -78,7 +78,7 @@
                                     <h3 class="text-lg font-semibold text-gray-900">{{ $farmer->name }}</h3>
                                     <p class="text-sm text-gray-600">{{ $farmer->farm->name }}</p>
                                     <p class="mt-1 text-sm text-gray-500">
-                                        {{ collect([$farmer->farm->municipality, $farmer->farm->province])->filter()->join(', ') ?: 'General location not provided' }}
+                                        {{ collect([$farmer->farm->address, $farmer->farm->municipality, $farmer->farm->province])->filter()->join(', ') ?: 'General location not provided' }}
                                     </p>
                                 </div>
                                 @if ($farmer->distance_km !== null)

@@ -145,9 +145,9 @@ class FarmerPublicProfileTest extends TestCase
             ->assertSee('About 0 km away')
             ->assertSee('Large White')
             ->assertSee('Duroc')
+            ->assertSee('Private farm street address')
             ->assertSee(route('farmers.public-profile', $nearFarmer->qr_token), false)
             ->assertDontSee('Unlisted Farmer')
-            ->assertDontSee('Private farm street address')
             ->getContent();
 
         $this->assertLessThan(

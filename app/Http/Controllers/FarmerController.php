@@ -159,7 +159,7 @@ class FarmerController extends Controller
                 ->where('status', 'active')
                 ->where('is_for_sale', true))
             ->with([
-                'farm:id,name,municipality,province,latitude,longitude',
+                'farm:id,name,address,municipality,province,latitude,longitude',
                 'swine' => fn ($query) => $query
                     ->where('status', 'active')
                     ->where('is_for_sale', true)
