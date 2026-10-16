@@ -138,27 +138,20 @@ public final class MainActivity extends Activity {
                 1.0f));
         setContentView(screen);
 
-        publicMap.loadDataWithBaseURL("https://openstreetmap.org", generateSagayCityMapHtml(null), "text/html", "UTF-8", null);
+        publicMap.loadDataWithBaseURL("https://openstreetmap.org", generateSagayCityMapHtml(new JSONArray()), "text/html", "UTF-8", null);
 
-        get("/public/farmers-nearby?app=1", response -> {
+        get("/public/farmers-nearby", response -> {
             JSONArray data = response.optJSONArray("data");
-            if (data == null) {
-                JSONObject dataObj = response.optJSONObject("data");
-                if (dataObj != null) {
-                    data = dataObj.optJSONArray("farmers");
-                    if (data == null) data = dataObj.optJSONArray("farms");
-                }
-            }
             if (publicMap != null) {
-                publicMap.loadDataWithBaseURL("https://openstreetmap.org", generateSagayCityMapHtml(data), "text/html", "UTF-8", null);
+                publicMap.loadDataWithBaseURL(
+                        "https://openstreetmap.org",
+                        generateSagayCityMapHtml(data == null ? new JSONArray() : data),
+                        "text/html",
+                        "UTF-8",
+                        null);
             }
         }, exception -> {
-            get("/data/farms", response2 -> {
-                JSONArray farmsData = response2.optJSONArray("data");
-                if (publicMap != null) {
-                    publicMap.loadDataWithBaseURL("https://openstreetmap.org", generateSagayCityMapHtml(farmsData), "text/html", "UTF-8", null);
-                }
-            }, exception2 -> { });
+            showMessage("Unable to load Sagay farmer locations: " + exception.getMessage());
         });
     }
 
@@ -672,88 +665,72 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private double parseCoordinate(JSONObject object, String... keys) {
-        if (object == null) return 0.0;
-        for (String key : keys) {
-            if (object.has(key) && !object.isNull(key)) {
-                try {
-                    double val = object.getDouble(key);
-                    if (!Double.isNaN(val) && Math.abs(val) > 0.0001) {
-                        return val;
-                    }
-                } catch (Exception ignored) {
-                    try {
-                        String str = object.getString(key);
-                        double val = Double.parseDouble(str);
-                        if (!Double.isNaN(val) && Math.abs(val) > 0.0001) {
-                            return val;
-                        }
-                    } catch (Exception ignored2) { }
-                }
-            }
-        }
-        return 0.0;
-    }
-
     private String generateSagayCityMapHtml(JSONArray items) {
         StringBuilder markersJs = new StringBuilder();
-        double sagayLat = 10.8942;
-        double sagayLng = 123.4293;
+        List<String> markerPositions = new ArrayList<>();
 
         if (items != null) {
-            for (int i = 0; i < items.length(); i++) {
-                JSONObject item = items.optJSONObject(i);
-                if (item == null) continue;
-
-                double lat = parseCoordinate(item, "latitude", "lat", "farm_latitude", "location_latitude");
-                double lng = parseCoordinate(item, "longitude", "lng", "long", "farm_longitude", "location_longitude");
-
-                if (lat == 0.0 || lng == 0.0) {
-                    JSONObject farmObj = item.optJSONObject("farm");
-                    if (farmObj != null) {
-                        if (lat == 0.0) lat = parseCoordinate(farmObj, "latitude", "lat");
-                        if (lng == 0.0) lng = parseCoordinate(farmObj, "longitude", "lng", "long");
-                    }
+            for (int index = 0; index < items.length(); index++) {
+                JSONObject item = items.optJSONObject(index);
+                if (item == null) {
+                    continue;
                 }
 
-                String name = firstValue(item, "farmer_name", "farm_name", "name", "tag_number", "farm_code");
-                if (name.isEmpty()) {
-                    name = "Farmer / Farm #" + item.optString("id", String.valueOf(i + 1));
+                double latitude = item.optDouble("latitude", Double.NaN);
+                double longitude = item.optDouble("longitude", Double.NaN);
+                if (Double.isNaN(latitude) || Double.isInfinite(latitude)
+                        || Double.isNaN(longitude) || Double.isInfinite(longitude)
+                        || latitude < -90 || latitude > 90
+                        || longitude < -180 || longitude > 180
+                        || latitude < 10.4 || latitude > 11.35
+                        || longitude < 122.9 || longitude > 123.85) {
+                    continue;
                 }
 
-                String location = firstValue(item, "location_code", "farm_code", "address", "location_name", "city", "purok", "barangay");
-                if (location.isEmpty()) {
-                    location = "Sagay City";
+                String farmerName = item.optString("farmer_name", "Farmer");
+                String farmName = item.optString("farm_name", "Farm");
+                String profileUrl = item.optString("profile_url", "");
+                int swineCount = item.optInt("swine_count", 0);
+                StringBuilder popupHtml = new StringBuilder("<div class='farmer-card'><h3>")
+                        .append(escapeHtml(farmerName))
+                        .append("</h3><p>")
+                        .append(escapeHtml(farmName))
+                        .append("</p><p><span class='badge'>")
+                        .append(swineCount)
+                        .append(" available listing")
+                        .append(swineCount == 1 ? "" : "s")
+                        .append("</span></p>");
+                if (!profileUrl.isEmpty()) {
+                    popupHtml.append("<p><a href='")
+                            .append(escapeHtml(profileUrl))
+                            .append("'>View SwineLocate Farmer Profile</a></p>");
                 }
+                popupHtml.append("</div>");
 
-                String swineCount = firstValue(item, "swine_count", "head_count", "total_swine", "swines_count");
-
-                boolean fallbackUsed = false;
-                if (lat == 0.0 || lng == 0.0) {
-                    fallbackUsed = true;
-                    double angle = (i * 137.5) * (Math.PI / 180.0);
-                    double radius = 0.006 + (0.003 * (i % 6));
-                    lat = sagayLat + (radius * Math.sin(angle));
-                    lng = sagayLng + (radius * Math.cos(angle));
-                }
-
-                String safeName = name.replace("'", "\\'").replace("\"", "&quot;");
-                String safeLocation = location.replace("'", "\\'").replace("\"", "&quot;");
-                String safeSwine = swineCount.replace("'", "\\'");
-
-                markersJs.append("var marker = L.marker([").append(lat).append(", ").append(lng).append("]).addTo(map);\n");
-                markersJs.append("marker.bindPopup(\"<div class='farmer-card'>")
-                         .append("<h3>").append(safeName).append("</h3>")
-                         .append("<p><b>Location:</b> ").append(safeLocation).append("</p>");
-                if (!safeSwine.isEmpty()) {
-                    markersJs.append("<p><span class='badge'>").append(safeSwine).append(" Swine</span></p>");
-                }
-                markersJs.append("<p style='font-size:11px;color:#666;margin-top:4px;'><b>Coordinates:</b> ")
-                         .append(String.format(Locale.US, "%.5f, %.5f", lat, lng))
-                         .append(fallbackUsed ? " (Sagay Area)" : " (Exact)")
-                         .append("</p>")
-                         .append("</div>\");\n");
+                markersJs.append("L.marker([")
+                        .append(Double.toString(latitude))
+                        .append(", ")
+                        .append(Double.toString(longitude))
+                        .append("]).addTo(map).bindPopup(")
+                        .append(JSONObject.quote(popupHtml.toString()))
+                        .append(");\n");
+                markerPositions.add("[" + Double.toString(latitude) + ", "
+                        + Double.toString(longitude) + "]");
             }
+        }
+
+        StringBuilder fitMarkersJs = new StringBuilder();
+        if (markerPositions.size() == 1) {
+            fitMarkersJs.append("map.setView(").append(markerPositions.get(0)).append(", 14);\n");
+        } else if (markerPositions.size() > 1) {
+            fitMarkersJs.append("map.fitBounds([");
+            for (int index = 0; index < markerPositions.size(); index++) {
+                if (index > 0) {
+                    fitMarkersJs.append(",");
+                }
+                fitMarkersJs.append(markerPositions.get(index));
+            }
+            fitMarkersJs.append("], { padding: [24, 24], maxZoom: 14 });\n");
         }
 
         return "<!DOCTYPE html>\n" +
@@ -774,16 +751,24 @@ public final class MainActivity extends Activity {
                 "<body>\n" +
                 "  <div id='map'></div>\n" +
                               "  <script>\n" +
-                "    var map = L.map('map').setView([10.8942, 123.4293], 13);\n" +
-                "    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {\n" +
+                "    var map = L.map('map').setView([10.8942, 123.4293], 12);\n" +
+                "    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {\n" +
                 "      maxZoom: 19,\n" +
-                "      attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ | SwineLocate'\n" +
+                "      attribution: '&copy; OpenStreetMap contributors | SwineLocate'\n" +
                 "    }).addTo(map);\n" +
-                "    L.circle([10.8942, 123.4293], { color: '#3368A0', fillColor: '#3368A0', fillOpacity: 0.05, radius: 4000 }).addTo(map);\n" +
                 markersJs.toString() +
+                fitMarkersJs +
                 "  </script>\n" +
                 "</body>\n" +
                 "</html>";
+    }
+
+    private String escapeHtml(String value) {
+        return value.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#039;");
     }
 
     private void showFarmersMap(String resource) {
@@ -820,13 +805,17 @@ public final class MainActivity extends Activity {
                 1.0f));
         setContentView(screen);
 
-        publicMap.loadDataWithBaseURL("https://openstreetmap.org", generateSagayCityMapHtml(null), "text/html", "UTF-8", null);
+        publicMap.loadDataWithBaseURL("https://openstreetmap.org", generateSagayCityMapHtml(new JSONArray()), "text/html", "UTF-8", null);
 
-        String path = "/data/" + ("farmers".equals(resource) ? "farmers" : "farms");
-        get(path, response -> {
+        get("/public/farmers-nearby", response -> {
             JSONArray data = response.optJSONArray("data");
             if (publicMap != null) {
-                publicMap.loadDataWithBaseURL("https://openstreetmap.org", generateSagayCityMapHtml(data), "text/html", "UTF-8", null);
+                publicMap.loadDataWithBaseURL(
+                        "https://openstreetmap.org",
+                        generateSagayCityMapHtml(data == null ? new JSONArray() : data),
+                        "text/html",
+                        "UTF-8",
+                        null);
             }
         }, exception -> showMessage(exception.getMessage()));
     }

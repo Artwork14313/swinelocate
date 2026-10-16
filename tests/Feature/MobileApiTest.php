@@ -87,6 +87,57 @@ class MobileApiTest extends TestCase
             ->assertUnauthorized();
     }
 
+    public function test_public_mobile_map_returns_only_sagay_sale_farmers_with_saved_coordinates(): void
+    {
+        $sagayFarm = Farm::create([
+            'farm_code' => 'MAP-SAGAY-01',
+            'name' => 'Sagay Test Farm',
+            'municipality' => 'Sagay City',
+            'province' => 'Negros Occidental',
+            'latitude' => 10.89765,
+            'longitude' => 123.41456,
+            'status' => 'active',
+        ]);
+        $sagayFarmer = $this->createFarmer($sagayFarm, 'Sagay Map Farmer');
+        Swine::create([
+            'farm_id' => $sagayFarm->getKey(),
+            'farmer_id' => $sagayFarmer->getKey(),
+            'tag_number' => 'MAP-SAGAY-PIG-01',
+            'sex' => 'female',
+            'status' => 'active',
+            'is_for_sale' => true,
+        ]);
+
+        $outsideFarm = Farm::create([
+            'farm_code' => 'MAP-OUTSIDE-01',
+            'name' => 'Outside Test Farm',
+            'municipality' => 'Victorias City',
+            'province' => 'Negros Occidental',
+            'latitude' => 10.89765,
+            'longitude' => 123.41456,
+            'status' => 'active',
+        ]);
+        $outsideFarmer = $this->createFarmer($outsideFarm, 'Outside Map Farmer');
+        Swine::create([
+            'farm_id' => $outsideFarm->getKey(),
+            'farmer_id' => $outsideFarmer->getKey(),
+            'tag_number' => 'MAP-OUTSIDE-PIG-01',
+            'sex' => 'female',
+            'status' => 'active',
+            'is_for_sale' => true,
+        ]);
+
+        $this->getJson('/api/mobile/public/farmers-nearby')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.farmer_name', 'Sagay Map Farmer')
+            ->assertJsonPath('data.0.farm_name', 'Sagay Test Farm')
+            ->assertJsonPath('data.0.latitude', 10.89765)
+            ->assertJsonPath('data.0.longitude', 123.41456)
+            ->assertJsonPath('data.0.swine_count', 1)
+            ->assertJsonPath('data.0.profile_url', route('farmers.public-profile', $sagayFarmer->qr_token));
+    }
+
     public function test_deactivated_users_lose_access_and_their_token_is_revoked(): void
     {
         $user = $this->userWithPermissions('manage-farms');

@@ -101,6 +101,43 @@ class MobileDataController extends Controller
         return response()->json(['data' => $data]);
     }
 
+    public function publicNearby(): JsonResponse
+    {
+        $farmers = Farmer::query()
+            ->select(['id', 'farm_id', 'name', 'qr_token'])
+            ->whereHas('farm', fn (Builder $query) => $query
+                ->where('status', 'active')
+                ->whereRaw('LOWER(TRIM(municipality)) IN (?, ?)', ['sagay', 'sagay city'])
+                ->whereRaw('LOWER(TRIM(province)) = ?', ['negros occidental']))
+            ->whereHas('swine', fn (Builder $query) => $query
+                ->where('status', 'active')
+                ->where('is_for_sale', true))
+            ->with('farm:id,name,latitude,longitude')
+            ->withCount([
+                'swine' => fn (Builder $query) => $query
+                    ->where('status', 'active')
+                    ->where('is_for_sale', true),
+            ])
+            ->orderBy('name')
+            ->get();
+
+        return response()->json([
+            'data' => $farmers->map(fn (Farmer $farmer) => [
+                'id' => $farmer->getKey(),
+                'farmer_name' => $farmer->name,
+                'farm_name' => $farmer->farm->name,
+                'latitude' => $farmer->farm->latitude === null
+                    ? null
+                    : (float) $farmer->farm->latitude,
+                'longitude' => $farmer->farm->longitude === null
+                    ? null
+                    : (float) $farmer->farm->longitude,
+                'swine_count' => $farmer->swine_count,
+                'profile_url' => route('farmers.public-profile', $farmer->qr_token),
+            ])->values(),
+        ]);
+    }
+
     public function index(Request $request, string $resource): JsonResponse
     {
         if ($resource === 'reports') {

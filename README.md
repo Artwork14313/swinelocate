@@ -187,6 +187,10 @@ swine, health/vaccination, weight, and movement records. Editing existing
 records, farm/user/role administration, and offline recording/sync are not yet
 implemented in the native client; the website remains available for those
 workflows.
+The Android map fetches the public `/api/mobile/public/farmers-nearby` endpoint,
+which supplies each matching farmer's farm latitude and longitude. It does not
+generate sample marker coordinates; missing or out-of-area coordinates are
+omitted from the Sagay map.
 
 The API uses Laravel Sanctum bearer tokens. Run `php artisan migrate --force`
 when deploying the new API so the personal access token table is created.
