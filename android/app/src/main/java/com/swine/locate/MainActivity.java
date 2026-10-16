@@ -773,11 +773,11 @@ public final class MainActivity extends Activity {
                 "</head>\n" +
                 "<body>\n" +
                 "  <div id='map'></div>\n" +
-                "  <script>\n" +
+                              "  <script>\n" +
                 "    var map = L.map('map').setView([10.8942, 123.4293], 13);\n" +
-                "    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {\n" +
+                "    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {\n" +
                 "      maxZoom: 19,\n" +
-                "      attribution: '© OpenStreetMap | SwineLocate Sagay City'\n" +
+                "      attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ | SwineLocate'\n" +
                 "    }).addTo(map);\n" +
                 "    L.circle([10.8942, 123.4293], { color: '#3368A0', fillColor: '#3368A0', fillOpacity: 0.05, radius: 4000 }).addTo(map);\n" +
                 markersJs.toString() +
@@ -809,6 +809,9 @@ public final class MainActivity extends Activity {
         settings.setDomStorageEnabled(true);
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
+        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        settings.setUserAgentString(
+                "SwineLocateAndroid/" + BuildConfig.VERSION_NAME + " (https://swinelocate.com; support@swinelocate.com)");
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         publicMap.setWebViewClient(new WebViewClient());
         screen.addView(publicMap, new LinearLayout.LayoutParams(
