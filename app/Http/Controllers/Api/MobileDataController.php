@@ -139,6 +139,35 @@ class MobileDataController extends Controller
         ]);
     }
 
+    public function publicFarmer(string $token): JsonResponse
+    {
+        $farmer = Farmer::query()
+            ->where('qr_token', $token)
+            ->with([
+                'farm:id,name,municipality,province,region',
+                'swine' => fn ($query) => $query
+                    ->where('status', 'active')
+                    ->where('is_for_sale', true)
+                    ->with('latestWeightRecord:weight_records.id,weight_records.swine_id,weight_records.record_date,weight_records.weight')
+                    ->orderBy('breed')
+                    ->orderBy('sex'),
+            ])
+            ->firstOrFail();
+
+        return response()->json(['data' => [
+            'name' => $farmer->name,
+            'farm' => $farmer->farm?->only(['name', 'municipality', 'province', 'region']),
+            'listings' => $farmer->swine->map(fn ($swine) => [
+                'breed' => $swine->breed,
+                'sex' => $swine->sex,
+                'birth_date' => $swine->birth_date?->toDateString(),
+                'asking_price' => $swine->asking_price,
+                'latest_weight' => $swine->latestWeightRecord?->weight,
+                'weight_date' => $swine->latestWeightRecord?->record_date?->toDateString(),
+            ])->values(),
+        ]]);
+    }
+
     public function index(Request $request, string $resource): JsonResponse
     {
         if ($resource === 'reports') {

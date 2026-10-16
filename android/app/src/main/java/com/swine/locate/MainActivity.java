@@ -2,6 +2,7 @@ package com.swine.locate;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Intent;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
@@ -81,8 +82,14 @@ public final class MainActivity extends Activity {
             showMessage(exception.getMessage());
         }
 
+        pendingFarmerToken = farmerTokenFromUrl(getIntent() == null ? null : getIntent().getData());
+
         if (token == null || token.isEmpty()) {
-            showPublicNearby();
+            if (pendingFarmerToken != null) {
+                openPendingFarmerProfile();
+            } else {
+                showPublicNearby();
+            }
         } else {
             showLoading("Restoring your session…");
             get("/me", response -> {
@@ -405,7 +412,7 @@ public final class MainActivity extends Activity {
         settings.setUserAgentString(
                 "SwineLocateAndroid/" + BuildConfig.VERSION_NAME + " (+" + applicationBaseUrl() + ")");
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
-        publicMap.setWebViewClient(new WebViewClient());
+        publicMap.setWebViewClient(farmerLinkClient());
         screen.addView(publicMap, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 0,
@@ -501,7 +508,147 @@ public final class MainActivity extends Activity {
             renderDashboard();
             prefetchOfflineData();
             syncPending(false);
+            openPendingFarmerProfile();
         }, exception -> showDashboardFailure(exception.getMessage()));
+    }
+
+    private String pendingFarmerToken;
+
+    // Returns the farmer QR token when the URL is a SwineLocate farmer profile link.
+    private String farmerTokenFromUrl(Uri uri) {
+        if (uri == null || uri.getHost() == null
+                || !uri.getHost().equalsIgnoreCase(Uri.parse(BuildConfig.API_BASE_URL).getHost())) {
+            return null;
+        }
+        List<String> segments = uri.getPathSegments();
+        int size = segments.size();
+        if (size >= 3 && "public".equals(segments.get(size - 3)) && "farmers".equals(segments.get(size - 2))) {
+            return segments.get(size - 1);
+        }
+        return null;
+    }
+
+    private void openPendingFarmerProfile() {
+        if (pendingFarmerToken != null) {
+            String farmerToken = pendingFarmerToken;
+            pendingFarmerToken = null;
+            showFarmerProfile(farmerToken);
+        }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        String farmerToken = farmerTokenFromUrl(intent.getData());
+        if (farmerToken != null) {
+            showFarmerProfile(farmerToken);
+        }
+    }
+
+    private void showFarmerProfile(String farmerToken) {
+        boolean signedIn = token != null && !token.isEmpty();
+        Runnable back = () -> {
+            if (!signedIn) {
+                showPublicNearby();
+            } else if (dashboard != null) {
+                renderDashboard();
+            } else {
+                loadDashboard();
+            }
+        };
+        showLoading("Loading farmer profile…");
+        try {
+            get("/public/farmers/" + URLEncoder.encode(farmerToken, StandardCharsets.UTF_8.name()), response -> {
+                JSONObject farmer = response.optJSONObject("data");
+                if (farmer == null) {
+                    showMessage("Farmer profile not found.");
+                    back.run();
+                    return;
+                }
+                renderFarmerProfile(farmer, back);
+            }, exception -> {
+                showMessage(exception.getMessage());
+                back.run();
+            });
+        } catch (java.io.UnsupportedEncodingException exception) {
+            showMessage("Unable to read the farmer QR code.");
+            back.run();
+        }
+    }
+
+    private void renderFarmerProfile(JSONObject farmer, Runnable back) {
+        activeMenu = "";
+        ScrollView page = page();
+        LinearLayout panel = card();
+        panel.setPadding(dp(20), dp(20), dp(20), dp(20));
+        Button backButton = button("‹  Back");
+        panel.addView(backButton, matchWidth());
+        backButton.setOnClickListener(view -> back.run());
+        addText(panel, "SwineLocate Farmer Profile", 13, 0xFF526577, true);
+        addText(panel, farmer.optString("name", "Farmer"), 26, DARK, true);
+        JSONObject farm = farmer.optJSONObject("farm");
+        if (farm != null) {
+            addText(panel, farm.optString("name"), 16, DARK, true);
+            StringBuilder place = new StringBuilder();
+            for (String key : new String[]{"municipality", "province", "region"}) {
+                String part = farm.isNull(key) ? "" : farm.optString(key);
+                if (!part.isEmpty()) {
+                    place.append(place.length() == 0 ? "" : ", ").append(part);
+                }
+            }
+            if (place.length() > 0) {
+                addText(panel, place.toString(), 14, 0xFF526577, false);
+            }
+        }
+        addPanel(page, panel);
+
+        JSONArray listings = farmer.optJSONArray("listings");
+        LinearLayout heading = card();
+        heading.setPadding(dp(20), dp(14), dp(20), dp(14));
+        int count = listings == null ? 0 : listings.length();
+        addText(heading, "Available swine (" + count + ")", 18, DARK, true);
+        if (count == 0) {
+            addText(heading, "No swine are currently listed for sale.", 14, 0xFF526577, false);
+        }
+        addPanel(page, heading);
+        for (int index = 0; index < count; index++) {
+            JSONObject item = listings.optJSONObject(index);
+            if (item == null) {
+                continue;
+            }
+            LinearLayout card = card();
+            card.setPadding(dp(20), dp(14), dp(20), dp(14));
+            String breed = item.isNull("breed") ? "Swine" : item.optString("breed", "Swine");
+            addText(card, breed + (item.isNull("sex") ? "" : " · " + label(item.optString("sex"))), 16, DARK, true);
+            if (!item.isNull("birth_date")) {
+                addText(card, "Born: " + item.optString("birth_date"), 14, 0xFF526577, false);
+            }
+            if (!item.isNull("latest_weight")) {
+                addText(card, "Weight: " + item.optString("latest_weight") + " kg"
+                        + (item.isNull("weight_date") ? "" : " (" + item.optString("weight_date") + ")"),
+                        14, 0xFF526577, false);
+            }
+            if (!item.isNull("asking_price")) {
+                addText(card, "Asking price: ₱" + item.optString("asking_price"), 15, BLUE, true);
+            }
+            addPanel(page, card);
+        }
+        setContentView(page);
+    }
+
+    private WebViewClient farmerLinkClient() {
+        return new WebViewClient() {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, android.webkit.WebResourceRequest request) {
+                String farmerToken = farmerTokenFromUrl(request.getUrl());
+                if (farmerToken != null) {
+                    showFarmerProfile(farmerToken);
+                    return true;
+                }
+                return false;
+            }
+        };
     }
 
     private void renderDashboard() {
@@ -1464,6 +1611,11 @@ public final class MainActivity extends Activity {
     }
 
     private void lookupQr(String value) {
+        String farmerToken = farmerTokenFromUrl(Uri.parse(value));
+        if (farmerToken != null) {
+            showFarmerProfile(farmerToken);
+            return;
+        }
         try {
             Uri scannedUri = Uri.parse(value);
             if (scannedUri.getScheme() != null) {
@@ -1673,7 +1825,7 @@ public final class MainActivity extends Activity {
         settings.setUserAgentString(
                 "SwineLocateAndroid/" + BuildConfig.VERSION_NAME + " (https://swinelocate.com; support@swinelocate.com)");
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
-        publicMap.setWebViewClient(new WebViewClient());
+        publicMap.setWebViewClient(farmerLinkClient());
         screen.addView(publicMap, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 0,

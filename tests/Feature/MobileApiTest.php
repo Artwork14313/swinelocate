@@ -138,6 +138,35 @@ class MobileApiTest extends TestCase
             ->assertJsonPath('data.0.profile_url', route('farmers.public-profile', $sagayFarmer->qr_token));
     }
 
+    public function test_public_farmer_profile_endpoint_returns_sale_listings(): void
+    {
+        $farm = Farm::create([
+            'farm_code' => 'PROFILE-01',
+            'name' => 'Profile Farm',
+            'municipality' => 'Sagay City',
+            'province' => 'Negros Occidental',
+            'status' => 'active',
+        ]);
+        $farmer = $this->createFarmer($farm, 'Profile Farmer');
+        Swine::create([
+            'farm_id' => $farm->getKey(),
+            'farmer_id' => $farmer->getKey(),
+            'tag_number' => 'PROFILE-PIG-01',
+            'sex' => 'female',
+            'status' => 'active',
+            'is_for_sale' => true,
+            'asking_price' => 5000,
+        ]);
+
+        $this->getJson('/api/mobile/public/farmers/'.$farmer->qr_token)
+            ->assertOk()
+            ->assertJsonPath('data.name', 'Profile Farmer')
+            ->assertJsonPath('data.farm.name', 'Profile Farm')
+            ->assertJsonCount(1, 'data.listings');
+
+        $this->getJson('/api/mobile/public/farmers/missing')->assertNotFound();
+    }
+
     public function test_deactivated_users_lose_access_and_their_token_is_revoked(): void
     {
         $user = $this->userWithPermissions('manage-farms');

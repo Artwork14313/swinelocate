@@ -13,6 +13,9 @@ Route::prefix('mobile')->group(function () {
     Route::get('/public/farmers-nearby', [MobileDataController::class, 'publicNearby'])
         ->middleware('throttle:60,1');
 
+    Route::get('/public/farmers/{token}', [MobileDataController::class, 'publicFarmer'])
+        ->middleware('throttle:60,1');
+
     Route::middleware(['auth:sanctum', 'mobile.active'])->group(function () {
         Route::get('/me', [MobileAuthController::class, 'me']);
         Route::post('/logout', [MobileAuthController::class, 'logout']);

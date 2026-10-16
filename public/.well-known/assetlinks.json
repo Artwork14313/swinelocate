@@ -7,7 +7,8 @@
             "namespace": "android_app",
             "package_name": "com.swine.locate",
             "sha256_cert_fingerprints": [
-                "51:07:81:E9:DB:A9:C1:46:CA:BA:7F:3C:68:14:72:A4:03:DD:F6:FB:3F:22:B1:49:33:F7:8F:DA:D4:4B:F7:DD"
+                "51:07:81:E9:DB:A9:C1:46:CA:BA:7F:3C:68:14:72:A4:03:DD:F6:FB:3F:22:B1:49:33:F7:8F:DA:D4:4B:F7:DD",
+                "A6:F7:44:25:39:6A:78:B4:2D:0D:34:30:CA:D3:F5:3A:56:C0:4A:0E:4C:D7:20:02:77:9C:7E:5F:71:8E:C5:82"
             ]
         }
     }
