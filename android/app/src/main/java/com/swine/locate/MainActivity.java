@@ -20,6 +20,7 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ArrayAdapter;
 import android.widget.ScrollView;
+import android.widget.AdapterView;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -186,8 +187,22 @@ public final class MainActivity extends Activity {
         int width = Math.min(dp(300), (int) (getResources().getDisplayMetrics().widthPixels * 0.82f));
         root.addView(drawerPanel, new FrameLayout.LayoutParams(
                 width, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.START));
+        root.setOnApplyWindowInsetsListener((v, insets) -> {
+            int top = insets.getSystemWindowInsetTop();
+            int bottom = insets.getSystemWindowInsetBottom();
+            bar.setPadding(dp(8), dp(8) + top, dp(16), dp(8));
+            view.setPadding(view.getPaddingLeft(), view.getPaddingTop(), view.getPaddingRight(),
+                    Math.max(view.getPaddingBottom(), bottom));
+            drawerPanel.setPadding(0, 0, 0, bottom);
+            drawerHeader.setPadding(dp(20), dp(18) + top, dp(20), dp(18));
+            return insets;
+        });
         super.setContentView(root);
+        root.requestApplyInsets();
     }
+
+    private LinearLayout drawerHeader;
+    private String activeMenu = "dashboard";
 
     private LinearLayout buildDrawer() {
         LinearLayout panel = new LinearLayout(this);
@@ -200,6 +215,7 @@ public final class MainActivity extends Activity {
         header.setOrientation(LinearLayout.VERTICAL);
         header.setBackgroundColor(BLUE);
         header.setPadding(dp(20), dp(36), dp(20), dp(18));
+        drawerHeader = header;
         TextView name = new TextView(this);
         name.setText(user == null ? "SwineLocate" : user.optString("name", "SwineLocate"));
         name.setTextColor(0xFFFFFFFF);
@@ -221,12 +237,12 @@ public final class MainActivity extends Activity {
         ScrollView scroll = new ScrollView(this);
         LinearLayout items = new LinearLayout(this);
         items.setOrientation(LinearLayout.VERTICAL);
-        items.setPadding(0, dp(8), 0, dp(8));
+        items.setPadding(0, dp(8), 0, dp(32));
         scroll.addView(items);
         panel.addView(scroll, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
-        addDrawerItem(items, "🏠  Dashboard", false, () -> {
+        addDrawerItem(items, "🏠  Dashboard", "dashboard", false, () -> {
             if (dashboard != null) {
                 renderDashboard();
             } else {
@@ -276,13 +292,13 @@ public final class MainActivity extends Activity {
                     headerAdded = true;
                 }
                 if ("@scan".equals(id)) {
-                    addDrawerItem(items, title, false, this::scanQr);
+                    addDrawerItem(items, title, "scan", false, this::scanQr);
                 } else if ("@sync".equals(id)) {
                     int waiting = offlineStore.pendingCount();
                     addDrawerItem(items, title + (waiting > 0 ? "  (" + waiting + " waiting)" : ""),
-                            false, () -> syncPending(true));
+                            "sync", false, () -> syncPending(true));
                 } else {
-                    addDrawerItem(items, title, false, () -> {
+                    addDrawerItem(items, title, id, false, () -> {
                         if ("register-swine".equals(id)) {
                             createResource("swine");
                         } else {
@@ -299,8 +315,8 @@ public final class MainActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(1));
         dividerParams.topMargin = dp(8);
         items.addView(divider, dividerParams);
-        addDrawerItem(items, "Farmers map", false, () -> showFarmersMap("farms"));
-        addDrawerItem(items, "Sign out", true, this::signOut);
+        addDrawerItem(items, "Farmers map", "map", false, () -> showFarmersMap("farms"));
+        addDrawerItem(items, "Sign out", "signout", true, this::signOut);
         return panel;
     }
 
@@ -315,14 +331,20 @@ public final class MainActivity extends Activity {
         parent.addView(heading, matchWidth());
     }
 
-    private void addDrawerItem(LinearLayout parent, String text, boolean danger, Runnable action) {
+    private void addDrawerItem(LinearLayout parent, String text, String key, boolean danger, Runnable action) {
+        boolean active = key.equals(activeMenu);
         TextView item = new TextView(this);
         item.setText(text);
         item.setTextSize(16);
-        item.setTextColor(danger ? 0xFFB91C1C : DARK);
+        item.setTextColor(danger ? 0xFFB91C1C : active ? BLUE : DARK);
+        if (active) {
+            item.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        }
         item.setPadding(dp(20), dp(14), dp(20), dp(14));
         android.util.TypedValue outValue = new android.util.TypedValue();
-        if (getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)) {
+        if (active) {
+            item.setBackgroundColor(0xFFE3EEFB);
+        } else if (getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)) {
             item.setBackgroundResource(outValue.resourceId);
         }
         item.setOnClickListener(v -> {
@@ -483,6 +505,7 @@ public final class MainActivity extends Activity {
     }
 
     private void renderDashboard() {
+        activeMenu = "dashboard";
         JSONObject user = dashboard.optJSONObject("user");
         permissions = userPermissions(user);
         JSONObject stats = dashboard.optJSONObject("stats");
@@ -577,6 +600,7 @@ public final class MainActivity extends Activity {
     }
 
     private void showResource(String resource, int pageNumber, String search) {
+        activeMenu = resource;
         ScrollView page = page();
         LinearLayout panel = card();
         panel.setPadding(dp(20), dp(20), dp(20), dp(20));
@@ -1096,6 +1120,11 @@ public final class MainActivity extends Activity {
     }
 
     private void showCreateForm(String resource, JSONObject options, JSONObject existing) {
+        if (existing == null && "swine".equals(resource)) {
+            activeMenu = "register-swine";
+        } else {
+            activeMenu = resource;
+        }
         ScrollView page = page();
         LinearLayout panel = card();
         panel.setPadding(dp(20), dp(20), dp(20), dp(20));
@@ -1190,6 +1219,56 @@ public final class MainActivity extends Activity {
             }
         }
 
+        // Farmer and location choices follow the selected farm.
+        for (FormField definition : fields) {
+            String parentKey = parentFarmKey(definition.key);
+            Spinner child = selectors.get(definition.key);
+            Spinner parent = parentKey == null ? null : selectors.get(parentKey);
+            if (child == null || parent == null || definition.optionsKey == null) {
+                continue;
+            }
+            String[] pending = {existing == null || existing.isNull(definition.key)
+                    ? "" : existing.optString(definition.key)};
+            Runnable refresh = () -> {
+                String farmId = fieldValue(fields, parentKey, parent);
+                List<String> values = new ArrayList<>();
+                List<String> labels = new ArrayList<>();
+                values.add("");
+                labels.add(farmId.isEmpty() ? "Select a farm first"
+                        : definition.required ? "Choose " + label(definition.key) : "Not selected");
+                JSONArray records = options.optJSONArray(definition.optionsKey);
+                for (int index = 0; !farmId.isEmpty() && records != null && index < records.length(); index++) {
+                    JSONObject record = records.optJSONObject(index);
+                    if (record != null && farmId.equals(record.optString("farm_id"))) {
+                        values.add(record.optString("id"));
+                        labels.add(optionLabel(definition.optionsKey, record));
+                    }
+                }
+                ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                        this, android.R.layout.simple_spinner_item, labels);
+                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                child.setAdapter(adapter);
+                definition.values = values;
+                int position = values.indexOf(pending[0]);
+                if (position < 0 && values.size() == 2 && definition.required) {
+                    position = 1;
+                }
+                child.setSelection(Math.max(position, 0));
+                pending[0] = "";
+            };
+            parent.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(AdapterView<?> adapterView, View view, int position, long id) {
+                    refresh.run();
+                }
+
+                @Override
+                public void onNothingSelected(AdapterView<?> adapterView) {
+                }
+            });
+            refresh.run();
+        }
+
         Button save = button("Save");
         panel.addView(save, matchWidth());
         addPanel(page, panel);
@@ -1236,6 +1315,29 @@ public final class MainActivity extends Activity {
                 showMessage(exception.getMessage());
             });
         });
+    }
+
+    private String parentFarmKey(String key) {
+        switch (key) {
+            case "farmer_id":
+            case "current_location_id":
+                return "farm_id";
+            case "to_farmer_id":
+            case "to_location_id":
+                return "to_farm_id";
+            default:
+                return null;
+        }
+    }
+
+    private String fieldValue(List<FormField> fields, String key, Spinner spinner) {
+        for (FormField field : fields) {
+            if (key.equals(field.key) && field.values != null) {
+                int position = spinner.getSelectedItemPosition();
+                return position >= 0 && position < field.values.size() ? field.values.get(position) : "";
+            }
+        }
+        return "";
     }
 
     private List<FormField> formFields(String resource) {
@@ -1343,6 +1445,7 @@ public final class MainActivity extends Activity {
     }
 
     private void scanQr() {
+        activeMenu = "scan";
         GmsBarcodeScannerOptions options = new GmsBarcodeScannerOptions.Builder()
                 .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
                 .build();
@@ -1543,6 +1646,7 @@ public final class MainActivity extends Activity {
     }
 
     private void showFarmersMap(String resource) {
+        activeMenu = "map";
         publicMapVisible = true;
         destroyPublicMap();
         LinearLayout screen = new LinearLayout(this);
