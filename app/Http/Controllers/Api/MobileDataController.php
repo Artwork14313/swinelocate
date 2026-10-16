@@ -7,6 +7,7 @@ use App\Models\Farm;
 use App\Models\Farmer;
 use App\Models\FarmLocation;
 use App\Models\HealthRecord;
+use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Swine;
 use App\Models\SwineMovement;
@@ -208,8 +209,32 @@ class MobileDataController extends Controller
             'movements' => 'manage-movements',
         ];
 
+        $extra = [
+            'farmers' => 'manage-farmers',
+            'locations' => 'manage-locations',
+            'users' => 'manage-users',
+        ];
+        if (isset($extra[$resource])) {
+            abort_unless($request->user()->hasPermission($extra[$resource]), 403);
+
+            return response()->json(['data' => app(MobileManageController::class)->options($request, $resource)]);
+        }
+
+        if ($resource === 'roles') {
+            abort_unless($request->user()->hasPermission('manage-roles'), 403);
+
+            return response()->json(['data' => [
+                'permissions' => Permission::query()
+                    ->where('slug', '!=', 'superadmin')
+                    ->orderBy('name')
+                    ->get(['id', 'name', 'slug']),
+            ]]);
+        }
+
         abort_unless(isset($permissions[$resource]), 404);
-        abort_unless($request->user()->hasPermission($permissions[$resource]), 403);
+        $allowed = $request->user()->hasPermission($permissions[$resource])
+            || ($resource === 'swine' && $request->user()->hasPermission('manage-swine'));
+        abort_unless($allowed, 403);
 
         return response()->json([
             'data' => [
@@ -240,7 +265,7 @@ class MobileDataController extends Controller
             'vaccinations' => $this->storeHealthRecord($request, true),
             'weight-records' => $this->storeWeightRecord($request),
             'movements' => $this->storeMovement($request),
-            default => abort(404),
+            default => app(MobileManageController::class)->store($request, $resource),
         };
     }
 

@@ -265,6 +265,68 @@ class MobileApiTest extends TestCase
         ]);
     }
 
+    public function test_mobile_admin_can_manage_core_records_and_swine_sale(): void
+    {
+        $user = $this->userWithPermissions(
+            'manage-farms', 'manage-farmers', 'manage-locations', 'manage-users',
+            'manage-swine', 'record-weight',
+        );
+        $token = $user->createToken('android')->plainTextToken;
+
+        $farmId = $this->withToken($token)->postJson('/api/mobile/data/farms', [
+            'farm_code' => 'ADM-01', 'name' => 'Admin Farm', 'latitude' => 10.9, 'longitude' => 123.4,
+        ])->assertCreated()->json('data.id');
+
+        $this->withToken($token)->putJson("/api/mobile/data/farms/{$farmId}", [
+            'farm_code' => 'ADM-01', 'name' => 'Renamed Farm',
+        ])->assertOk()->assertJsonPath('data.name', 'Renamed Farm');
+
+        $farmerId = $this->withToken($token)->postJson('/api/mobile/data/farmers', [
+            'farm_id' => $farmId, 'name' => 'F', 'contact_number' => '0917', 'address' => 'A',
+        ])->assertCreated()->json('data.id');
+
+        $locationId = $this->withToken($token)->postJson('/api/mobile/data/locations', [
+            'farm_id' => $farmId, 'location_code' => 'PEN-1', 'name' => 'Pen 1',
+        ])->assertCreated()->json('data.id');
+
+        $swine = Swine::create([
+            'farm_id' => $farmId, 'farmer_id' => $farmerId, 'tag_number' => 'SALE-1',
+            'sex' => 'male', 'status' => 'active',
+        ]);
+
+        $payload = [
+            'farm_id' => $farmId, 'farmer_id' => $farmerId, 'tag_number' => 'SALE-1',
+            'sex' => 'male', 'current_location_id' => $locationId,
+        ];
+
+        $this->withToken($token)->putJson("/api/mobile/data/swine/{$swine->getKey()}", $payload + ['is_for_sale' => true])
+            ->assertStatus(422);
+
+        $this->withToken($token)->putJson("/api/mobile/data/swine/{$swine->getKey()}", $payload + [
+            'is_for_sale' => true, 'asking_price' => 5000,
+        ])->assertOk();
+        $this->assertDatabaseHas('swine', ['id' => $swine->getKey(), 'is_for_sale' => true, 'asking_price' => 5000]);
+
+        $this->withToken($token)->deleteJson("/api/mobile/data/swine/{$swine->getKey()}")->assertOk();
+        $this->assertDatabaseHas('swine', ['id' => $swine->getKey(), 'status' => 'inactive', 'is_for_sale' => false]);
+
+        $role = Role::first();
+        $this->withToken($token)->postJson('/api/mobile/data/users', [
+            'name' => 'New User', 'email' => 'new@example.com', 'password' => 'password123',
+            'role_id' => $role->getKey(), 'status' => 'active',
+        ])->assertCreated();
+        $this->assertNotNull(User::where('email', 'new@example.com')->first()->email_verified_at);
+    }
+
+    public function test_mobile_management_requires_permission(): void
+    {
+        $token = $this->userWithPermissions('record-weight')->createToken('android')->plainTextToken;
+
+        $this->withToken($token)->postJson('/api/mobile/data/farms', ['farm_code' => 'X', 'name' => 'X'])
+            ->assertForbidden();
+        $this->withToken($token)->deleteJson('/api/mobile/data/farms/1')->assertForbidden();
+    }
+
     private function userWithPermissions(string ...$slugs): User
     {
         $role = Role::create([

@@ -37,10 +37,12 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -138,13 +140,13 @@ public final class MainActivity extends Activity {
                 1.0f));
         setContentView(screen);
 
-        publicMap.loadDataWithBaseURL("https://openstreetmap.org", generateSagayCityMapHtml(new JSONArray()), "text/html", "UTF-8", null);
+        publicMap.loadDataWithBaseURL(applicationBaseUrl(), generateSagayCityMapHtml(new JSONArray()), "text/html", "UTF-8", null);
 
         get("/public/farmers-nearby", response -> {
             JSONArray data = response.optJSONArray("data");
             if (publicMap != null) {
                 publicMap.loadDataWithBaseURL(
-                        "https://openstreetmap.org",
+                        applicationBaseUrl(),
                         generateSagayCityMapHtml(data == null ? new JSONArray() : data),
                         "text/html",
                         "UTF-8",
@@ -333,7 +335,7 @@ public final class MainActivity extends Activity {
                 for (int index = 0; index < rows.length(); index++) {
                     JSONObject record = rows.optJSONObject(index);
                     if (record != null) {
-                        addRecord(panel, record);
+                        addRecord(resource, panel, record);
                     }
                 }
             }
@@ -347,7 +349,7 @@ public final class MainActivity extends Activity {
         }, exception -> results.setText(exception.getMessage()));
     }
 
-    private void addRecord(LinearLayout panel, JSONObject record) {
+    private void addRecord(String resource, LinearLayout panel, JSONObject record) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.VERTICAL);
         row.setPadding(dp(14), dp(12), dp(14), dp(12));
@@ -361,14 +363,62 @@ public final class MainActivity extends Activity {
         LinearLayout.LayoutParams params = matchWidth();
         params.bottomMargin = dp(8);
         panel.addView(row, params);
-        row.setOnClickListener(view -> new AlertDialog.Builder(this)
-                .setTitle(title.isEmpty() ? "Record details" : title)
-                .setMessage(pretty(record))
-                .setPositiveButton("Close", null)
-                .show());
+        row.setOnClickListener(view -> {
+            AlertDialog.Builder dialog = new AlertDialog.Builder(this)
+                    .setTitle(title.isEmpty() ? "Record details" : title)
+                    .setMessage(pretty(record))
+                    .setPositiveButton("Close", null);
+            if (canEdit(resource)) {
+                dialog.setNeutralButton("Edit", (d, which) -> openForm(resource, record));
+            }
+            if (canDelete(resource)) {
+                dialog.setNegativeButton("Delete", (d, which) -> confirmDelete(resource, record, title));
+            }
+            dialog.show();
+        });
+    }
+
+    private void confirmDelete(String resource, JSONObject record, String title) {
+        new AlertDialog.Builder(this)
+                .setTitle("Confirm")
+                .setMessage(("farms".equals(resource) || "locations".equals(resource) || "swine".equals(resource)
+                        ? "Deactivate " : "Delete ") + (title.isEmpty() ? "this record" : title) + "?")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Yes", (d, which) -> send("DELETE",
+                        "/data/" + resource + "/" + record.optString("id"), null, response -> {
+                            showMessage("Done.");
+                            showResource(resource, 1, "");
+                        }, exception -> showMessage(exception.getMessage())))
+                .show();
+    }
+
+    private boolean canEdit(String resource) {
+        switch (resource) {
+            case "farms": return hasPermission("manage-farms");
+            case "farmers": return hasPermission("manage-farmers");
+            case "locations": return hasPermission("manage-locations");
+            case "users": return hasPermission("manage-users");
+            case "roles": return hasPermission("manage-roles");
+            case "swine": return hasPermission("manage-swine");
+            case "health-records":
+            case "vaccinations": return hasPermission("manage-health");
+            case "weight-records": return hasPermission("record-weight");
+            default: return false;
+        }
+    }
+
+    private boolean canDelete(String resource) {
+        return !"roles".equals(resource) && !"farmers".equals(resource) && canEdit(resource);
     }
 
     private boolean canCreate(String resource) {
+        switch (resource) {
+            case "farms": return hasPermission("manage-farms");
+            case "farmers": return hasPermission("manage-farmers");
+            case "locations": return hasPermission("manage-locations");
+            case "users": return hasPermission("manage-users");
+            default: break;
+        }
         if ("swine".equals(resource)) {
             return hasPermission("register-swine");
         }
@@ -382,8 +432,16 @@ public final class MainActivity extends Activity {
     }
 
     private void createResource(String resource) {
-        if (!canCreate(resource)) {
-            showMessage("Your account does not have permission to add this record.");
+        openForm(resource, null);
+    }
+
+    private void openForm(String resource, JSONObject existing) {
+        if (existing == null ? !canCreate(resource) : !canEdit(resource)) {
+            showMessage("Your account does not have permission for this action.");
+            return;
+        }
+        if ("farms".equals(resource)) {
+            showCreateForm(resource, new JSONObject(), existing);
             return;
         }
         showLoading("Loading form choices…");
@@ -393,20 +451,78 @@ public final class MainActivity extends Activity {
                 showMessage("The server returned incomplete form choices.");
                 return;
             }
-            showCreateForm(resource, options);
+            if ("roles".equals(resource)) {
+                showRolePermissions(existing, options.optJSONArray("permissions"));
+            } else {
+                showCreateForm(resource, options, existing);
+            }
         }, exception -> showMessage(exception.getMessage()));
     }
 
-    private void showCreateForm(String resource, JSONObject options) {
+    private void showRolePermissions(JSONObject role, JSONArray all) {
+        if (all == null || role == null) {
+            showMessage("No permissions available.");
+            showResource("roles", 1, "");
+            return;
+        }
+        Set<String> granted = new HashSet<>();
+        JSONArray current = role.optJSONArray("permissions");
+        for (int index = 0; current != null && index < current.length(); index++) {
+            JSONObject permission = current.optJSONObject(index);
+            if (permission != null) {
+                granted.add(permission.optString("slug"));
+            }
+        }
+        String[] names = new String[all.length()];
+        String[] slugs = new String[all.length()];
+        boolean[] checked = new boolean[all.length()];
+        for (int index = 0; index < all.length(); index++) {
+            JSONObject permission = all.optJSONObject(index);
+            slugs[index] = permission == null ? "" : permission.optString("slug");
+            names[index] = permission == null ? "" : permission.optString("name", slugs[index]);
+            checked[index] = granted.contains(slugs[index]);
+        }
+        showResource("roles", 1, "");
+        new AlertDialog.Builder(this)
+                .setTitle("Permissions: " + role.optString("name"))
+                .setMultiChoiceItems(names, checked, (d, which, isChecked) -> checked[which] = isChecked)
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Save", (d, which) -> {
+                    JSONArray selected = new JSONArray();
+                    for (int index = 0; index < slugs.length; index++) {
+                        if (checked[index]) {
+                            selected.put(slugs[index]);
+                        }
+                    }
+                    JSONObject body = new JSONObject();
+                    try {
+                        body.put("permissions", selected);
+                    } catch (JSONException exception) {
+                        showMessage("Unable to prepare permissions.");
+                        return;
+                    }
+                    send("PUT", "/data/roles/" + role.optString("id"), body, response -> {
+                        showMessage("Permissions saved.");
+                        showResource("roles", 1, "");
+                    }, exception -> showMessage(exception.getMessage()));
+                })
+                .show();
+    }
+
+    private void showCreateForm(String resource, JSONObject options, JSONObject existing) {
         ScrollView page = page();
         LinearLayout panel = card();
         panel.setPadding(dp(20), dp(20), dp(20), dp(20));
         Button back = button("‹  Back to " + label(resource));
         panel.addView(back, matchWidth());
         back.setOnClickListener(view -> showResource(resource, 1, ""));
-        addText(panel, "Add " + label(resource), 24, DARK, true);
+        addText(panel, (existing == null ? "Add " : "Edit ") + label(resource), 24, DARK, true);
 
         List<FormField> fields = formFields(resource);
+        if (existing != null && ("health-records".equals(resource) || "vaccinations".equals(resource)
+                || "weight-records".equals(resource))) {
+            fields.removeIf(field -> "swine_id".equals(field.key));
+        }
         Map<String, EditText> textInputs = new HashMap<>();
         Map<String, Spinner> selectors = new HashMap<>();
 
@@ -443,6 +559,16 @@ public final class MainActivity extends Activity {
                         labels);
                 adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
                 spinner.setAdapter(adapter);
+                if (existing != null) {
+                    String current = existing.isNull(definition.key) ? "" : existing.optString(definition.key);
+                    if ("1".equals(current) && "is_for_sale".equals(definition.key)) {
+                        current = "true";
+                    } else if ("0".equals(current) && "is_for_sale".equals(definition.key)) {
+                        current = "false";
+                    }
+                    int position = values.indexOf(current);
+                    spinner.setSelection(Math.max(position, 0));
+                }
                 panel.addView(spinner, matchWidth());
                 selectors.put(definition.key, spinner);
                 definition.values = values;
@@ -456,13 +582,21 @@ public final class MainActivity extends Activity {
                             | InputType.TYPE_NUMBER_FLAG_SIGNED;
                 } else if (definition.date) {
                     inputType = InputType.TYPE_CLASS_DATETIME | InputType.TYPE_DATETIME_VARIATION_DATE;
+                } else if ("password".equals(definition.key)) {
+                    inputType = InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD;
                 }
                 EditText input = field(definition.hint, inputType);
                 if (definition.multiline) {
                     input.setSingleLine(false);
                     input.setMinLines(2);
                 }
-                if (definition.date) {
+                if (existing != null && !"password".equals(definition.key)) {
+                    String current = existing.isNull(definition.key) ? "" : existing.optString(definition.key);
+                    if (definition.date && current.length() > 10) {
+                        current = current.substring(0, 10);
+                    }
+                    input.setText(current);
+                } else if (definition.date && existing == null && definition.required) {
                     input.setText(today());
                 }
                 panel.addView(input, matchWidth());
@@ -490,8 +624,12 @@ public final class MainActivity extends Activity {
                         showMessage("Please enter or select " + label(definition.key) + ".");
                         return;
                     }
-                    if (!value.isEmpty()) {
-                        body.put(definition.key, value);
+                    if (existing != null || !value.isEmpty()) {
+                        if ("is_for_sale".equals(definition.key)) {
+                            body.put(definition.key, "true".equals(value));
+                        } else {
+                            body.put(definition.key, value);
+                        }
                     }
                 }
             } catch (JSONException exception) {
@@ -501,7 +639,9 @@ public final class MainActivity extends Activity {
 
             save.setEnabled(false);
             save.setText("Saving…");
-            post("/data/" + resource, body, token, response -> {
+            String method = existing == null ? "POST" : "PUT";
+            String path = "/data/" + resource + (existing == null ? "" : "/" + existing.optString("id"));
+            send(method, path, body, response -> {
                 showMessage(label(resource) + " saved.");
                 showResource(resource, 1, "");
             }, exception -> {
@@ -524,7 +664,41 @@ public final class MainActivity extends Activity {
             fields.add(FormField.date("birth_date", false));
             fields.add(FormField.date("acquisition_date", false));
             fields.add(FormField.text("source", false));
+            fields.add(FormField.choices("is_for_sale", false, "true", "false"));
+            fields.add(FormField.number("asking_price", false));
             fields.add(FormField.multiline("notes", false));
+        } else if ("farms".equals(resource)) {
+            fields.add(FormField.text("farm_code", true));
+            fields.add(FormField.text("name", true));
+            fields.add(FormField.multiline("address", false));
+            fields.add(FormField.text("municipality", false));
+            fields.add(FormField.text("province", false));
+            fields.add(FormField.text("region", false));
+            fields.add(FormField.number("latitude", false));
+            fields.add(FormField.number("longitude", false));
+            fields.add(FormField.text("contact_number", false));
+            fields.add(FormField.text("email", false));
+        } else if ("farmers".equals(resource)) {
+            fields.add(FormField.options("farm_id", "farms", true));
+            fields.add(FormField.text("name", true));
+            fields.add(FormField.text("contact_number", true));
+            fields.add(FormField.text("email", false));
+            fields.add(FormField.multiline("address", true));
+        } else if ("locations".equals(resource)) {
+            fields.add(FormField.options("farm_id", "farms", true));
+            fields.add(FormField.text("location_code", true));
+            fields.add(FormField.text("name", true));
+            fields.add(FormField.text("type", false));
+            fields.add(FormField.multiline("description", false));
+            fields.add(FormField.number("capacity", false));
+        } else if ("users".equals(resource)) {
+            fields.add(FormField.text("name", true));
+            fields.add(FormField.text("email", true));
+            fields.add(FormField.text("password", false));
+            fields.add(FormField.options("role_id", "roles", true));
+            fields.add(FormField.options("farm_id", "farms", false));
+            fields.add(FormField.text("phone", false));
+            fields.add(FormField.choices("status", true, "active", "inactive"));
         } else if ("health-records".equals(resource) || "vaccinations".equals(resource)) {
             fields.add(FormField.options("swine_id", "swine", true));
             fields.add(FormField.date("record_date", true));
@@ -805,13 +979,13 @@ public final class MainActivity extends Activity {
                 1.0f));
         setContentView(screen);
 
-        publicMap.loadDataWithBaseURL("https://openstreetmap.org", generateSagayCityMapHtml(new JSONArray()), "text/html", "UTF-8", null);
+        publicMap.loadDataWithBaseURL(applicationBaseUrl(), generateSagayCityMapHtml(new JSONArray()), "text/html", "UTF-8", null);
 
         get("/public/farmers-nearby", response -> {
             JSONArray data = response.optJSONArray("data");
             if (publicMap != null) {
                 publicMap.loadDataWithBaseURL(
-                        "https://openstreetmap.org",
+                        applicationBaseUrl(),
                         generateSagayCityMapHtml(data == null ? new JSONArray() : data),
                         "text/html",
                         "UTF-8",
@@ -824,6 +998,24 @@ public final class MainActivity extends Activity {
         executor.execute(() -> {
             try {
                 JSONObject result = api.get(path, token);
+                mainHandler.post(() -> callback.complete(result));
+            } catch (Exception exception) {
+                mainHandler.post(() -> errorCallback.failed(exception));
+            }
+        });
+    }
+
+    private void send(String method, String path, JSONObject body, Callback callback, ErrorCallback errorCallback) {
+        executor.execute(() -> {
+            try {
+                JSONObject result;
+                if ("PUT".equals(method)) {
+                    result = api.put(path, body, token);
+                } else if ("DELETE".equals(method)) {
+                    result = api.delete(path, token);
+                } else {
+                    result = api.post(path, body, token);
+                }
                 mainHandler.post(() -> callback.complete(result));
             } catch (Exception exception) {
                 mainHandler.post(() -> errorCallback.failed(exception));

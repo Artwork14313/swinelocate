@@ -16,6 +16,14 @@ final class MobileApi {
         return request("GET", path, null, token);
     }
 
+    JSONObject put(String path, JSONObject body, String token) throws IOException {
+        return request("PUT", path, body, token);
+    }
+
+    JSONObject delete(String path, String token) throws IOException {
+        return request("DELETE", path, null, token);
+    }
+
     JSONObject post(String path, JSONObject body, String token) throws IOException {
         return request("POST", path, body, token);
     }

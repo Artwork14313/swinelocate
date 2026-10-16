@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\MobileAuthController;
 use App\Http\Controllers\Api\MobileDataController;
+use App\Http\Controllers\Api\MobileManageController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('mobile')->group(function () {
@@ -19,6 +20,8 @@ Route::prefix('mobile')->group(function () {
         Route::get('/data/{resource}', [MobileDataController::class, 'index']);
         Route::post('/data/{resource}', [MobileDataController::class, 'store']);
         Route::get('/data/{resource}/{id}', [MobileDataController::class, 'show']);
+        Route::put('/data/{resource}/{id}', [MobileManageController::class, 'update']);
+        Route::delete('/data/{resource}/{id}', [MobileManageController::class, 'destroy']);
         Route::get('/qr/{token}', [MobileDataController::class, 'scan']);
     });
 });
