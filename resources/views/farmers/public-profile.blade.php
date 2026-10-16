@@ -7,18 +7,18 @@
                 <h1 class="mt-2 text-3xl font-bold text-gray-900">{{ $farmer->name }}</h1>
                 <p class="mt-2 text-gray-600">{{ $farmer->farm->name }}</p>
                 <p class="mt-1 text-sm text-gray-500">
-                    {{ collect([$farmer->farm->address, $farmer->farm->municipality, $farmer->farm->province, $farmer->farm->region])->filter()->join(', ') ?: 'Location not provided' }}
+                    {{ collect([$farmer->farm->municipality, $farmer->farm->province, $farmer->farm->region])->filter()->join(', ') ?: 'Location not provided' }}
                 </p>
             </header>
 
             <section class="rounded-xl bg-indigo-50 p-5 ring-1 ring-indigo-100 sm:flex sm:items-center sm:justify-between sm:gap-6">
                 <div>
                     <h2 class="font-semibold text-indigo-950">Looking for a different swine?</h2>
-                    <p class="mt-1 text-sm text-indigo-800">Browse other farmers with swine for sale, sorted by distance from you.</p>
+                    <p class="mt-1 text-sm text-indigo-800">Browse farmers with available swine in Sagay City, Negros Occidental.</p>
                 </div>
                 <a href="{{ route('farmers.nearby') }}"
                     class="mt-4 inline-flex shrink-0 items-center justify-center rounded-lg bg-indigo-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-800 sm:mt-0">
-                    Find swine nearby
+                    Find farmers on the map
                 </a>
             </section>
 

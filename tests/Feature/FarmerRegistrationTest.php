@@ -82,7 +82,8 @@ class FarmerRegistrationTest extends TestCase
             ->assertSee('data-farm-id="'.$farm->id.'"', false)
             ->assertSee('Register a farmer for this farm')
             ->assertSee('List this swine as available for sale')
-            ->assertSee('Asking Price (optional)');
+            ->assertSee('Asking Price (optional)')
+            ->assertDontSee('name="name"', false);
     }
 
     public function test_swine_can_be_listed_for_sale_with_an_optional_asking_price(): void

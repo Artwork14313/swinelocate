@@ -126,11 +126,13 @@ class MobileApiTest extends TestCase
                 'farm_id' => $farm->getKey(),
                 'farmer_id' => $farmer->getKey(),
                 'tag_number' => 'MOBILE-PIG-01',
+                'name' => 'Pig name should be ignored',
                 'sex' => 'female',
                 'breed' => 'Landrace',
             ])
             ->assertCreated()
-            ->assertJsonPath('data.tag_number', 'MOBILE-PIG-01');
+            ->assertJsonPath('data.tag_number', 'MOBILE-PIG-01')
+            ->assertJsonPath('data.name', null);
 
         $swineId = $swineResponse->json('data.id');
 

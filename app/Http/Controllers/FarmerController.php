@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Farm;
 use App\Models\Farmer;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -88,7 +87,7 @@ class FarmerController extends Controller
         $farmer = Farmer::query()
             ->where('qr_token', $qr_token)
             ->with([
-                'farm:id,name,address,municipality,province,region',
+                'farm:id,name,municipality,province,region',
                 'swine' => fn ($query) => $query
                     ->where('status', 'active')
                     ->where('is_for_sale', true)
@@ -116,127 +115,46 @@ class FarmerController extends Controller
         return view('farmers.public-profile', compact('farmer'));
     }
 
-    public function nearby(): View
+    public function nearby(Request $request): View
     {
-        return view('farmers.nearby');
-    }
-
-    public function searchNearby(Request $request): View
-    {
-        $validated = $request->validate([
-            'latitude' => ['nullable', 'required_with:longitude', 'numeric', 'between:-90,90'],
-            'longitude' => ['nullable', 'required_with:latitude', 'numeric', 'between:-180,180'],
-            'municipality' => ['nullable', 'string', 'max:120'],
-            'province' => ['nullable', 'string', 'max:120'],
-            'page' => ['nullable', 'integer', 'min:1'],
-        ]);
-
-        $latitude = isset($validated['latitude']) ? (float) $validated['latitude'] : null;
-        $longitude = isset($validated['longitude']) ? (float) $validated['longitude'] : null;
-        $municipality = trim($validated['municipality'] ?? '');
-        $province = trim($validated['province'] ?? '');
-
-        if (
-            $latitude === null &&
-            $longitude === null &&
-            $municipality === '' &&
-            $province === ''
-        ) {
-            throw ValidationException::withMessages([
-                'municipality' => 'Share your location or enter a municipality or province to find nearby listings.',
-            ]);
-        }
-
         $farmers = Farmer::query()
-            ->whereHas('farm', function ($query) use ($municipality, $province) {
-                $query->where('status', 'active')
-                    ->when($municipality !== '', fn ($query) => $query
-                        ->where('municipality', 'like', "%{$municipality}%"))
-                    ->when($province !== '', fn ($query) => $query
-                        ->where('province', 'like', "%{$province}%"));
-            })
+            ->whereHas('farm', fn ($query) => $query
+                ->where('status', 'active')
+                ->whereRaw('LOWER(TRIM(municipality)) IN (?, ?)', ['sagay', 'sagay city'])
+                ->whereRaw('LOWER(TRIM(province)) = ?', ['negros occidental']))
             ->whereHas('swine', fn ($query) => $query
                 ->where('status', 'active')
                 ->where('is_for_sale', true))
             ->with([
-                'farm:id,name,address,municipality,province,latitude,longitude',
+                'farm:id,name,municipality,province,latitude,longitude',
                 'swine' => fn ($query) => $query
                     ->where('status', 'active')
                     ->where('is_for_sale', true)
-                    ->select([
-                        'id',
-                        'farmer_id',
-                        'sex',
-                        'breed',
-                        'asking_price',
-                    ])
+                    ->select(['id', 'farmer_id', 'breed', 'sex', 'asking_price'])
                     ->orderBy('breed')
                     ->orderBy('sex'),
             ])
             ->orderBy('name')
-            ->get()
-            ->map(function (Farmer $farmer) use ($latitude, $longitude) {
-                $distance = null;
+            ->get();
 
-                if (
-                    $latitude !== null &&
-                    $longitude !== null &&
-                    $farmer->farm->latitude !== null &&
-                    $farmer->farm->longitude !== null
-                ) {
-                    $distance = $this->distanceInKilometers(
-                        $latitude,
-                        $longitude,
-                        (float) $farmer->farm->latitude,
-                        (float) $farmer->farm->longitude
-                    );
-                }
-
-                $farmer->setAttribute('distance_km', $distance);
-
-                return $farmer;
-            });
-
-        if ($latitude !== null && $longitude !== null) {
-            $farmers = $farmers
-                ->sortBy(fn (Farmer $farmer) => $farmer->distance_km ?? INF)
-                ->values();
-        }
-
-        $perPage = 12;
-        $page = (int) ($validated['page'] ?? 1);
-        $results = new LengthAwarePaginator(
-            $farmers->forPage($page, $perPage)->values(),
-            $farmers->count(),
-            $perPage,
-            $page,
-            ['path' => route('farmers.nearby')]
-        );
+        $mapFarmers = $farmers
+            ->filter(fn (Farmer $farmer) => $farmer->farm->latitude !== null
+                && $farmer->farm->longitude !== null)
+            ->map(fn (Farmer $farmer) => [
+                'name' => $farmer->name,
+                'farm' => $farmer->farm->name,
+                'latitude' => round((float) $farmer->farm->latitude, 2),
+                'longitude' => round((float) $farmer->farm->longitude, 2),
+                'profile_url' => route('farmers.public-profile', $farmer->qr_token),
+                'listing_count' => $farmer->swine->count(),
+            ])
+            ->values();
 
         return view('farmers.nearby', [
-            'results' => $results,
-            'latitude' => $latitude,
-            'longitude' => $longitude,
-            'municipality' => $municipality,
-            'province' => $province,
+            'farmers' => $farmers,
+            'mapFarmers' => $mapFarmers,
+            'embedded' => $request->boolean('app'),
         ]);
-    }
-
-    private function distanceInKilometers(
-        float $fromLatitude,
-        float $fromLongitude,
-        float $toLatitude,
-        float $toLongitude
-    ): float {
-        $earthRadius = 6371;
-        $latitudeDelta = deg2rad($toLatitude - $fromLatitude);
-        $longitudeDelta = deg2rad($toLongitude - $fromLongitude);
-        $a = sin($latitudeDelta / 2) ** 2
-            + cos(deg2rad($fromLatitude))
-            * cos(deg2rad($toLatitude))
-            * sin($longitudeDelta / 2) ** 2;
-
-        return 2 * $earthRadius * asin(min(1, sqrt($a)));
     }
 
     public function edit(Farmer $farmer): View
@@ -288,7 +206,7 @@ class FarmerController extends Controller
             ->where('status', 'active')
             ->exists();
 
-        if (!$activeFarm) {
+        if (! $activeFarm) {
             throw ValidationException::withMessages([
                 'farm_id' => 'The selected farm is inactive.',
             ]);

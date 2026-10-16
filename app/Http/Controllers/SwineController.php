@@ -104,12 +104,6 @@ class SwineController extends Controller
                 'unique:swine,tag_number',
             ],
 
-            'name' => [
-                'nullable',
-                'string',
-                'max:255',
-            ],
-
             'sex' => [
                 'required',
                 'in:male,female',

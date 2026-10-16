@@ -216,7 +216,6 @@ class MobileDataController extends Controller
             'farmer_id' => ['required', 'integer', 'exists:farmers,id'],
             'current_location_id' => ['nullable', 'integer', 'exists:farm_locations,id'],
             'tag_number' => ['required', 'string', 'max:255', 'unique:swine,tag_number'],
-            'name' => ['nullable', 'string', 'max:255'],
             'sex' => ['required', Rule::in(['male', 'female'])],
             'breed' => ['nullable', 'string', 'max:255'],
             'birth_date' => ['nullable', 'date', 'before_or_equal:today'],

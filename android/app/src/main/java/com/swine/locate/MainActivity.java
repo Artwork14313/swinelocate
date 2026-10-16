@@ -11,6 +11,9 @@ import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -54,6 +57,8 @@ public final class MainActivity extends Activity {
     private String token;
     private JSONArray permissions = new JSONArray();
     private JSONObject dashboard;
+    private WebView publicMap;
+    private boolean publicMapVisible;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,7 +72,7 @@ public final class MainActivity extends Activity {
         }
 
         if (token == null || token.isEmpty()) {
-            showLogin();
+            showPublicNearby();
         } else {
             showLoading("Restoring your session…");
             get("/me", response -> {
@@ -76,22 +81,71 @@ public final class MainActivity extends Activity {
                 loadDashboard();
             }, exception -> {
                 showMessage(exception.getMessage());
-                showLogin();
+                showPublicNearby();
             });
         }
     }
 
     @Override
     protected void onDestroy() {
+        if (publicMap != null) {
+            publicMap.destroy();
+            publicMap = null;
+        }
         executor.shutdownNow();
         super.onDestroy();
     }
 
+    @Override
+    public void onBackPressed() {
+        if (publicMapVisible && publicMap != null && publicMap.canGoBack()) {
+            publicMap.goBack();
+            return;
+        }
+        super.onBackPressed();
+    }
+
+    private void showPublicNearby() {
+        publicMapVisible = true;
+        destroyPublicMap();
+        LinearLayout screen = new LinearLayout(this);
+        screen.setOrientation(LinearLayout.VERTICAL);
+        screen.setBackgroundColor(BACKGROUND);
+
+        LinearLayout header = card();
+        header.setPadding(dp(18), dp(12), dp(18), dp(12));
+        addText(header, "Farmers near Sagay City", 21, DARK, true);
+        addText(header, "Browse available swine listings. Tap a map marker to view the SwineLocate Farmer Profile.", 14, 0xFF526577, false);
+        Button login = button("Login");
+        header.addView(login, matchWidth());
+        login.setOnClickListener(view -> showLogin());
+        screen.addView(header, matchWidth());
+
+        publicMap = new WebView(this);
+        WebSettings settings = publicMap.getSettings();
+        settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        settings.setAllowFileAccess(false);
+        settings.setAllowContentAccess(false);
+        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+        publicMap.setWebViewClient(new WebViewClient());
+        screen.addView(publicMap, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                0,
+                1.0f));
+        setContentView(screen);
+        publicMap.loadUrl(applicationBaseUrl() + "/public/farmers-nearby?app=1");
+    }
+
     private void showLogin() {
+        publicMapVisible = false;
         ScrollView page = page();
         LinearLayout panel = card();
         panel.setPadding(dp(24), dp(24), dp(24), dp(24));
         panel.setGravity(Gravity.CENTER_HORIZONTAL);
+        Button back = button("‹  Farmers near Sagay City");
+        panel.addView(back, matchWidth());
+        back.setOnClickListener(view -> showPublicNearby());
         addText(panel, "SwineLocate", 30, DARK, true);
         addText(panel, "Sign in to manage your swine records.", 15, 0xFF526577, false);
         EditText email = field("Email address", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);
@@ -143,6 +197,7 @@ public final class MainActivity extends Activity {
     }
 
     private void loadDashboard() {
+        publicMapVisible = false;
         showLoading("Loading your dashboard…");
         get("/dashboard", response -> {
             dashboard = response.optJSONObject("data");
@@ -441,7 +496,6 @@ public final class MainActivity extends Activity {
             fields.add(FormField.options("farmer_id", "farmers", true));
             fields.add(FormField.options("current_location_id", "locations", false));
             fields.add(FormField.text("tag_number", true));
-            fields.add(FormField.text("name", false));
             fields.add(FormField.choices("sex", true, "male", "female"));
             fields.add(FormField.text("breed", false));
             fields.add(FormField.date("birth_date", false));
@@ -569,7 +623,23 @@ public final class MainActivity extends Activity {
         token = null;
         permissions = new JSONArray();
         dashboard = null;
-        showLogin();
+        showPublicNearby();
+    }
+
+    private String applicationBaseUrl() {
+        String apiBaseUrl = BuildConfig.API_BASE_URL;
+        String apiSuffix = "/api/mobile";
+        return apiBaseUrl.endsWith(apiSuffix)
+                ? apiBaseUrl.substring(0, apiBaseUrl.length() - apiSuffix.length())
+                : apiBaseUrl;
+    }
+
+    private void destroyPublicMap() {
+        if (publicMap != null) {
+            publicMap.stopLoading();
+            publicMap.destroy();
+            publicMap = null;
+        }
     }
 
     private void get(String path, Callback callback, ErrorCallback errorCallback) {

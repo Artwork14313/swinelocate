@@ -75,6 +75,7 @@ class FarmerPublicProfileTest extends TestCase
             ->assertDontSee('Sample Pig')
             ->assertDontSee('Jan 10, 2026')
             ->assertDontSee('Sold')
+            ->assertDontSee('Private farm street address')
             ->assertDontSee('09171234567')
             ->assertDontSee('private@example.test')
             ->assertDontSee('Private home address')
@@ -115,17 +116,37 @@ class FarmerPublicProfileTest extends TestCase
             ->assertSee('Dashboard');
     }
 
-    public function test_buyer_can_find_available_farmers_sorted_by_distance_without_scanning_their_qr_codes(): void
+    public function test_public_map_only_shows_active_sale_listings_in_sagay_city(): void
     {
-        $nearFarm = $this->createFarm('F-NEARBY-1', 14.5995, 120.9842);
-        $nearFarmer = $this->createFarmer($nearFarm, 'Nearby Farmer');
-        $this->createSaleListing($nearFarm, $nearFarmer, 'Large White');
+        $sagayFarm = $this->createFarm('F-SAGAY-1', 10.8976, 123.4145);
+        $sagayFarm->update([
+            'municipality' => 'Sagay City',
+            'province' => 'Negros Occidental',
+        ]);
+        $sagayFarmer = $this->createFarmer($sagayFarm, 'Sagay Farmer');
+        $this->createSaleListing($sagayFarm, $sagayFarmer, 'Large White');
 
-        $farFarm = $this->createFarm('F-NEARBY-2', 15.5995, 120.9842);
-        $farFarmer = $this->createFarmer($farFarm, 'Farther Farmer');
-        $this->createSaleListing($farFarm, $farFarmer, 'Duroc');
+        $outsideFarm = $this->createFarm('F-OUTSIDE-1', 10.8976, 123.4145);
+        $outsideFarm->update([
+            'municipality' => 'Victorias City',
+            'province' => 'Negros Occidental',
+        ]);
+        $outsideFarmer = $this->createFarmer($outsideFarm, 'Outside Farmer');
+        $this->createSaleListing($outsideFarm, $outsideFarmer, 'Duroc');
 
-        $unlistedFarm = $this->createFarm('F-NEARBY-3', 14.6000, 120.9842);
+        $otherProvinceFarm = $this->createFarm('F-OUTSIDE-2', 10.8976, 123.4145);
+        $otherProvinceFarm->update([
+            'municipality' => 'Sagay City',
+            'province' => 'Iloilo',
+        ]);
+        $otherProvinceFarmer = $this->createFarmer($otherProvinceFarm, 'Other Province Farmer');
+        $this->createSaleListing($otherProvinceFarm, $otherProvinceFarmer, 'Landrace');
+
+        $unlistedFarm = $this->createFarm('F-SAGAY-2', 10.8976, 123.4145);
+        $unlistedFarm->update([
+            'municipality' => 'Sagay City',
+            'province' => 'Negros Occidental',
+        ]);
         $unlistedFarmer = $this->createFarmer($unlistedFarm, 'Unlisted Farmer');
         Swine::create([
             'farm_id' => $unlistedFarm->id,
@@ -136,57 +157,28 @@ class FarmerPublicProfileTest extends TestCase
             'is_for_sale' => false,
         ]);
 
-        $html = $this->post(route('farmers.nearby.search'), [
-            'latitude' => 14.5995,
-            'longitude' => 120.9842,
-        ])
+        $this->get(route('farmers.nearby'))
             ->assertOk()
-            ->assertSee('Find swine nearby')
-            ->assertSee('About 0 km away')
-            ->assertSee('Large White')
-            ->assertSee('Duroc')
-            ->assertSee('Private farm street address')
-            ->assertSee(route('farmers.public-profile', $nearFarmer->qr_token), false)
+            ->assertSee('Farmers near Sagay City')
+            ->assertSee('Map of farmers in Sagay City')
+            ->assertSee('Sagay Farmer')
+            ->assertSee(route('farmers.public-profile', $sagayFarmer->qr_token), false)
+            ->assertDontSee('Outside Farmer')
+            ->assertDontSee('Other Province Farmer')
             ->assertDontSee('Unlisted Farmer')
-            ->getContent();
-
-        $this->assertLessThan(
-            strpos($html, 'Farther Farmer'),
-            strpos($html, 'Nearby Farmer')
-        );
+            ->assertDontSee('Private farm street address');
     }
 
-    public function test_buyer_can_search_listings_by_municipality_without_sharing_location(): void
+    public function test_android_app_page_shows_the_install_qr_and_download_status(): void
     {
-        $matchingFarm = $this->createFarm('F-NEARBY-TOWN');
-        $matchingFarmer = $this->createFarmer($matchingFarm, 'Town Farmer');
-        $this->createSaleListing($matchingFarm, $matchingFarmer, 'Landrace');
-
-        $otherFarm = Farm::create([
-            'farm_code' => 'F-NEARBY-OTHER',
-            'name' => 'Other Town Farm',
-            'municipality' => 'Other Municipality',
-            'province' => 'Sample Province',
-            'status' => 'active',
-        ]);
-        $otherFarmer = $this->createFarmer($otherFarm, 'Other Town Farmer');
-        $this->createSaleListing($otherFarm, $otherFarmer, 'Duroc');
-
-        $this->post(route('farmers.nearby.search'), [
-            'municipality' => 'Sample Municipality',
-        ])
+        $this->get(route('android-app'))
             ->assertOk()
-            ->assertSee('Town Farmer')
-            ->assertSee('Landrace')
-            ->assertDontSee('Other Town Farmer');
-    }
+            ->assertSee('Get the mobile app')
+            ->assertSee('The Android APK has not been published to this server yet.')
+            ->assertSee('<svg', false);
 
-    public function test_nearby_search_requires_a_location_or_town(): void
-    {
-        $this->from(route('farmers.nearby'))
-            ->post(route('farmers.nearby.search'))
-            ->assertRedirect(route('farmers.nearby'))
-            ->assertSessionHasErrors('municipality');
+        $this->get(route('android-app.download'))
+            ->assertNotFound();
     }
 
     public function test_authorized_farmer_page_displays_printable_public_qr(): void

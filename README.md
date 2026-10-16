@@ -177,14 +177,16 @@ against a local or staging database.
 ### Android app
 
 The native Android client is in `android/` and uses the package ID
-`com.swine.locate`. It has its own Android interface, QR scanner, and secure
-token-based connection to the Laravel API; it does not display the website in a
-browser or WebView. The current client supports sign-in, permission-filtered
-record browsing/search, dashboard summaries, swine QR lookup, and online
-creation of swine, health/vaccination, weight, and movement records. Editing
-existing records, farm/user/role administration, and offline recording/sync are
-not yet implemented in the native client; the website remains available for
-those workflows.
+`com.swine.locate`. It has a native sign-in and field-record interface, a QR
+scanner, and a secure token-based connection to the Laravel API. On first launch
+or after signing out it opens the public Sagay City farmer map, shown in an
+embedded WebView, with a native Login button. A valid saved session restores the
+signed-in dashboard. The current client supports permission-filtered record
+browsing/search, dashboard summaries, swine QR lookup, and online creation of
+swine, health/vaccination, weight, and movement records. Editing existing
+records, farm/user/role administration, and offline recording/sync are not yet
+implemented in the native client; the website remains available for those
+workflows.
 
 The API uses Laravel Sanctum bearer tokens. Run `php artisan migrate --force`
 when deploying the new API so the personal access token table is created.
@@ -213,7 +215,11 @@ cd android
 
 The debug APK is written to `android/app/build/outputs/apk/debug/`. A release
 signing configuration must be set up with a securely held keystore before
-publishing to Google Play; do not commit keystore passwords or signing secrets.
+publishing a public APK; do not commit keystore passwords or signing secrets.
+For direct APK distribution, place the current signed release at
+`public/downloads/swinelocate.apk` and deploy it with the Laravel application.
+The public QR/download page is `/android-app`; its QR opens the APK download
+directly once that file is present.
 
 ## Farmer, swine, and offline workflow
 
@@ -234,13 +240,12 @@ details; it does not show farmer contact details, exact addresses, internal note
 or health records. Keep the deployed application reachable to buyers for QR links
 to work.
 
-Buyers who do not find the swine they want can use the **Find swine nearby**
-link on any public farmer profile. The directory lists active swine marked for
-sale and links directly to each farmer's public profile, so another QR scan is
-not needed. Buyers can share their browser location to sort farms by approximate
-distance, or search by municipality/province without sharing device location.
-The directory shows only municipality/province as the farm location, not farm
-coordinates or street addresses.
+The public `/public/farmers-nearby` page is a map limited to active farms in
+Sagay City (or Sagay), Negros Occidental, with active swine listings marked for
+sale. Farm coordinates are used only for map markers; marker popups and the
+farmer cards link to each public farmer profile. Farms without coordinates remain
+listed but cannot be placed on the map. The public map and profiles show general
+location only, not street addresses.
 
 When registering swine offline, the form stores the record and its QR token locally
 and queues it for `/swine/sync`. Each local registration carries an idempotency ID,

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AndroidAppController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FarmController;
 use App\Http\Controllers\FarmerController;
@@ -30,9 +31,12 @@ Route::get('/public/farmers-nearby', [FarmerController::class, 'nearby'])
     ->middleware('throttle:60,1')
     ->name('farmers.nearby');
 
-Route::post('/public/farmers-nearby', [FarmerController::class, 'searchNearby'])
-    ->middleware('throttle:30,1')
-    ->name('farmers.nearby.search');
+Route::get('/android-app', [AndroidAppController::class, 'show'])
+    ->name('android-app');
+
+Route::get('/android-app/download', [AndroidAppController::class, 'download'])
+    ->middleware('throttle:10,1')
+    ->name('android-app.download');
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware('auth')
