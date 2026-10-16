@@ -127,6 +127,9 @@ public final class MainActivity extends Activity {
         settings.setDomStorageEnabled(true);
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
+        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        settings.setUserAgentString(
+                "SwineLocateAndroid/" + BuildConfig.VERSION_NAME + " (+" + applicationBaseUrl() + ")");
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         publicMap.setWebViewClient(new WebViewClient());
         screen.addView(publicMap, new LinearLayout.LayoutParams(

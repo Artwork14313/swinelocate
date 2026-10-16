@@ -245,7 +245,9 @@ Sagay City (or Sagay), Negros Occidental, with active swine listings marked for
 sale. Farm coordinates are used only for map markers; marker popups and the
 farmer cards link to each public farmer profile. Farms without coordinates remain
 listed but cannot be placed on the map. The public map and profiles show general
-location only, not street addresses.
+location only, not street addresses. The native Android WebView uses a stable
+SwineLocate app User-Agent, the official OSM tile URL, and normal HTTP tile
+caching in accordance with the OpenStreetMap tile usage policy.
 
 When registering swine offline, the form stores the record and its QR token locally
 and queues it for `/swine/sync`. Each local registration carries an idempotency ID,

@@ -164,6 +164,7 @@ class FarmerPublicProfileTest extends TestCase
             ->assertSee('10.89765')
             ->assertSee('123.41456')
             ->assertSee('using each farm’s saved latitude and longitude')
+            ->assertSee('https://tile.openstreetmap.org/{z}/{x}/{y}.png')
             ->assertSee('Sagay Farmer')
             ->assertSee(route('farmers.public-profile', $sagayFarmer->qr_token), false)
             ->assertDontSee('Outside Farmer')
