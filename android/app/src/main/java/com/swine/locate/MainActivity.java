@@ -1415,6 +1415,7 @@ public final class MainActivity extends Activity {
         }
 
         // Farmer and location choices follow the selected farm.
+        Map<String, List<java.util.function.IntConsumer>> refreshers = new HashMap<>();
         for (FormField definition : fields) {
             String parentKey = parentFarmKey(definition.key);
             Spinner child = selectors.get(definition.key);
@@ -1452,17 +1453,25 @@ public final class MainActivity extends Activity {
                 child.setSelection(Math.max(position, 0));
                 pending[0] = "";
             };
+            refreshers.computeIfAbsent(parentKey, k -> new ArrayList<>()).add(refresh);
+            refresh.accept(parent.getSelectedItemPosition());
+        }
+
+        for (Map.Entry<String, List<java.util.function.IntConsumer>> entry : refreshers.entrySet()) {
+            Spinner parent = selectors.get(entry.getKey());
+            List<java.util.function.IntConsumer> listeners = entry.getValue();
             parent.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                 @Override
                 public void onItemSelected(AdapterView<?> adapterView, View view, int position, long id) {
-                    refresh.accept(position);
+                    for (java.util.function.IntConsumer listener : listeners) {
+                        listener.accept(position);
+                    }
                 }
 
                 @Override
                 public void onNothingSelected(AdapterView<?> adapterView) {
                 }
             });
-            refresh.accept(parent.getSelectedItemPosition());
         }
 
         Button save = button("Save");
