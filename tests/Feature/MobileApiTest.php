@@ -333,6 +333,24 @@ class MobileApiTest extends TestCase
         $this->assertSame(1, Farm::where('farm_code', 'IDEM-1')->count());
     }
 
+    public function test_traceability_and_growth_lists_load(): void
+    {
+        $user = $this->userWithPermissions('view-traceability', 'record-weight');
+        $farm = Farm::create(['farm_code' => 'TG-1', 'name' => 'TG Farm', 'status' => 'active']);
+        $farmer = $this->createFarmer($farm, 'TG Farmer');
+        $swine = Swine::create([
+            'farm_id' => $farm->getKey(), 'farmer_id' => $farmer->getKey(),
+            'tag_number' => 'TG-PIG', 'sex' => 'male', 'status' => 'active',
+        ]);
+        $token = $user->createToken('android')->plainTextToken;
+
+        foreach (['traceability', 'growth'] as $resource) {
+            $this->withToken($token)->getJson("/api/mobile/data/{$resource}?page=1")
+                ->assertOk()->assertJsonPath('data.0.tag_number', 'TG-PIG');
+            $this->withToken($token)->getJson("/api/mobile/data/{$resource}/{$swine->getKey()}")->assertOk();
+        }
+    }
+
     public function test_mobile_management_requires_permission(): void
     {
         $token = $this->userWithPermissions('record-weight')->createToken('android')->plainTextToken;

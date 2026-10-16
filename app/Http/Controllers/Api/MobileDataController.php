@@ -155,7 +155,7 @@ class MobileDataController extends Controller
                 'farm',
                 'farmer',
                 'currentLocation',
-                'movements' => fn (Builder $movementQuery) => $movementQuery
+                'movements' => fn ($movementQuery) => $movementQuery
                     ->latest('movement_date')
                     ->limit(1),
             ]);
@@ -534,7 +534,7 @@ class MobileDataController extends Controller
         abort_unless($request->user()->hasPermission($permission), 403);
 
         if ($resource === 'growth') {
-            $relations = ['weightRecords' => fn (Builder $query) => $query->latest('record_date')->limit(10)];
+            $relations = ['weightRecords' => fn ($query) => $query->latest('record_date')];
         }
 
         return [$model, $permission, $relations];

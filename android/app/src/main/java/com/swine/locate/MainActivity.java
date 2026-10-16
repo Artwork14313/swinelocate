@@ -346,8 +346,12 @@ public final class MainActivity extends Activity {
         get(path, response -> {
             if ("reports".equals(resource)) {
                 JSONObject data = response.optJSONObject("data");
-                results.setText(data == null ? "No report data." : pretty(data));
-                results.setTextColor(DARK);
+                if (data == null) {
+                    results.setText("No report data.");
+                } else {
+                    panel.removeView(results);
+                    addDetailRows(panel, data, 0);
+                }
                 return;
             }
             JSONArray rows = response.optJSONArray("data");
@@ -375,30 +379,317 @@ public final class MainActivity extends Activity {
     private void addRecord(String resource, LinearLayout panel, JSONObject record) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.VERTICAL);
-        row.setPadding(dp(14), dp(12), dp(14), dp(12));
-        row.setBackgroundColor(0xFFF2F6FA);
-        String title = firstValue(record, "tag_number", "name", "farm_code", "location_code", "record_type", "reason");
-        String detail = firstValue(record, "status", "record_date", "movement_date", "email", "breed");
-        addText(row, title.isEmpty() ? "Record #" + record.optString("id") : title, 16, DARK, true);
-        if (!detail.isEmpty()) {
-            addText(row, label(detail), 13, 0xFF526577, false);
+        row.setPadding(dp(16), dp(14), dp(16), dp(14));
+        row.setBackground(rounded(0xFFF2F6FA, 12, 0xFFDCE6EF));
+
+        String title = recordTitle(resource, record);
+        String subtitle = recordSubtitle(resource, record);
+        String badge = firstValue(record, "status", "health_status");
+
+        LinearLayout top = new LinearLayout(this);
+        top.setOrientation(LinearLayout.HORIZONTAL);
+        top.setGravity(Gravity.CENTER_VERTICAL);
+        TextView heading = new TextView(this);
+        heading.setText(title);
+        heading.setTextColor(DARK);
+        heading.setTextSize(16);
+        heading.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        top.addView(heading, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        if (!badge.isEmpty()) {
+            top.addView(badge(badge));
         }
+        row.addView(top, matchWidth());
+
+        if (!subtitle.isEmpty()) {
+            TextView detail = addText(row, subtitle, 13, 0xFF526577, false);
+            detail.setPadding(0, dp(4), 0, 0);
+        }
+        TextView more = addText(row, "View details  ›", 12, BLUE, true);
+        more.setPadding(0, dp(8), 0, 0);
+
         LinearLayout.LayoutParams params = matchWidth();
-        params.bottomMargin = dp(8);
+        params.bottomMargin = dp(10);
         panel.addView(row, params);
-        row.setOnClickListener(view -> {
-            AlertDialog.Builder dialog = new AlertDialog.Builder(this)
-                    .setTitle(title.isEmpty() ? "Record details" : title)
-                    .setMessage(pretty(record))
-                    .setPositiveButton("Close", null);
-            if (canEdit(resource)) {
-                dialog.setNeutralButton("Edit", (d, which) -> openForm(resource, record));
+        row.setOnClickListener(view ->
+                showRecordDetail(resource, record, () -> showResource(resource, 1, "")));
+    }
+
+    private String recordTitle(String resource, JSONObject record) {
+        if ("weight-records".equals(resource)) {
+            String weight = firstValue(record, "weight");
+            return weight.isEmpty() ? "Weight record" : weight + " kg";
+        }
+        if ("movements".equals(resource)) {
+            String tag = nestedValue(record, "swine", "tag_number");
+            return tag.isEmpty() ? "Movement" : "Movement · " + tag;
+        }
+        if ("health-records".equals(resource) || "vaccinations".equals(resource)) {
+            String type = firstValue(record, "vaccine_name", "record_type");
+            String tag = nestedValue(record, "swine", "tag_number");
+            return (type.isEmpty() ? "Health record" : type) + (tag.isEmpty() ? "" : " · " + tag);
+        }
+        String title = firstValue(record, "tag_number", "name", "farm_code", "location_code", "record_type", "reason");
+        return title.isEmpty() ? "Record #" + record.optString("id") : title;
+    }
+
+    private String recordSubtitle(String resource, JSONObject record) {
+        List<String> parts = new ArrayList<>();
+        switch (resource) {
+            case "swine":
+                parts.add(label(firstValue(record, "sex")));
+                parts.add(firstValue(record, "breed"));
+                parts.add(nestedValue(record, "farm", "name"));
+                if (record.optBoolean("is_for_sale", false)) {
+                    String price = firstValue(record, "asking_price");
+                    parts.add(price.isEmpty() ? "For sale" : "For sale ₱" + price);
+                }
+                break;
+            case "farms":
+                parts.add(firstValue(record, "farm_code"));
+                parts.add(firstValue(record, "municipality"));
+                parts.add(firstValue(record, "province"));
+                break;
+            case "farmers":
+                parts.add(firstValue(record, "contact_number"));
+                parts.add(nestedValue(record, "farm", "name"));
+                break;
+            case "locations":
+                parts.add(firstValue(record, "location_code"));
+                parts.add(firstValue(record, "type"));
+                parts.add(nestedValue(record, "farm", "name"));
+                break;
+            case "users":
+                parts.add(firstValue(record, "email"));
+                parts.add(nestedValue(record, "role", "name"));
+                break;
+            case "roles":
+                JSONArray granted = record.optJSONArray("permissions");
+                parts.add((granted == null ? 0 : granted.length()) + " permissions");
+                break;
+            case "weight-records":
+                parts.add(nestedValue(record, "swine", "tag_number"));
+                parts.add(shortDate(firstValue(record, "record_date")));
+                break;
+            case "health-records":
+            case "vaccinations":
+                parts.add(shortDate(firstValue(record, "record_date")));
+                parts.add(label(firstValue(record, "record_type")));
+                break;
+            case "movements":
+                String from = nestedValue(record, "from_location", "name");
+                String to = nestedValue(record, "to_location", "name");
+                if (!to.isEmpty()) {
+                    parts.add((from.isEmpty() ? "" : from + " → ") + to);
+                }
+                parts.add(shortDate(firstValue(record, "movement_date")));
+                break;
+            default:
+                parts.add(firstValue(record, "email", "breed"));
+                break;
+        }
+        List<String> filled = new ArrayList<>();
+        for (String part : parts) {
+            if (part != null && !part.isEmpty()) {
+                filled.add(part);
             }
-            if (canDelete(resource)) {
-                dialog.setNegativeButton("Delete", (d, which) -> confirmDelete(resource, record, title));
+        }
+        return android.text.TextUtils.join("  ·  ", filled);
+    }
+
+    private String nestedValue(JSONObject record, String relation, String key) {
+        JSONObject nested = record.optJSONObject(relation);
+        return nested == null ? "" : firstValue(nested, key);
+    }
+
+    private String shortDate(String value) {
+        return value != null && value.length() >= 10 && value.charAt(4) == '-' ? value.substring(0, 10) : value;
+    }
+
+    private TextView badge(String value) {
+        String key = value.toLowerCase(Locale.US);
+        int color = 0xFFB45309;
+        int background = 0xFFFEF3C7;
+        if (key.equals("active") || key.equals("healthy")) {
+            color = 0xFF166534;
+            background = 0xFFDCFCE7;
+        } else if (key.equals("inactive") || key.equals("sick") || key.equals("deceased")) {
+            color = 0xFF991B1B;
+            background = 0xFFFEE2E2;
+        }
+        TextView chip = new TextView(this);
+        chip.setText(label(value));
+        chip.setTextColor(color);
+        chip.setTextSize(12);
+        chip.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        chip.setPadding(dp(10), dp(4), dp(10), dp(4));
+        chip.setBackground(rounded(background, 12, background));
+        return chip;
+    }
+
+    private android.graphics.drawable.GradientDrawable rounded(int fill, int radiusDp, int stroke) {
+        android.graphics.drawable.GradientDrawable drawable = new android.graphics.drawable.GradientDrawable();
+        drawable.setColor(fill);
+        drawable.setCornerRadius(dp(radiusDp));
+        drawable.setStroke(dp(1), stroke);
+        return drawable;
+    }
+
+    private void showRecordDetail(String resource, JSONObject record, Runnable back) {
+        ScrollView page = page();
+        LinearLayout panel = card();
+        panel.setPadding(dp(20), dp(20), dp(20), dp(20));
+        Button backButton = button("‹  Back");
+        panel.addView(backButton, matchWidth());
+        backButton.setOnClickListener(view -> back.run());
+
+        String title = recordTitle(resource, record);
+        LinearLayout header = new LinearLayout(this);
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        TextView heading = new TextView(this);
+        heading.setText(title);
+        heading.setTextColor(DARK);
+        heading.setTextSize(24);
+        heading.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        header.addView(heading, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        String badge = firstValue(record, "status", "health_status");
+        if (!badge.isEmpty()) {
+            header.addView(badge(badge));
+        }
+        panel.addView(header, matchWidth());
+        addText(panel, label(resource), 13, 0xFF526577, false);
+
+        addDetailRows(panel, record, 0);
+
+        if (canEdit(resource)) {
+            Button edit = button("Edit");
+            panel.addView(edit, matchWidth());
+            edit.setOnClickListener(view -> openForm(resource, record));
+        }
+        if (canDelete(resource)) {
+            Button delete = button("farms".equals(resource) || "locations".equals(resource) || "swine".equals(resource)
+                    ? "Deactivate" : "Delete");
+            delete.setTextColor(0xFFB91C1C);
+            panel.addView(delete, matchWidth());
+            delete.setOnClickListener(view -> confirmDelete(resource, record, title));
+        }
+        addPanel(page, panel);
+        setContentView(page);
+    }
+
+    private boolean isHiddenKey(String key) {
+        return key.equals("id") || key.equals("password") || key.equals("pivot") || key.equals("local_id")
+                || key.equals("created_at") || key.equals("updated_at") || key.equals("deleted_at")
+                || key.equals("email_verified_at") || key.endsWith("_id") || key.endsWith("_token");
+    }
+
+    private void addDetailRows(LinearLayout parent, JSONObject object, int depth) {
+        List<String> nested = new ArrayList<>();
+        Iterator<String> keys = object.keys();
+        while (keys.hasNext()) {
+            String key = keys.next();
+            Object value = object.opt(key);
+            if (isHiddenKey(key)) {
+                continue;
             }
-            dialog.show();
-        });
+            if (value instanceof JSONObject || value instanceof JSONArray) {
+                nested.add(key);
+            } else {
+                addDetailRow(parent, label(key), formatValue(key, value));
+            }
+        }
+        for (String key : nested) {
+            Object value = object.opt(key);
+            if (value instanceof JSONObject) {
+                if (depth >= 2) {
+                    continue;
+                }
+                TextView section = addText(parent, label(key), 15, BLUE, true);
+                section.setPadding(0, dp(16), 0, dp(2));
+                LinearLayout box = new LinearLayout(this);
+                box.setOrientation(LinearLayout.VERTICAL);
+                box.setPadding(dp(12), dp(4), dp(12), dp(8));
+                box.setBackground(rounded(0xFFF2F6FA, 10, 0xFFDCE6EF));
+                addDetailRows(box, (JSONObject) value, depth + 1);
+                parent.addView(box, matchWidth());
+            } else {
+                JSONArray items = (JSONArray) value;
+                TextView section = addText(parent, label(key) + " (" + items.length() + ")", 15, BLUE, true);
+                section.setPadding(0, dp(16), 0, dp(2));
+                for (int index = 0; index < items.length() && index < 25; index++) {
+                    Object item = items.opt(index);
+                    String line = item instanceof JSONObject ? summarize((JSONObject) item) : String.valueOf(item);
+                    addText(parent, "•  " + line, 14, 0xFF283C50, false);
+                }
+            }
+        }
+    }
+
+    private String summarize(JSONObject object) {
+        String name = firstValue(object, "name", "tag_number", "slug", "label", "record_type");
+        if (!name.isEmpty()) {
+            return name;
+        }
+        List<String> parts = new ArrayList<>();
+        Iterator<String> keys = object.keys();
+        while (keys.hasNext() && parts.size() < 4) {
+            String key = keys.next();
+            Object value = object.opt(key);
+            if (!isHiddenKey(key) && !(value instanceof JSONObject) && !(value instanceof JSONArray)) {
+                parts.add(label(key) + ": " + formatValue(key, value));
+            }
+        }
+        return android.text.TextUtils.join("  ·  ", parts);
+    }
+
+    private void addDetailRow(LinearLayout parent, String name, String value) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.VERTICAL);
+        row.setPadding(0, dp(8), 0, dp(8));
+        TextView caption = new TextView(this);
+        caption.setText(name);
+        caption.setTextColor(0xFF6B7C8D);
+        caption.setTextSize(12);
+        row.addView(caption);
+        TextView content = new TextView(this);
+        content.setText(value);
+        content.setTextColor(DARK);
+        content.setTextSize(16);
+        content.setTextIsSelectable(true);
+        row.addView(content);
+        parent.addView(row, matchWidth());
+        View divider = new View(this);
+        divider.setBackgroundColor(0xFFE5ECF3);
+        parent.addView(divider, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1)));
+    }
+
+    private String formatValue(String key, Object value) {
+        if (value == null || value == JSONObject.NULL) {
+            return "—";
+        }
+        String text = String.valueOf(value);
+        if (text.isEmpty()) {
+            return "—";
+        }
+        if (value instanceof Boolean) {
+            return (Boolean) value ? "Yes" : "No";
+        }
+        if (key.startsWith("is_") && (text.equals("1") || text.equals("0"))) {
+            return text.equals("1") ? "Yes" : "No";
+        }
+        if (key.contains("price")) {
+            return "₱" + text;
+        }
+        if (key.equals("weight")) {
+            return text + " kg";
+        }
+        if (text.length() >= 19 && text.charAt(4) == '-' && text.charAt(10) == 'T') {
+            return text.substring(0, 10) + " " + text.substring(11, 16);
+        }
+        if (key.equals("status") || key.equals("sex") || key.equals("health_status") || key.equals("record_type")) {
+            return label(text);
+        }
+        return text;
     }
 
     private void confirmDelete(String resource, JSONObject record, String title) {
@@ -820,11 +1111,7 @@ public final class MainActivity extends Activity {
                     showMessage("No swine record found for this QR code.");
                     return;
                 }
-                new AlertDialog.Builder(this)
-                        .setTitle(firstValue(swine, "tag_number", "name"))
-                        .setMessage(pretty(swine))
-                        .setPositiveButton("Close", null)
-                        .show();
+                showRecordDetail("swine", swine, this::renderDashboard);
             }, exception -> showMessage(exception.getMessage()));
         } catch (java.io.UnsupportedEncodingException exception) {
             showMessage("Unable to read the QR code.");
@@ -1204,7 +1491,7 @@ public final class MainActivity extends Activity {
     private LinearLayout card() {
         LinearLayout panel = new LinearLayout(this);
         panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setBackgroundColor(CARD);
+        panel.setBackground(rounded(CARD, 16, 0xFFE5ECF3));
         panel.setPadding(dp(18), dp(18), dp(18), dp(18));
         return panel;
     }
