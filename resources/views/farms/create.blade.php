@@ -133,14 +133,14 @@
 
                 <div class="space-y-5 px-6 py-6">
 
-                    {{-- Address --}}
+                    {{-- Barangay (stored in the address column) --}}
                     <div>
 
                         <label
                             for="address"
                             class="block text-sm font-medium text-gray-700"
                         >
-                            Address
+                            Barangay
                         </label>
 
                         <textarea
@@ -149,7 +149,7 @@
                             rows="3"
                             class="mt-2 block w-full rounded-lg border-gray-300 shadow-sm
                                    focus:border-indigo-500 focus:ring-indigo-500"
-                            placeholder="Enter complete farm address"
+                            placeholder="Enter barangay"
                         >{{ old('address') }}</textarea>
 
                         @error('address')
@@ -170,7 +170,7 @@
                                 for="municipality"
                                 class="block text-sm font-medium text-gray-700"
                             >
-                                Municipality
+                                City/Municipality
                             </label>
 
                             <input

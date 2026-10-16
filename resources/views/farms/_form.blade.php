@@ -72,7 +72,7 @@
 
     <x-input-label
         for="municipality"
-        value="Municipality / City"
+        value="City/Municipality"
     />
 
     <x-text-input

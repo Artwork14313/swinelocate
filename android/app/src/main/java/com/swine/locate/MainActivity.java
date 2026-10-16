@@ -283,7 +283,7 @@ public final class MainActivity extends Activity {
                 {"User & Access", "users:Users", "roles:Roles & Permissions"},
                 {"Farm Management", "farms:Farms", "locations:Farm Locations", "farmers:Farmers",
                         "swine:Swine", "register-swine:Register Swine"},
-                {"Veterinary Management", "health-records:Health Records", "vaccinations:Vaccinations"},
+                {"Veterinary Management", "health-records:Health Records"},
                 {"Farm Operations", "weight-records:Weight Records", "growth:Growth Monitoring",
                         "movements:Swine Movements"},
                 {"QR & Traceability", "@scan:Scan QR", "traceability:Traceability"},
@@ -1024,6 +1024,7 @@ public final class MainActivity extends Activity {
     }
 
     private void showRecordDetail(String resource, JSONObject record, Runnable back) {
+        labelContext = resource;
         ScrollView page = page();
         LinearLayout panel = card();
         panel.setPadding(dp(20), dp(20), dp(20), dp(20));
@@ -1335,8 +1336,13 @@ public final class MainActivity extends Activity {
         }
         Map<String, EditText> textInputs = new HashMap<>();
         Map<String, Spinner> selectors = new HashMap<>();
+        labelContext = resource;
+        List<View> vaccineViews = new ArrayList<>();
+        Set<String> vaccineKeys = new HashSet<>(java.util.Arrays.asList(
+                "vaccine_name", "dose", "batch_number", "next_due_date"));
 
         for (FormField definition : fields) {
+            int firstChild = panel.getChildCount();
             addText(panel, label(definition.key) + (definition.required ? " *" : ""), 14, DARK, true);
             if (definition.optionsKey != null || definition.choices != null) {
                 Spinner spinner = new Spinner(this);
@@ -1412,6 +1418,33 @@ public final class MainActivity extends Activity {
                 panel.addView(input, matchWidth());
                 textInputs.put(definition.key, input);
             }
+            if (vaccineKeys.contains(definition.key) && !"vaccinations".equals(resource)) {
+                for (int child = firstChild; child < panel.getChildCount(); child++) {
+                    vaccineViews.add(panel.getChildAt(child));
+                }
+            }
+        }
+
+        // Vaccine details only apply to Vaccination health records.
+        Spinner typeSpinner = selectors.get("record_type");
+        if (typeSpinner != null && !vaccineViews.isEmpty()) {
+            Runnable toggle = () -> {
+                boolean vaccination = isVaccinationSelected(fields, typeSpinner);
+                for (View vaccineView : vaccineViews) {
+                    vaccineView.setVisibility(vaccination ? View.VISIBLE : View.GONE);
+                }
+            };
+            typeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(AdapterView<?> adapterView, View view, int position, long id) {
+                    toggle.run();
+                }
+
+                @Override
+                public void onNothingSelected(AdapterView<?> adapterView) {
+                }
+            });
+            toggle.run();
         }
 
         // Farmer and location choices follow the selected farm.
@@ -1483,6 +1516,11 @@ public final class MainActivity extends Activity {
             JSONObject body = new JSONObject();
             try {
                 for (FormField definition : fields) {
+                    boolean vaccineField = vaccineKeys.contains(definition.key)
+                            && !"vaccinations".equals(resource);
+                    if (vaccineField && !isVaccinationSelected(fields, selectors.get("record_type"))) {
+                        continue;
+                    }
                     String value;
                     if (selectors.containsKey(definition.key)) {
                         Spinner spinner = selectors.get(definition.key);
@@ -1490,7 +1528,8 @@ public final class MainActivity extends Activity {
                     } else {
                         value = textInputs.get(definition.key).getText().toString().trim();
                     }
-                    if (definition.required && value.isEmpty()) {
+                    if (("vaccine_name".equals(definition.key) && vaccineField && value.isEmpty())
+                            || (definition.required && value.isEmpty())) {
                         showMessage("Please enter or select " + label(definition.key) + ".");
                         return;
                     }
@@ -1533,6 +1572,12 @@ public final class MainActivity extends Activity {
             default:
                 return null;
         }
+    }
+
+    private String labelContext = "";
+
+    private boolean isVaccinationSelected(List<FormField> fields, Spinner typeSpinner) {
+        return "Vaccination".equals(fieldValueAt(fields, "record_type", typeSpinner.getSelectedItemPosition()));
     }
 
     private String fieldValueAt(List<FormField> fields, String key, int position) {
@@ -2176,6 +2221,18 @@ public final class MainActivity extends Activity {
     }
 
     private String label(String value) {
+        if ("municipality".equals(value)) {
+            return "City/Municipality";
+        }
+        if ("address".equals(value) && "farms".equals(labelContext)) {
+            return "Barangay";
+        }
+        if ("vaccine_name".equals(value)) {
+            return "Vaccine Name";
+        }
+        if ("batch_number".equals(value)) {
+            return "Batch/Lot Number";
+        }
         if (value == null || value.isEmpty()) {
             return "";
         }

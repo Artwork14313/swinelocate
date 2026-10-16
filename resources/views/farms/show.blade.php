@@ -170,7 +170,7 @@
                         <div>
 
                             <p class="text-sm text-gray-500">
-                                Municipality / City
+                                City/Municipality
                             </p>
 
                             <p class="font-medium text-gray-900">
