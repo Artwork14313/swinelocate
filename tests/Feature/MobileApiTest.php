@@ -380,6 +380,36 @@ class MobileApiTest extends TestCase
         }
     }
 
+    public function test_health_records_list_shows_latest_per_swine_with_history_filter(): void
+    {
+        $user = $this->userWithPermissions('manage-health');
+        $farm = Farm::create(['farm_code' => 'HH-1', 'name' => 'HH Farm', 'status' => 'active']);
+        $farmer = $this->createFarmer($farm, 'HH Farmer');
+        $swine = Swine::create([
+            'farm_id' => $farm->getKey(), 'farmer_id' => $farmer->getKey(),
+            'tag_number' => 'HH-PIG', 'sex' => 'male', 'status' => 'active',
+        ]);
+        $latestId = null;
+        foreach (['2026-01-01', '2026-03-01', '2026-02-01'] as $date) {
+            $record = \App\Models\HealthRecord::create([
+                'swine_id' => $swine->getKey(), 'record_date' => $date,
+                'record_type' => 'Illness', 'health_status' => 'sick',
+                'recorded_by' => $user->getKey(),
+            ]);
+            if ($date === '2026-03-01') {
+                $latestId = $record->getKey();
+            }
+        }
+        $token = $user->createToken('android')->plainTextToken;
+
+        $this->withToken($token)->getJson('/api/mobile/data/health-records')
+            ->assertOk()->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $latestId);
+
+        $this->withToken($token)->getJson('/api/mobile/data/health-records?swine_id='.$swine->getKey())
+            ->assertOk()->assertJsonCount(3, 'data');
+    }
+
     public function test_mobile_management_requires_permission(): void
     {
         $token = $this->userWithPermissions('record-weight')->createToken('android')->plainTextToken;

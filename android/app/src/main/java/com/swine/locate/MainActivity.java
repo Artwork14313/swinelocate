@@ -449,24 +449,83 @@ public final class MainActivity extends Activity {
         });
     }
 
+    private static final String LOGIN_LABEL = "Log in →";
+
     private void showLogin() {
         publicMapVisible = false;
         ScrollView page = page();
-        LinearLayout panel = card();
-        panel.setPadding(dp(24), dp(24), dp(24), dp(24));
-        panel.setGravity(Gravity.CENTER_HORIZONTAL);
-        Button back = button("‹  Farmers near Sagay City");
-        panel.addView(back, matchWidth());
+        page.setBackgroundColor(0xFFFFFFFF);
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(dp(8), dp(16), dp(8), dp(16));
+        final int muted = 0xFF6B7280;
+        final int emerald = 0xFF047857;
+
+        TextView back = addText(panel, "‹  Farmers near Sagay City", 14, emerald, true);
         back.setOnClickListener(view -> showPublicNearby());
-        addText(panel, "SwineLocate", 30, DARK, true);
-        addText(panel, "Sign in to manage your swine records.", 15, 0xFF526577, false);
-        EditText email = field("Email address", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);
-        EditText password = field("Password", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+
+        LinearLayout brand = new LinearLayout(this);
+        brand.setOrientation(LinearLayout.HORIZONTAL);
+        brand.setGravity(Gravity.CENTER_VERTICAL);
+        brand.setPadding(0, dp(24), 0, dp(4));
+        android.widget.ImageView logo = new android.widget.ImageView(this);
+        logo.setImageResource(R.drawable.ic_swine_logo);
+        logo.setBackground(rounded(0xFFF3F4F6, 16, 0xFFE5E7EB));
+        logo.setPadding(dp(8), dp(8), dp(8), dp(8));
+        brand.addView(logo, new LinearLayout.LayoutParams(dp(56), dp(56)));
+        LinearLayout brandText = new LinearLayout(this);
+        brandText.setOrientation(LinearLayout.VERTICAL);
+        brandText.setPadding(dp(12), 0, 0, 0);
+        addText(brandText, "SwineLocate", 22, DARK, true);
+        addText(brandText, "Swine Traceability & Management System", 12, muted, false);
+        brand.addView(brandText, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+        panel.addView(brand, matchWidth());
+
+        TextView heading = addText(panel, "Welcome back", 30, DARK, true);
+        heading.setPadding(0, dp(28), 0, dp(4));
+        addText(panel, "Sign in to start managing your swine & farms.", 15, muted, false);
+
+        TextView emailLabel = addText(panel, "Email", 14, DARK, true);
+        emailLabel.setPadding(0, dp(18), 0, dp(4));
+        EditText email = field("Enter your email", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);
+        email.setBackground(rounded(0xFFFFFFFF, 12, 0xFFD1D5DB));
         panel.addView(email, matchWidth());
+
+        TextView passwordLabel = addText(panel, "Password", 14, DARK, true);
+        passwordLabel.setPadding(0, dp(14), 0, dp(4));
+        EditText password = field("Enter your password", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        password.setBackground(rounded(0xFFFFFFFF, 12, 0xFFD1D5DB));
         panel.addView(password, matchWidth());
-        Button signIn = button("Sign in");
-        panel.addView(signIn, matchWidth());
-        addPanel(page, panel);
+
+        TextView forgot = addText(panel, "Forgot password?", 14, emerald, true);
+        forgot.setGravity(Gravity.END);
+        forgot.setOnClickListener(view -> startActivity(new Intent(Intent.ACTION_VIEW,
+                Uri.parse(applicationBaseUrl() + "/forgot-password"))));
+
+        android.widget.CheckBox remember = new android.widget.CheckBox(this);
+        remember.setText("Remember me");
+        remember.setChecked(true);
+        remember.setTextColor(0xFF374151);
+        panel.addView(remember, matchWidth());
+
+        Button signIn = button(LOGIN_LABEL);
+        signIn.setTextColor(0xFFFFFFFF);
+        signIn.setTextSize(16);
+        signIn.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        signIn.setBackground(rounded(emerald, 12, emerald));
+        LinearLayout.LayoutParams signInParams = matchWidth();
+        signInParams.topMargin = dp(12);
+        panel.addView(signIn, signInParams);
+
+        TextView footer = addText(panel, "SwineLocate\nSwine Traceability and Management System", 12, muted, false);
+        footer.setGravity(Gravity.CENTER_HORIZONTAL);
+        footer.setPadding(0, dp(32), 0, 0);
+
+        int available = getResources().getDisplayMetrics().widthPixels - dp(32);
+        LinearLayout content = (LinearLayout) page.getChildAt(0);
+        content.setGravity(Gravity.CENTER_HORIZONTAL);
+        content.addView(panel, new LinearLayout.LayoutParams(
+                Math.min(available, dp(448)), LinearLayout.LayoutParams.WRAP_CONTENT));
         setContentView(page);
 
         signIn.setOnClickListener(view -> {
@@ -484,7 +543,7 @@ public final class MainActivity extends Activity {
                 body.put("password", secret);
             } catch (JSONException exception) {
                 signIn.setEnabled(true);
-                signIn.setText("Sign in");
+                signIn.setText(LOGIN_LABEL);
                 showMessage("Unable to prepare sign-in request.");
                 return;
             }
@@ -498,12 +557,12 @@ public final class MainActivity extends Activity {
                     loadDashboard();
                 } catch (Exception exception) {
                     signIn.setEnabled(true);
-                    signIn.setText("Sign in");
+                    signIn.setText(LOGIN_LABEL);
                     showMessage("Could not save the secure sign-in session.");
                 }
             }, exception -> {
                 signIn.setEnabled(true);
-                signIn.setText("Sign in");
+                signIn.setText(LOGIN_LABEL);
                 showMessage(exception.getMessage());
             });
         });
@@ -793,14 +852,34 @@ public final class MainActivity extends Activity {
     }
 
     private void showResource(String resource, int pageNumber, String search) {
+        showResource(resource, pageNumber, search, null, null);
+    }
+
+    private Runnable listReturn;
+
+    // swineId/swineTag are set when listing the full health history of one swine.
+    private void showResource(String resource, int pageNumber, String search, String swineId, String swineTag) {
         activeMenu = resource;
+        boolean history = swineId != null;
+        listReturn = () -> showResource(resource, pageNumber, search, swineId, swineTag);
         ScrollView page = page();
         LinearLayout panel = card();
         panel.setPadding(dp(20), dp(20), dp(20), dp(20));
-        Button back = button("‹  Dashboard");
+        Button back = button(history ? "‹  Health Records" : "‹  Dashboard");
         panel.addView(back, matchWidth());
-        back.setOnClickListener(view -> renderDashboard());
-        addText(panel, label(resource), 24, DARK, true);
+        back.setOnClickListener(view -> {
+            if (history) {
+                showResource(resource, 1, "");
+            } else {
+                renderDashboard();
+            }
+        });
+        addText(panel, history ? "Health History" : label(resource), 24, DARK, true);
+        if (history) {
+            addText(panel, "All health records for " + swineTag, 14, 0xFF526577, false);
+        } else if ("health-records".equals(resource)) {
+            addText(panel, "Showing the latest record for each swine.", 14, 0xFF526577, false);
+        }
         EditText filter = field("Search records", InputType.TYPE_CLASS_TEXT);
         filter.setText(search);
         panel.addView(filter, matchWidth());
@@ -821,9 +900,12 @@ public final class MainActivity extends Activity {
         setContentView(page);
 
         searchButton.setOnClickListener(view ->
-                showResource(resource, 1, filter.getText().toString().trim()));
+                showResource(resource, 1, filter.getText().toString().trim(), swineId, swineTag));
 
         String path = "/data/" + resource + "?page=" + pageNumber;
+        if (history) {
+            path += "&swine_id=" + swineId;
+        }
         if (!search.isEmpty()) {
             try {
                 path += "&search=" + URLEncoder.encode(search, StandardCharsets.UTF_8.name());
@@ -860,7 +942,7 @@ public final class MainActivity extends Activity {
                 Button next = button("Next page");
                 panel.addView(next, matchWidth());
                 next.setOnClickListener(view ->
-                        showResource(resource, pageNumber + 1, search));
+                        showResource(resource, pageNumber + 1, search, swineId, swineTag));
             }
         }, exception -> results.setText(exception.getMessage()));
     }
@@ -900,7 +982,7 @@ public final class MainActivity extends Activity {
         params.bottomMargin = dp(10);
         panel.addView(row, params);
         row.setOnClickListener(view ->
-                showRecordDetail(resource, record, () -> showResource(resource, 1, "")));
+                showRecordDetail(resource, record, listReturn != null ? listReturn : () -> showResource(resource, 1, "")));
     }
 
     private String recordTitle(String resource, JSONObject record) {
@@ -1050,6 +1132,13 @@ public final class MainActivity extends Activity {
         addText(panel, label(resource), 13, 0xFF526577, false);
 
         addDetailRows(panel, record, 0);
+
+        if ("health-records".equals(resource) && !record.isNull("swine_id")) {
+            Button historyButton = button("View health history");
+            panel.addView(historyButton, matchWidth());
+            historyButton.setOnClickListener(view -> showResource("health-records", 1, "",
+                    record.optString("swine_id"), nestedValue(record, "swine", "tag_number")));
+        }
 
         if (canEdit(resource)) {
             Button edit = button("Edit");

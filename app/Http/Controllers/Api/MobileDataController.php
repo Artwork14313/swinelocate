@@ -196,6 +196,17 @@ class MobileDataController extends Controller
             $query->where('record_type', 'Vaccination');
         }
 
+        if ($resource === 'health-records') {
+            if ($request->filled('swine_id')) {
+                $query->where('swine_id', (int) $request->query('swine_id'));
+            } else {
+                // Only the most recent record of each swine; full history is per swine.
+                $query->whereRaw('health_records.id = (select h2.id from health_records h2 '
+                    .'where h2.swine_id = health_records.swine_id '
+                    .'order by h2.record_date desc, h2.id desc limit 1)');
+            }
+        }
+
         if ($resource === 'users') {
             $query->whereDoesntHave('role', fn (Builder $role) => $role->where('slug', 'superadmin'));
         } elseif ($resource === 'roles') {
