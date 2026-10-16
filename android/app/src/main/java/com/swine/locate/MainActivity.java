@@ -9,6 +9,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.InputType;
 import android.view.Gravity;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
@@ -17,8 +18,8 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.gms.code.GmsBarcodeScanning;
-import com.google.android.gms.code.GmsBarcodeScannerOptions;
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning;
+import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions;
 import com.google.mlkit.vision.barcode.common.Barcode;
 
 import org.json.JSONArray;
@@ -90,7 +91,7 @@ public final class MainActivity extends Activity {
         panel.addView(password, matchWidth());
         Button signIn = button("Sign in");
         panel.addView(signIn, matchWidth());
-        page.addView(panel);
+        addPanel(page, panel);
         setContentView(page);
 
         signIn.setOnClickListener(view -> {
@@ -186,7 +187,7 @@ public final class MainActivity extends Activity {
         Button signOut = button("Sign out");
         panel.addView(signOut, matchWidth());
         signOut.setOnClickListener(view -> signOut());
-        page.addView(panel);
+        addPanel(page, panel);
         setContentView(page);
     }
 
@@ -204,7 +205,7 @@ public final class MainActivity extends Activity {
         Button searchButton = button("Search");
         panel.addView(searchButton, matchWidth());
         TextView results = addText(panel, "Loading records…", 14, 0xFF526577, false);
-        page.addView(panel);
+        addPanel(page, panel);
         setContentView(page);
 
         searchButton.setOnClickListener(view ->
@@ -358,6 +359,10 @@ public final class MainActivity extends Activity {
         });
     }
 
+    private void addPanel(ScrollView page, View panel) {
+        ((ViewGroup) page.getChildAt(0)).addView(panel);
+    }
+
     private ScrollView page() {
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
@@ -412,7 +417,7 @@ public final class MainActivity extends Activity {
         ScrollView page = page();
         LinearLayout panel = card();
         addText(panel, message, 18, DARK, true);
-        page.addView(panel);
+        addPanel(page, panel);
         setContentView(page);
     }
 
@@ -427,7 +432,7 @@ public final class MainActivity extends Activity {
         Button signOut = button("Sign out");
         panel.addView(signOut, matchWidth());
         signOut.setOnClickListener(view -> signOut());
-        page.addView(panel);
+        addPanel(page, panel);
         setContentView(page);
     }
 

@@ -33,12 +33,6 @@ class MobileAuthController extends Controller
             ]);
         }
 
-        if ($user->email_verified_at === null) {
-            throw ValidationException::withMessages([
-                'email' => ['Verify your email before signing in.'],
-            ]);
-        }
-
         return response()->json([
             'token' => $user->createToken('android')->plainTextToken,
             'user' => $this->userPayload($user),

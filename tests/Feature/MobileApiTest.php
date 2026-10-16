@@ -13,7 +13,7 @@ class MobileApiTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_verified_active_user_can_sign_in_and_revoke_the_mobile_token(): void
+    public function test_active_user_can_sign_in_and_revoke_the_mobile_token(): void
     {
         $user = $this->userWithPermissions('manage-farms');
 
@@ -39,7 +39,7 @@ class MobileApiTest extends TestCase
         $this->assertDatabaseCount('personal_access_tokens', 0);
     }
 
-    public function test_mobile_login_rejects_inactive_and_unverified_users(): void
+    public function test_mobile_login_allows_admin_provisioned_users_without_email_verification(): void
     {
         $inactive = $this->userWithPermissions();
         $inactive->update(['status' => 'inactive']);
@@ -56,7 +56,7 @@ class MobileApiTest extends TestCase
         $this->postJson('/api/mobile/login', [
             'email' => $unverified->email,
             'password' => 'password',
-        ])->assertUnprocessable();
+        ])->assertOk();
     }
 
     public function test_mobile_data_is_limited_to_the_users_permissions(): void

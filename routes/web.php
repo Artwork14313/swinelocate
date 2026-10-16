@@ -35,7 +35,7 @@ Route::post('/public/farmers-nearby', [FarmerController::class, 'searchNearby'])
     ->name('farmers.nearby.search');
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware(['auth', 'verified'])
+    ->middleware('auth')
     ->name('dashboard');
 
 Route::middleware('auth')->group(function () {

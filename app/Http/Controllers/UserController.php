@@ -117,7 +117,9 @@ class UserController extends Controller
 
         $validated['password'] = Hash::make($validated['password']);
 
-        User::create($validated);
+        User::create($validated)
+            ->forceFill(['email_verified_at' => now()])
+            ->save();
 
         return redirect()
             ->route('users.index')
@@ -209,13 +211,14 @@ class UserController extends Controller
             ],
         ]);
 
-        if (!empty($validated['password'])) {
+        if (! empty($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
         } else {
             unset($validated['password']);
         }
 
         $user->update($validated);
+        $user->forceFill(['email_verified_at' => now()])->save();
 
         return redirect()
             ->route('users.index')

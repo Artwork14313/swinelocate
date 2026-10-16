@@ -112,6 +112,34 @@ record counts and relationships before directing users to the live system. Do
 not seed demo users or roles into a production database without reviewing the
 seeders and intended accounts first.
 
+### Transactional email (optional)
+
+Laravel Cloud can send application email through its Resend integration. The
+Laravel Resend SDK is included in Composer dependencies. Email is not required
+for account verification or sign-in. Configure a mail provider only if the
+deployed application needs password-reset emails or other mail notifications:
+
+1. Create or use a Resend account and add a sending domain that you control.
+   Add the DNS records Resend provides at your domain's DNS provider, then wait
+   until the domain is verified.
+2. In Laravel Cloud, connect Resend under the organization **Settings →
+   Integrations**. Approve the access requested by Cloud.
+3. Open the production environment, choose **Add resource → Emails**, select
+   the verified sending domain, set the sender address and name, and attach a
+   new sending key. Deploy the environment after attaching the resource.
+4. Confirm Cloud has injected `RESEND_API_KEY`, `MAIL_MAILER=resend`,
+   `MAIL_FROM_ADDRESS`, and `MAIL_FROM_NAME`. Remove any manually configured
+   `MAIL_MAILER=log`, since custom variables override the injected mail setting.
+   Keep API keys and other credentials in Cloud's secret/environment settings;
+   never commit them to the repository.
+5. Set `APP_URL` to the production HTTPS URL and redeploy so any mail links use
+   the right host. Resend's activity logs show whether a test message was
+   accepted, delivered, or rejected.
+
+The local `.env.example` uses `MAIL_MAILER=log` so development does not send
+real mail. Configure a mail provider separately for each deployed environment
+that needs to send email.
+
 ### Superadmin recovery account
 
 Provision a protected break-glass account against the production database after
@@ -158,9 +186,12 @@ client; the website remains available for those workflows.
 
 The API uses Laravel Sanctum bearer tokens. Run `php artisan migrate --force`
 when deploying the new API so the personal access token table is created.
-Accounts must be active and have a verified email address. Tokens expire after
-30 days, and account deactivation invalidates access on the next API request.
-The API returns only the modules granted by the user's existing role permissions.
+Accounts must be active, but email verification is not required: users are
+provisioned by an administrator. Public registration and email-verification
+routes are disabled. Admin-created accounts are marked verified in the database.
+Tokens expire after 30 days, and account deactivation invalidates access on the
+next API request. The API returns only modules granted by the user's existing
+role permissions.
 
 The Android app's full API base URL, including `/api/mobile`, is set in
 `android/app/build.gradle` (`API_BASE_URL`). Change it to the HTTPS API URL for
