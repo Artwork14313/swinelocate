@@ -67,6 +67,34 @@ class MobileManageController extends Controller
         return response()->json(['data' => $record]);
     }
 
+    public function activate(Request $request, string $resource, int $id): JsonResponse
+    {
+        $this->authorizeResource($request, $resource);
+
+        switch ($resource) {
+            case 'farms':
+                Farm::query()->findOrFail($id)->update(['status' => 'active']);
+                break;
+            case 'locations':
+                $location = FarmLocation::query()->with('farm')->findOrFail($id);
+                abort_unless($location->farm && $location->farm->status === 'active', 422,
+                    'This location cannot be activated because its farm is inactive.');
+                $location->update(['status' => 'active']);
+                break;
+            case 'swine':
+                $swine = Swine::query()->with('farm')->findOrFail($id);
+                abort_unless($swine->status === 'inactive', 422, 'Only inactive swine can be activated.');
+                abort_unless($swine->farm && $swine->farm->status === 'active', 422,
+                    'This swine cannot be activated because its farm is inactive.');
+                $swine->update(['status' => 'active', 'is_for_sale' => false, 'asking_price' => null]);
+                break;
+            default:
+                abort(404);
+        }
+
+        return response()->json(['message' => 'Done.']);
+    }
+
     public function destroy(Request $request, string $resource, int $id): JsonResponse
     {
         $this->authorizeResource($request, $resource);

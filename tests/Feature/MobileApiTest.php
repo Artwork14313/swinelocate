@@ -410,6 +410,22 @@ class MobileApiTest extends TestCase
             ->assertOk()->assertJsonCount(3, 'data');
     }
 
+    public function test_inactive_swine_can_be_reactivated(): void
+    {
+        $user = $this->userWithPermissions('manage-swine');
+        $farm = Farm::create(['farm_code' => 'AC-1', 'name' => 'AC Farm', 'status' => 'active']);
+        $farmer = $this->createFarmer($farm, 'AC Farmer');
+        $swine = Swine::create([
+            'farm_id' => $farm->getKey(), 'farmer_id' => $farmer->getKey(),
+            'tag_number' => 'AC-PIG', 'sex' => 'male', 'status' => 'inactive',
+        ]);
+        $token = $user->createToken('android')->plainTextToken;
+
+        $this->withToken($token)->postJson("/api/mobile/data/swine/{$swine->getKey()}/activate")->assertOk();
+        $this->assertSame('active', $swine->fresh()->status);
+        $this->withToken($token)->postJson("/api/mobile/data/swine/{$swine->getKey()}/activate")->assertStatus(422);
+    }
+
     public function test_mobile_management_requires_permission(): void
     {
         $token = $this->userWithPermissions('record-weight')->createToken('android')->plainTextToken;

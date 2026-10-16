@@ -261,13 +261,7 @@ public final class MainActivity extends Activity {
         panel.addView(scroll, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
-        addDrawerItem(items, "🏠  Dashboard", "dashboard", false, () -> {
-            if (dashboard != null) {
-                renderDashboard();
-            } else {
-                loadDashboard();
-            }
-        });
+        addDrawerItem(items, "🏠  Dashboard", "dashboard", false, this::refreshDashboard);
 
         Set<String> available = new HashSet<>();
         JSONArray modules = dashboard == null ? null : dashboard.optJSONArray("modules");
@@ -756,6 +750,24 @@ public final class MainActivity extends Activity {
         };
     }
 
+    // Shows the last known dashboard at once, then replaces it with fresh figures.
+    private void refreshDashboard() {
+        if (dashboard == null) {
+            loadDashboard();
+            return;
+        }
+        renderDashboard();
+        get("/dashboard", response -> {
+            JSONObject fresh = response.optJSONObject("data");
+            if (fresh != null) {
+                dashboard = fresh;
+                if ("dashboard".equals(activeMenu) && token != null) {
+                    renderDashboard();
+                }
+            }
+        }, exception -> { });
+    }
+
     private void renderDashboard() {
         activeMenu = "dashboard";
         JSONObject user = dashboard.optJSONObject("user");
@@ -871,7 +883,7 @@ public final class MainActivity extends Activity {
             if (history) {
                 showResource(resource, 1, "");
             } else {
-                renderDashboard();
+                refreshDashboard();
             }
         });
         addText(panel, history ? "Health History" : label(resource), 24, DARK, true);
@@ -1146,11 +1158,18 @@ public final class MainActivity extends Activity {
             edit.setOnClickListener(view -> openForm(resource, record));
         }
         if (canDelete(resource)) {
-            Button delete = button("farms".equals(resource) || "locations".equals(resource) || "swine".equals(resource)
-                    ? "Deactivate" : "Delete");
-            delete.setTextColor(0xFFB91C1C);
+            boolean lifecycle = "farms".equals(resource) || "locations".equals(resource) || "swine".equals(resource);
+            boolean inactive = lifecycle && "inactive".equals(record.optString("status"));
+            Button delete = button(inactive ? "Activate" : lifecycle ? "Deactivate" : "Delete");
+            delete.setTextColor(inactive ? 0xFF047857 : 0xFFB91C1C);
             panel.addView(delete, matchWidth());
-            delete.setOnClickListener(view -> confirmDelete(resource, record, title));
+            delete.setOnClickListener(view -> {
+                if (inactive) {
+                    confirmActivate(resource, record, title);
+                } else {
+                    confirmDelete(resource, record, title);
+                }
+            });
         }
         addPanel(page, panel);
         setContentView(page);
@@ -1271,6 +1290,20 @@ public final class MainActivity extends Activity {
             return label(text);
         }
         return text;
+    }
+
+    private void confirmActivate(String resource, JSONObject record, String title) {
+        new AlertDialog.Builder(this)
+                .setTitle("Confirm")
+                .setMessage("Activate " + (title.isEmpty() ? "this record" : title) + "?")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Yes", (d, which) -> send("POST",
+                        "/data/" + resource + "/" + record.optString("id") + "/activate", new JSONObject(),
+                        response -> {
+                            showMessage("Activated.");
+                            showResource(resource, 1, "");
+                        }, exception -> showMessage(exception.getMessage())))
+                .show();
     }
 
     private void confirmDelete(String resource, JSONObject record, String title) {
@@ -1829,7 +1862,7 @@ public final class MainActivity extends Activity {
                     showMessage("No swine record found for this QR code.");
                     return;
                 }
-                showRecordDetail("swine", swine, this::renderDashboard);
+                showRecordDetail("swine", swine, this::refreshDashboard);
             }, exception -> showMessage(exception.getMessage()));
         } catch (java.io.UnsupportedEncodingException exception) {
             showMessage("Unable to read the QR code.");

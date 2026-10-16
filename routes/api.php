@@ -29,6 +29,8 @@ Route::prefix('mobile')->group(function () {
             ->middleware(IdempotentMobileRequest::class);
         Route::delete('/data/{resource}/{id}', [MobileManageController::class, 'destroy'])
             ->middleware(IdempotentMobileRequest::class);
+        Route::post('/data/{resource}/{id}/activate', [MobileManageController::class, 'activate'])
+            ->middleware(IdempotentMobileRequest::class);
         Route::get('/qr/{token}', [MobileDataController::class, 'scan']);
     });
 });
