@@ -143,8 +143,8 @@ class FarmerController extends Controller
             ->map(fn (Farmer $farmer) => [
                 'name' => $farmer->name,
                 'farm' => $farmer->farm->name,
-                'latitude' => round((float) $farmer->farm->latitude, 2),
-                'longitude' => round((float) $farmer->farm->longitude, 2),
+                'latitude' => (float) $farmer->farm->latitude,
+                'longitude' => (float) $farmer->farm->longitude,
                 'profile_url' => route('farmers.public-profile', $farmer->qr_token),
                 'listing_count' => $farmer->swine->count(),
             ])

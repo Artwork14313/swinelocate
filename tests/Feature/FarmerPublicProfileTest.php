@@ -118,7 +118,7 @@ class FarmerPublicProfileTest extends TestCase
 
     public function test_public_map_only_shows_active_sale_listings_in_sagay_city(): void
     {
-        $sagayFarm = $this->createFarm('F-SAGAY-1', 10.8976, 123.4145);
+        $sagayFarm = $this->createFarm('F-SAGAY-1', 10.89765, 123.41456);
         $sagayFarm->update([
             'municipality' => 'Sagay City',
             'province' => 'Negros Occidental',
@@ -161,6 +161,9 @@ class FarmerPublicProfileTest extends TestCase
             ->assertOk()
             ->assertSee('Farmers near Sagay City')
             ->assertSee('Map of farmers in Sagay City')
+            ->assertSee('10.89765')
+            ->assertSee('123.41456')
+            ->assertSee('using each farm’s saved latitude and longitude')
             ->assertSee('Sagay Farmer')
             ->assertSee(route('farmers.public-profile', $sagayFarmer->qr_token), false)
             ->assertDontSee('Outside Farmer')

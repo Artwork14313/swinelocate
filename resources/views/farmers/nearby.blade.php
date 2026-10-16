@@ -28,7 +28,7 @@
             <section class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
                 <div id="farmer-map" class="h-[60vh] min-h-[360px] w-full" aria-label="Map of farmers in Sagay City"></div>
                 <p class="border-t border-gray-100 px-5 py-3 text-xs text-gray-500">
-                    Map markers use farm coordinates. Map data © OpenStreetMap contributors.
+                    Showing {{ $mapFarmers->count() }} farmer pin{{ $mapFarmers->count() === 1 ? '' : 's' }} using each farm’s saved latitude and longitude. Map data © OpenStreetMap contributors.
                 </p>
             </section>
 
@@ -98,10 +98,5 @@
                 `<a href="${escapeHtml(farmer.profile_url)}">View SwineLocate Farmer Profile</a>`
             ));
 
-        if (markers.length > 1) {
-            map.fitBounds(L.featureGroup(markers).getBounds().pad(0.15), { maxZoom: 13 });
-        } else if (markers.length === 1) {
-            map.setView(markers[0].getLatLng(), 13);
-        }
     </script>
 </x-guest-layout>
