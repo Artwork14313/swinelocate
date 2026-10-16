@@ -144,7 +144,7 @@ class MobileDataController extends Controller
         $farmer = Farmer::query()
             ->where('qr_token', $token)
             ->with([
-                'farm:id,name,municipality,province,region',
+                'farm:id,name,address,municipality,province,region',
                 'swine' => fn ($query) => $query
                     ->where('status', 'active')
                     ->where('is_for_sale', true)
@@ -156,7 +156,7 @@ class MobileDataController extends Controller
 
         return response()->json(['data' => [
             'name' => $farmer->name,
-            'farm' => $farmer->farm?->only(['name', 'municipality', 'province', 'region']),
+            'farm' => $farmer->farm?->only(['name', 'address', 'municipality', 'province', 'region']),
             'listings' => $farmer->swine->map(fn ($swine) => [
                 'breed' => $swine->breed,
                 'sex' => $swine->sex,

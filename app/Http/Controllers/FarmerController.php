@@ -87,7 +87,7 @@ class FarmerController extends Controller
         $farmer = Farmer::query()
             ->where('qr_token', $qr_token)
             ->with([
-                'farm:id,name,municipality,province,region',
+                'farm:id,name,address,municipality,province,region',
                 'swine' => fn ($query) => $query
                     ->where('status', 'active')
                     ->where('is_for_sale', true)

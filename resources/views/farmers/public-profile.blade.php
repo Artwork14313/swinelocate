@@ -7,7 +7,7 @@
                 <h1 class="mt-2 text-3xl font-bold text-gray-900">{{ $farmer->name }}</h1>
                 <p class="mt-2 text-gray-600">{{ $farmer->farm->name }}</p>
                 <p class="mt-1 text-sm text-gray-500">
-                    {{ collect([$farmer->farm->municipality, $farmer->farm->province, $farmer->farm->region])->filter()->join(', ') ?: 'Location not provided' }}
+                    {{ collect([$farmer->farm->address, $farmer->farm->municipality, $farmer->farm->province, $farmer->farm->region])->filter()->join(', ') ?: 'Location not provided' }}
                 </p>
             </header>
 

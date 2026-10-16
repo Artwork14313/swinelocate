@@ -82,10 +82,17 @@ public final class MainActivity extends Activity {
             showMessage(exception.getMessage());
         }
 
-        pendingFarmerToken = farmerTokenFromUrl(getIntent() == null ? null : getIntent().getData());
+        Uri launchUri = getIntent() == null ? null : getIntent().getData();
+        pendingFarmerToken = farmerTokenFromUrl(launchUri);
+        if (isSwineScanUrl(launchUri)) {
+            pendingSwineUrl = launchUri.toString();
+        }
 
         if (token == null || token.isEmpty()) {
-            if (pendingFarmerToken != null) {
+            if (pendingSwineUrl != null) {
+                showMessage("Sign in to view this swine.");
+                showLogin();
+            } else if (pendingFarmerToken != null) {
                 openPendingFarmerProfile();
             } else {
                 showPublicNearby();
@@ -126,6 +133,10 @@ public final class MainActivity extends Activity {
             closeDrawer();
             return;
         }
+        if (profileBack != null) {
+            profileBack.run();
+            return;
+        }
         if (publicMapVisible && publicMap != null && publicMap.canGoBack()) {
             publicMap.goBack();
             return;
@@ -140,6 +151,7 @@ public final class MainActivity extends Activity {
     // Every signed-in screen is wrapped with a top bar and a slide-in navigation drawer.
     @Override
     public void setContentView(View view) {
+        profileBack = null;
         drawerPanel = null;
         drawerScrim = null;
         drawerOpen = false;
@@ -418,6 +430,7 @@ public final class MainActivity extends Activity {
                 0,
                 1.0f));
         super.setContentView(screen);
+        profileBack = null;
 
         publicMap.loadDataWithBaseURL(applicationBaseUrl(), generateSagayCityMapHtml(new JSONArray()), "text/html", "UTF-8", null);
 
@@ -513,6 +526,28 @@ public final class MainActivity extends Activity {
     }
 
     private String pendingFarmerToken;
+    private String pendingSwineUrl;
+
+    private boolean isSwineScanUrl(Uri uri) {
+        if (uri == null || uri.getHost() == null
+                || !uri.getHost().equalsIgnoreCase(Uri.parse(BuildConfig.API_BASE_URL).getHost())) {
+            return false;
+        }
+        List<String> segments = uri.getPathSegments();
+        int size = segments.size();
+        return size >= 3 && "scan".equals(segments.get(size - 2))
+                && ("qr".equals(segments.get(size - 3)) || "swine".equals(segments.get(size - 3)));
+    }
+
+    private void handleSwineLink(String url) {
+        if (token == null || token.isEmpty()) {
+            pendingSwineUrl = url;
+            showMessage("Sign in to view this swine.");
+            showLogin();
+            return;
+        }
+        lookupQr(url);
+    }
 
     // Returns the farmer QR token when the URL is a SwineLocate farmer profile link.
     private String farmerTokenFromUrl(Uri uri) {
@@ -529,6 +564,12 @@ public final class MainActivity extends Activity {
     }
 
     private void openPendingFarmerProfile() {
+        if (pendingSwineUrl != null) {
+            String url = pendingSwineUrl;
+            pendingSwineUrl = null;
+            lookupQr(url);
+            return;
+        }
         if (pendingFarmerToken != null) {
             String farmerToken = pendingFarmerToken;
             pendingFarmerToken = null;
@@ -540,21 +581,25 @@ public final class MainActivity extends Activity {
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
+        if (isSwineScanUrl(intent.getData())) {
+            handleSwineLink(intent.getData().toString());
+            return;
+        }
         String farmerToken = farmerTokenFromUrl(intent.getData());
         if (farmerToken != null) {
             showFarmerProfile(farmerToken);
         }
     }
 
+    private Runnable profileBack;
+
     private void showFarmerProfile(String farmerToken) {
         boolean signedIn = token != null && !token.isEmpty();
         Runnable back = () -> {
             if (!signedIn) {
                 showPublicNearby();
-            } else if (dashboard != null) {
-                renderDashboard();
             } else {
-                loadDashboard();
+                showFarmersMap("farms");
             }
         };
         showLoading("Loading farmer profile…");
@@ -591,7 +636,7 @@ public final class MainActivity extends Activity {
         if (farm != null) {
             addText(panel, farm.optString("name"), 16, DARK, true);
             StringBuilder place = new StringBuilder();
-            for (String key : new String[]{"municipality", "province", "region"}) {
+            for (String key : new String[]{"address", "municipality", "province", "region"}) {
                 String part = farm.isNull(key) ? "" : farm.optString(key);
                 if (!part.isEmpty()) {
                     place.append(place.length() == 0 ? "" : ", ").append(part);
@@ -635,6 +680,7 @@ public final class MainActivity extends Activity {
             addPanel(page, card);
         }
         setContentView(page);
+        profileBack = back;
     }
 
     private WebViewClient farmerLinkClient() {
@@ -1032,7 +1078,7 @@ public final class MainActivity extends Activity {
         while (keys.hasNext()) {
             String key = keys.next();
             Object value = object.opt(key);
-            if (isHiddenKey(key)) {
+            if (isHiddenKey(key) || ("name".equals(key) && object.has("tag_number"))) {
                 continue;
             }
             if (value instanceof JSONObject || value instanceof JSONArray) {
@@ -1069,7 +1115,9 @@ public final class MainActivity extends Activity {
     }
 
     private String summarize(JSONObject object) {
-        String name = firstValue(object, "name", "tag_number", "slug", "label", "record_type");
+        String name = object.has("tag_number")
+                ? firstValue(object, "tag_number")
+                : firstValue(object, "name", "tag_number", "slug", "label", "record_type");
         if (!name.isEmpty()) {
             return name;
         }
@@ -1376,13 +1424,11 @@ public final class MainActivity extends Activity {
             }
             String[] pending = {existing == null || existing.isNull(definition.key)
                     ? "" : existing.optString(definition.key)};
-            Runnable refresh = () -> {
-                String farmId = fieldValue(fields, parentKey, parent);
+            java.util.function.IntConsumer refresh = parentPosition -> {
+                String farmId = fieldValueAt(fields, parentKey, parentPosition);
                 List<String> values = new ArrayList<>();
                 List<String> labels = new ArrayList<>();
                 values.add("");
-                labels.add(farmId.isEmpty() ? "Select a farm first"
-                        : definition.required ? "Choose " + label(definition.key) : "Not selected");
                 JSONArray records = options.optJSONArray(definition.optionsKey);
                 for (int index = 0; !farmId.isEmpty() && records != null && index < records.length(); index++) {
                     JSONObject record = records.optJSONObject(index);
@@ -1391,6 +1437,9 @@ public final class MainActivity extends Activity {
                         labels.add(optionLabel(definition.optionsKey, record));
                     }
                 }
+                labels.add(0, farmId.isEmpty() ? "Select a farm first"
+                        : values.size() == 1 ? "No " + label(definition.key).toLowerCase(Locale.US) + " for this farm"
+                        : definition.required ? "Choose " + label(definition.key) : "Not selected");
                 ArrayAdapter<String> adapter = new ArrayAdapter<>(
                         this, android.R.layout.simple_spinner_item, labels);
                 adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -1406,14 +1455,14 @@ public final class MainActivity extends Activity {
             parent.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                 @Override
                 public void onItemSelected(AdapterView<?> adapterView, View view, int position, long id) {
-                    refresh.run();
+                    refresh.accept(position);
                 }
 
                 @Override
                 public void onNothingSelected(AdapterView<?> adapterView) {
                 }
             });
-            refresh.run();
+            refresh.accept(parent.getSelectedItemPosition());
         }
 
         Button save = button("Save");
@@ -1477,10 +1526,9 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private String fieldValue(List<FormField> fields, String key, Spinner spinner) {
+    private String fieldValueAt(List<FormField> fields, String key, int position) {
         for (FormField field : fields) {
             if (key.equals(field.key) && field.values != null) {
-                int position = spinner.getSelectedItemPosition();
                 return position >= 0 && position < field.values.size() ? field.values.get(position) : "";
             }
         }
@@ -1572,7 +1620,7 @@ public final class MainActivity extends Activity {
     }
 
     private String optionLabel(String optionsKey, JSONObject option) {
-        String name = firstValue(option, "name", "tag_number");
+        String name = option.has("tag_number") ? firstValue(option, "tag_number") : firstValue(option, "name", "tag_number");
         if (name.isEmpty()) {
             name = "Record #" + option.optString("id");
         }
@@ -1831,6 +1879,7 @@ public final class MainActivity extends Activity {
                 0,
                 1.0f));
         super.setContentView(screen);
+        profileBack = null;
 
         publicMap.loadDataWithBaseURL(applicationBaseUrl(), generateSagayCityMapHtml(new JSONArray()), "text/html", "UTF-8", null);
 
