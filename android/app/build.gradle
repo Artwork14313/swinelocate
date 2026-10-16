@@ -2,7 +2,24 @@ plugins {
     id 'com.android.application'
 }
 
+def keystoreProps = new Properties()
+def keystoreFile = rootProject.file('keystore.properties')
+if (keystoreFile.exists()) {
+    keystoreFile.withInputStream { keystoreProps.load(it) }
+}
+
 android {
+    signingConfigs {
+        release {
+            if (keystoreFile.exists()) {
+                storeFile rootProject.file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
+
     namespace 'com.swine.locate'
     compileSdk 36
 
@@ -13,6 +30,12 @@ android {
         versionCode 2
         versionName '2.0'
         buildConfigField 'String', 'API_BASE_URL', '"https://swinelocate-production-h3g41v.laravel.cloud/api/mobile"'
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+        }
     }
 
     buildFeatures {

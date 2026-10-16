@@ -16,6 +16,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ArrayAdapter;
 import android.widget.ScrollView;
@@ -113,11 +114,247 @@ public final class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
+        if (drawerPanel != null && drawerOpen) {
+            closeDrawer();
+            return;
+        }
         if (publicMapVisible && publicMap != null && publicMap.canGoBack()) {
             publicMap.goBack();
             return;
         }
         super.onBackPressed();
+    }
+
+    private View drawerScrim;
+    private LinearLayout drawerPanel;
+    private boolean drawerOpen;
+
+    // Every signed-in screen is wrapped with a top bar and a slide-in navigation drawer.
+    @Override
+    public void setContentView(View view) {
+        drawerPanel = null;
+        drawerScrim = null;
+        drawerOpen = false;
+        publicMapVisible = false;
+        if (token == null || token.isEmpty()) {
+            super.setContentView(view);
+            return;
+        }
+
+        FrameLayout root = new FrameLayout(this);
+        root.setBackgroundColor(BACKGROUND);
+
+        LinearLayout column = new LinearLayout(this);
+        column.setOrientation(LinearLayout.VERTICAL);
+
+        LinearLayout bar = new LinearLayout(this);
+        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setGravity(Gravity.CENTER_VERTICAL);
+        bar.setBackgroundColor(BLUE);
+        bar.setPadding(dp(8), dp(8), dp(16), dp(8));
+        bar.setElevation(dp(4));
+        TextView menu = new TextView(this);
+        menu.setText("☰");
+        menu.setTextColor(0xFFFFFFFF);
+        menu.setTextSize(26);
+        menu.setGravity(Gravity.CENTER);
+        menu.setContentDescription("Open menu");
+        menu.setOnClickListener(v -> openDrawer());
+        bar.addView(menu, new LinearLayout.LayoutParams(dp(48), dp(48)));
+        TextView title = new TextView(this);
+        title.setText("SwineLocate");
+        title.setTextColor(0xFFFFFFFF);
+        title.setTextSize(19);
+        title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        bar.addView(title, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        column.addView(bar, matchWidth());
+        column.addView(view, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        root.addView(column, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        drawerScrim = new View(this);
+        drawerScrim.setBackgroundColor(0x88000000);
+        drawerScrim.setVisibility(View.GONE);
+        drawerScrim.setOnClickListener(v -> closeDrawer());
+        root.addView(drawerScrim, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        drawerPanel = buildDrawer();
+        drawerPanel.setVisibility(View.INVISIBLE);
+        int width = Math.min(dp(300), (int) (getResources().getDisplayMetrics().widthPixels * 0.82f));
+        root.addView(drawerPanel, new FrameLayout.LayoutParams(
+                width, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.START));
+        super.setContentView(root);
+    }
+
+    private LinearLayout buildDrawer() {
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setBackgroundColor(CARD);
+        panel.setElevation(dp(16));
+
+        JSONObject user = dashboard == null ? null : dashboard.optJSONObject("user");
+        LinearLayout header = new LinearLayout(this);
+        header.setOrientation(LinearLayout.VERTICAL);
+        header.setBackgroundColor(BLUE);
+        header.setPadding(dp(20), dp(36), dp(20), dp(18));
+        TextView name = new TextView(this);
+        name.setText(user == null ? "SwineLocate" : user.optString("name", "SwineLocate"));
+        name.setTextColor(0xFFFFFFFF);
+        name.setTextSize(19);
+        name.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        header.addView(name);
+        String role = user == null ? "" : user.optString("role", "");
+        String farm = user == null ? "" : user.optString("farm", "");
+        String subtitle = role + (farm.isEmpty() || "null".equals(farm) ? "" : " · " + farm);
+        if (!subtitle.isEmpty()) {
+            TextView sub = new TextView(this);
+            sub.setText(subtitle);
+            sub.setTextColor(0xCCFFFFFF);
+            sub.setTextSize(13);
+            header.addView(sub);
+        }
+        panel.addView(header, matchWidth());
+
+        ScrollView scroll = new ScrollView(this);
+        LinearLayout items = new LinearLayout(this);
+        items.setOrientation(LinearLayout.VERTICAL);
+        items.setPadding(0, dp(8), 0, dp(8));
+        scroll.addView(items);
+        panel.addView(scroll, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+
+        addDrawerItem(items, "🏠  Dashboard", false, () -> {
+            if (dashboard != null) {
+                renderDashboard();
+            } else {
+                loadDashboard();
+            }
+        });
+
+        Set<String> available = new HashSet<>();
+        JSONArray modules = dashboard == null ? null : dashboard.optJSONArray("modules");
+        for (int index = 0; modules != null && index < modules.length(); index++) {
+            JSONObject module = modules.optJSONObject(index);
+            if (module != null) {
+                available.add(module.optString("id"));
+            }
+        }
+
+        // Same sections and order as the web sidebar.
+        String[][] sections = {
+                {"User & Access", "users:Users", "roles:Roles & Permissions"},
+                {"Farm Management", "farms:Farms", "locations:Farm Locations", "farmers:Farmers",
+                        "swine:Swine", "register-swine:Register Swine"},
+                {"Veterinary Management", "health-records:Health Records", "vaccinations:Vaccinations"},
+                {"Farm Operations", "weight-records:Weight Records", "growth:Growth Monitoring",
+                        "movements:Swine Movements"},
+                {"QR & Traceability", "@scan:Scan QR", "traceability:Traceability"},
+                {"Data Synchronization", "@sync:Sync Status"},
+                {"Reports & Analytics", "reports:Reports & Analytics"},
+        };
+        for (String[] section : sections) {
+            boolean headerAdded = false;
+            for (int index = 1; index < section.length; index++) {
+                String id = section[index].substring(0, section[index].indexOf(':'));
+                String title = section[index].substring(section[index].indexOf(':') + 1);
+                boolean visible;
+                if ("@scan".equals(id)) {
+                    visible = hasPermission("scan-qr");
+                } else if ("@sync".equals(id)) {
+                    visible = true;
+                } else {
+                    visible = available.contains(id);
+                }
+                if (!visible) {
+                    continue;
+                }
+                if (!headerAdded) {
+                    addDrawerSection(items, section[0]);
+                    headerAdded = true;
+                }
+                if ("@scan".equals(id)) {
+                    addDrawerItem(items, title, false, this::scanQr);
+                } else if ("@sync".equals(id)) {
+                    int waiting = offlineStore.pendingCount();
+                    addDrawerItem(items, title + (waiting > 0 ? "  (" + waiting + " waiting)" : ""),
+                            false, () -> syncPending(true));
+                } else {
+                    addDrawerItem(items, title, false, () -> {
+                        if ("register-swine".equals(id)) {
+                            createResource("swine");
+                        } else {
+                            showResource(id, 1, "");
+                        }
+                    });
+                }
+            }
+        }
+
+        View divider = new View(this);
+        divider.setBackgroundColor(0xFFE5ECF3);
+        LinearLayout.LayoutParams dividerParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(1));
+        dividerParams.topMargin = dp(8);
+        items.addView(divider, dividerParams);
+        addDrawerItem(items, "Farmers map", false, () -> showFarmersMap("farms"));
+        addDrawerItem(items, "Sign out", true, this::signOut);
+        return panel;
+    }
+
+    private void addDrawerSection(LinearLayout parent, String title) {
+        TextView heading = new TextView(this);
+        heading.setText(title.toUpperCase(Locale.US));
+        heading.setTextColor(0xFF9AA8B6);
+        heading.setTextSize(11);
+        heading.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        heading.setLetterSpacing(0.08f);
+        heading.setPadding(dp(20), dp(16), dp(20), dp(4));
+        parent.addView(heading, matchWidth());
+    }
+
+    private void addDrawerItem(LinearLayout parent, String text, boolean danger, Runnable action) {
+        TextView item = new TextView(this);
+        item.setText(text);
+        item.setTextSize(16);
+        item.setTextColor(danger ? 0xFFB91C1C : DARK);
+        item.setPadding(dp(20), dp(14), dp(20), dp(14));
+        android.util.TypedValue outValue = new android.util.TypedValue();
+        if (getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)) {
+            item.setBackgroundResource(outValue.resourceId);
+        }
+        item.setOnClickListener(v -> {
+            closeDrawer();
+            action.run();
+        });
+        parent.addView(item, matchWidth());
+    }
+
+    private void openDrawer() {
+        if (drawerPanel == null || drawerOpen) {
+            return;
+        }
+        drawerOpen = true;
+        drawerScrim.setAlpha(0f);
+        drawerScrim.setVisibility(View.VISIBLE);
+        drawerScrim.animate().alpha(1f).setDuration(180).start();
+        drawerPanel.setTranslationX(-dp(320));
+        drawerPanel.setVisibility(View.VISIBLE);
+        drawerPanel.animate().translationX(0).setDuration(200).start();
+    }
+
+    private void closeDrawer() {
+        if (drawerPanel == null || !drawerOpen) {
+            return;
+        }
+        drawerOpen = false;
+        View scrim = drawerScrim;
+        LinearLayout panel = drawerPanel;
+        scrim.animate().alpha(0f).setDuration(160).withEndAction(() -> scrim.setVisibility(View.GONE)).start();
+        panel.animate().translationX(-dp(320)).setDuration(180)
+                .withEndAction(() -> panel.setVisibility(View.INVISIBLE)).start();
     }
 
     private void showPublicNearby() {
@@ -151,7 +388,7 @@ public final class MainActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 0,
                 1.0f));
-        setContentView(screen);
+        super.setContentView(screen);
 
         publicMap.loadDataWithBaseURL(applicationBaseUrl(), generateSagayCityMapHtml(new JSONArray()), "text/html", "UTF-8", null);
 
@@ -249,59 +486,94 @@ public final class MainActivity extends Activity {
         JSONObject user = dashboard.optJSONObject("user");
         permissions = userPermissions(user);
         JSONObject stats = dashboard.optJSONObject("stats");
-        JSONArray modules = dashboard.optJSONArray("modules");
         ScrollView page = page();
-        LinearLayout panel = card();
-        panel.setPadding(dp(20), dp(20), dp(20), dp(20));
+
+        LinearLayout greeting = card();
+        greeting.setPadding(dp(20), dp(20), dp(20), dp(20));
         String name = user == null ? "Welcome" : user.optString("name", "Welcome");
-        addText(panel, "Hello, " + name, 25, DARK, true);
+        addText(greeting, "Hello, " + name, 25, DARK, true);
         String role = user == null ? "" : user.optString("role", "");
         String farm = user == null ? "" : user.optString("farm", "");
-        addText(panel, role + (farm.isEmpty() ? "" : " · " + farm), 14, 0xFF526577, false);
+        if ("null".equals(farm)) {
+            farm = "";
+        }
+        String subtitle = role + (farm.isEmpty() ? "" : " · " + farm);
+        if (!subtitle.isEmpty()) {
+            addText(greeting, subtitle, 14, 0xFF526577, false);
+        }
+        addText(greeting, "Open the menu ☰ to browse records.", 13, 0xFF6B7C8D, false);
+        addPanel(page, greeting);
+
+        int waiting = offlineStore.pendingCount();
+        if (waiting > 0) {
+            LinearLayout notice = new LinearLayout(this);
+            notice.setPadding(dp(16), dp(12), dp(16), dp(12));
+            notice.setBackground(rounded(0xFFFEF3C7, 12, 0xFFFCD34D));
+            TextView text = new TextView(this);
+            text.setText(waiting + " change" + (waiting == 1 ? "" : "s")
+                    + " waiting to sync. Open the menu and choose Sync now.");
+            text.setTextColor(0xFF92400E);
+            text.setTextSize(14);
+            notice.addView(text);
+            LinearLayout.LayoutParams noticeParams = matchWidth();
+            noticeParams.topMargin = dp(12);
+            ((ViewGroup) page.getChildAt(0)).addView(notice, noticeParams);
+        }
+
         if (stats != null && stats.length() > 0) {
-            addText(panel, "Overview", 18, DARK, true);
+            TextView heading = new TextView(this);
+            heading.setText("Overview");
+            heading.setTextColor(DARK);
+            heading.setTextSize(18);
+            heading.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+            heading.setPadding(dp(4), dp(20), 0, dp(8));
+            ((ViewGroup) page.getChildAt(0)).addView(heading, matchWidth());
+
+            LinearLayout rowLayout = null;
+            int column = 0;
             Iterator<String> keys = stats.keys();
             while (keys.hasNext()) {
                 String key = keys.next();
-                addText(panel, label(key) + ": " + stats.opt(key), 15, 0xFF283C50, false);
-            }
-        }
-        int waiting = offlineStore.pendingCount();
-        if (waiting > 0) {
-            addText(panel, waiting + " change" + (waiting == 1 ? "" : "s") + " waiting to sync", 15, 0xFFB45309, true);
-            Button syncNow = button("Sync now");
-            panel.addView(syncNow, matchWidth());
-            syncNow.setOnClickListener(view -> syncPending(true));
-        }
-        if (hasPermission("scan-qr")) {
-            Button scanner = button("Scan swine QR code");
-            panel.addView(scanner, matchWidth());
-            scanner.setOnClickListener(view -> scanQr());
-        }
-        addText(panel, "Your modules", 18, DARK, true);
-        if (modules != null) {
-            for (int index = 0; index < modules.length(); index++) {
-                JSONObject module = modules.optJSONObject(index);
-                if (module == null) {
-                    continue;
+                if (column % 2 == 0) {
+                    rowLayout = new LinearLayout(this);
+                    rowLayout.setOrientation(LinearLayout.HORIZONTAL);
+                    LinearLayout.LayoutParams rowParams = matchWidth();
+                    rowParams.bottomMargin = dp(10);
+                    ((ViewGroup) page.getChildAt(0)).addView(rowLayout, rowParams);
                 }
-                String resource = module.optString("id");
-                Button open = button(module.optString("label", label(resource)) + "  ›");
-                panel.addView(open, matchWidth());
-                open.setOnClickListener(view -> {
-                    if ("register-swine".equals(resource)) {
-                        createResource("swine");
-                    } else {
-                        showResource(resource, 1, "");
-                    }
-                });
+                rowLayout.addView(statCard(label(key), String.valueOf(stats.opt(key)), column % 2 == 1));
+                column++;
+            }
+            if (column % 2 == 1) {
+                View spacer = new View(this);
+                rowLayout.addView(spacer, new LinearLayout.LayoutParams(0, 1, 1f));
             }
         }
-        Button signOut = button("Sign out");
-        panel.addView(signOut, matchWidth());
-        signOut.setOnClickListener(view -> signOut());
-        addPanel(page, panel);
         setContentView(page);
+    }
+
+    private View statCard(String caption, String value, boolean second) {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(dp(16), dp(16), dp(16), dp(16));
+        box.setBackground(rounded(CARD, 14, 0xFFE5ECF3));
+        TextView number = new TextView(this);
+        number.setText(value);
+        number.setTextColor(BLUE);
+        number.setTextSize(28);
+        number.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        box.addView(number);
+        TextView name = new TextView(this);
+        name.setText(caption);
+        name.setTextColor(0xFF526577);
+        name.setTextSize(13);
+        box.addView(name);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        if (second) {
+            params.leftMargin = dp(10);
+        }
+        box.setLayoutParams(params);
+        return box;
     }
 
     private void showResource(String resource, int pageNumber, String search) {
@@ -1302,7 +1574,7 @@ public final class MainActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 0,
                 1.0f));
-        setContentView(screen);
+        super.setContentView(screen);
 
         publicMap.loadDataWithBaseURL(applicationBaseUrl(), generateSagayCityMapHtml(new JSONArray()), "text/html", "UTF-8", null);
 

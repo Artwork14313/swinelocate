@@ -30,3 +30,5 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+/android/swinelocate-release.jks
+/android/keystore.properties
