@@ -318,6 +318,21 @@ class MobileApiTest extends TestCase
         $this->assertNotNull(User::where('email', 'new@example.com')->first()->email_verified_at);
     }
 
+    public function test_retried_write_with_same_idempotency_key_creates_one_record(): void
+    {
+        $user = $this->userWithPermissions('manage-farms');
+        $token = $user->createToken('android')->plainTextToken;
+        $payload = ['farm_code' => 'IDEM-1', 'name' => 'Idempotent Farm'];
+
+        $first = $this->withToken($token)->withHeader('Idempotency-Key', 'abc-123')
+            ->postJson('/api/mobile/data/farms', $payload)->assertCreated();
+        $second = $this->withToken($token)->withHeader('Idempotency-Key', 'abc-123')
+            ->postJson('/api/mobile/data/farms', $payload)->assertCreated();
+
+        $this->assertSame($first->json('data.id'), $second->json('data.id'));
+        $this->assertSame(1, Farm::where('farm_code', 'IDEM-1')->count());
+    }
+
     public function test_mobile_management_requires_permission(): void
     {
         $token = $this->userWithPermissions('record-weight')->createToken('android')->plainTextToken;

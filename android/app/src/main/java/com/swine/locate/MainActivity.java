@@ -31,6 +31,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
@@ -43,6 +44,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -55,6 +57,9 @@ public final class MainActivity extends Activity {
     private final MobileApi api = new MobileApi();
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private final Runnable syncRunnable = () -> syncPending(false);
+    private OfflineStore offlineStore;
+    private volatile boolean syncing;
     private TokenStore tokenStore;
     private String token;
     private JSONArray permissions = new JSONArray();
@@ -66,6 +71,7 @@ public final class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         tokenStore = new TokenStore(this);
+        offlineStore = new OfflineStore(this);
         try {
             token = tokenStore.read();
         } catch (Exception exception) {
@@ -89,7 +95,14 @@ public final class MainActivity extends Activity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        syncPending(false);
+    }
+
+    @Override
     protected void onDestroy() {
+        mainHandler.removeCallbacks(syncRunnable);
         if (publicMap != null) {
             publicMap.destroy();
             publicMap = null;
@@ -199,6 +212,7 @@ public final class MainActivity extends Activity {
             post("/login", body, null, response -> {
                 try {
                     token = response.getString("token");
+                    offlineStore.clear();
                     tokenStore.save(token);
                     JSONObject user = response.getJSONObject("user");
                     permissions = user.optJSONArray("permissions");
@@ -226,6 +240,8 @@ public final class MainActivity extends Activity {
                 return;
             }
             renderDashboard();
+            prefetchOfflineData();
+            syncPending(false);
         }, exception -> showDashboardFailure(exception.getMessage()));
     }
 
@@ -249,6 +265,13 @@ public final class MainActivity extends Activity {
                 String key = keys.next();
                 addText(panel, label(key) + ": " + stats.opt(key), 15, 0xFF283C50, false);
             }
+        }
+        int waiting = offlineStore.pendingCount();
+        if (waiting > 0) {
+            addText(panel, waiting + " change" + (waiting == 1 ? "" : "s") + " waiting to sync", 15, 0xFFB45309, true);
+            Button syncNow = button("Sync now");
+            panel.addView(syncNow, matchWidth());
+            syncNow.setOnClickListener(view -> syncPending(true));
         }
         if (hasPermission("scan-qr")) {
             Button scanner = button("Scan swine QR code");
@@ -809,6 +832,20 @@ public final class MainActivity extends Activity {
     }
 
     private void signOut() {
+        int waiting = offlineStore.pendingCount();
+        if (waiting > 0) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Unsynced changes")
+                    .setMessage(waiting + " offline change(s) have not synced yet and will be lost if you sign out.")
+                    .setNegativeButton("Stay signed in", null)
+                    .setPositiveButton("Sign out anyway", (d, which) -> performSignOut())
+                    .show();
+            return;
+        }
+        performSignOut();
+    }
+
+    private void performSignOut() {
         post("/logout", new JSONObject(), token, response -> signOutLocally(), exception -> {
             signOutLocally();
             showMessage(exception.getMessage());
@@ -817,7 +854,8 @@ public final class MainActivity extends Activity {
 
     private void signOutLocally() {
         tokenStore.clear();
-        token = null;
+        offlineStore.clear();
+        mainHandler.removeCallbacks(syncRunnable);
         permissions = new JSONArray();
         dashboard = null;
         showPublicNearby();
@@ -998,27 +1036,141 @@ public final class MainActivity extends Activity {
         executor.execute(() -> {
             try {
                 JSONObject result = api.get(path, token);
+                offlineStore.cacheResponse(path, result);
                 mainHandler.post(() -> callback.complete(result));
-            } catch (Exception exception) {
+            } catch (ApiException exception) {
                 mainHandler.post(() -> errorCallback.failed(exception));
+            } catch (Exception exception) {
+                JSONObject saved = offlineStore.cachedResponse(path);
+                if (saved == null) {
+                    mainHandler.post(() -> errorCallback.failed(new IOException(
+                            "You are offline and this has not been saved on your phone yet.", exception)));
+                } else {
+                    mainHandler.post(() -> {
+                        showMessage("Offline – showing the last saved data.");
+                        callback.complete(saved);
+                    });
+                }
             }
         });
     }
 
     private void send(String method, String path, JSONObject body, Callback callback, ErrorCallback errorCallback) {
+        String key = UUID.randomUUID().toString();
         executor.execute(() -> {
             try {
-                JSONObject result;
-                if ("PUT".equals(method)) {
-                    result = api.put(path, body, token);
-                } else if ("DELETE".equals(method)) {
-                    result = api.delete(path, token);
-                } else {
-                    result = api.post(path, body, token);
-                }
+                JSONObject result = perform(method, path, body, key);
                 mainHandler.post(() -> callback.complete(result));
-            } catch (Exception exception) {
+            } catch (ApiException exception) {
                 mainHandler.post(() -> errorCallback.failed(exception));
+            } catch (Exception exception) {
+                try {
+                    offlineStore.enqueue(new OfflineStore.PendingChange(key, method, path, body));
+                    mainHandler.post(() -> {
+                        showMessage("No connection. Saved on this phone and will sync automatically.");
+                        scheduleSync();
+                        callback.complete(new JSONObject());
+                    });
+                } catch (IOException storageFailure) {
+                    mainHandler.post(() -> errorCallback.failed(storageFailure));
+                }
+            }
+        });
+    }
+
+    private JSONObject perform(String method, String path, JSONObject body, String key) throws IOException {
+        if ("PUT".equals(method)) {
+            return api.put(path, body, token, key);
+        }
+        if ("DELETE".equals(method)) {
+            return api.delete(path, token, key);
+        }
+        return api.post(path, body, token, key);
+    }
+
+    private void scheduleSync() {
+        mainHandler.removeCallbacks(syncRunnable);
+        if (token != null && offlineStore.pendingCount() > 0) {
+            mainHandler.postDelayed(syncRunnable, 30000);
+        }
+    }
+
+    private void syncPending(boolean manual) {
+        if (token == null || syncing || offlineStore.pendingCount() == 0) {
+            if (manual) {
+                showMessage("Nothing to sync.");
+            }
+            return;
+        }
+        syncing = true;
+        executor.execute(() -> {
+            int synced = 0;
+            List<String> rejected = new ArrayList<>();
+            boolean reachable = true;
+            for (OfflineStore.PendingChange change : offlineStore.pending()) {
+                try {
+                    perform(change.method, change.path, change.body, change.key);
+                    offlineStore.remove(change.key);
+                    synced++;
+                } catch (ApiException exception) {
+                    if (exception.isRetryable()) {
+                        reachable = false;
+                        break;
+                    }
+                    // The server refused it (validation, permission or removed record); retrying cannot help.
+                    offlineStore.remove(change.key);
+                    rejected.add(change.method + " " + change.path + ": " + exception.getMessage());
+                } catch (IOException exception) {
+                    reachable = false;
+                    break;
+                }
+            }
+            int syncedCount = synced;
+            boolean stillReachable = reachable;
+            mainHandler.post(() -> {
+                syncing = false;
+                if (!rejected.isEmpty()) {
+                    new AlertDialog.Builder(this)
+                            .setTitle("Some offline changes were rejected")
+                            .setMessage(android.text.TextUtils.join("\n\n", rejected))
+                            .setPositiveButton("OK", null)
+                            .show();
+                } else if (syncedCount > 0) {
+                    showMessage("Synced " + syncedCount + " offline change" + (syncedCount == 1 ? "" : "s") + ".");
+                } else if (manual && !stillReachable) {
+                    showMessage("Still offline. Changes will sync when the connection returns.");
+                }
+                scheduleSync();
+            });
+        });
+    }
+
+    private void prefetchOfflineData() {
+        JSONArray modules = dashboard == null ? null : dashboard.optJSONArray("modules");
+        executor.execute(() -> {
+            for (int index = 0; modules != null && index < modules.length(); index++) {
+                JSONObject module = modules.optJSONObject(index);
+                String id = module == null ? "" : module.optString("id");
+                if (id.isEmpty() || "register-swine".equals(id)) {
+                    continue;
+                }
+                try {
+                    String path = "/data/" + id + "?page=1";
+                    offlineStore.cacheResponse(path, api.get(path, token));
+                } catch (Exception ignored) {
+                    return;
+                }
+            }
+            for (String resource : new String[] {"swine", "health-records", "weight-records", "movements",
+                    "farmers", "locations", "users", "roles"}) {
+                try {
+                    String path = "/options/" + resource;
+                    offlineStore.cacheResponse(path, api.get(path, token));
+                } catch (ApiException ignored) {
+                    // No permission for this form; skip it.
+                } catch (Exception exception) {
+                    return;
+                }
             }
         });
     }

@@ -13,22 +13,27 @@ import java.nio.charset.StandardCharsets;
 
 final class MobileApi {
     JSONObject get(String path, String token) throws IOException {
-        return request("GET", path, null, token);
+        return request("GET", path, null, token, null);
     }
 
-    JSONObject put(String path, JSONObject body, String token) throws IOException {
-        return request("PUT", path, body, token);
+    JSONObject put(String path, JSONObject body, String token, String idempotencyKey) throws IOException {
+        return request("PUT", path, body, token, idempotencyKey);
     }
 
-    JSONObject delete(String path, String token) throws IOException {
-        return request("DELETE", path, null, token);
+    JSONObject delete(String path, String token, String idempotencyKey) throws IOException {
+        return request("DELETE", path, null, token, idempotencyKey);
     }
 
     JSONObject post(String path, JSONObject body, String token) throws IOException {
-        return request("POST", path, body, token);
+        return request("POST", path, body, token, null);
     }
 
-    private JSONObject request(String method, String path, JSONObject body, String token) throws IOException {
+    JSONObject post(String path, JSONObject body, String token, String idempotencyKey) throws IOException {
+        return request("POST", path, body, token, idempotencyKey);
+    }
+
+    private JSONObject request(String method, String path, JSONObject body, String token, String idempotencyKey)
+            throws IOException {
         HttpURLConnection connection = null;
         try {
             URL url = new URL(BuildConfig.API_BASE_URL + path);
@@ -37,6 +42,9 @@ final class MobileApi {
             connection.setConnectTimeout(15000);
             connection.setReadTimeout(20000);
             connection.setRequestProperty("Accept", "application/json");
+            if (idempotencyKey != null) {
+                connection.setRequestProperty("Idempotency-Key", idempotencyKey);
+            }
             if (token != null && !token.isEmpty()) {
                 connection.setRequestProperty("Authorization", "Bearer " + token);
             }
@@ -54,7 +62,7 @@ final class MobileApi {
                     : connection.getErrorStream();
             String response = readBody(stream);
             if (status < 200 || status >= 300) {
-                throw new IOException(errorMessage(status, response));
+                throw new ApiException(status, errorMessage(status, response));
             }
             return response.isEmpty() ? new JSONObject() : new JSONObject(response);
         } catch (org.json.JSONException exception) {
