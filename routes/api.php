@@ -12,7 +12,9 @@ Route::prefix('mobile')->group(function () {
         Route::get('/me', [MobileAuthController::class, 'me']);
         Route::post('/logout', [MobileAuthController::class, 'logout']);
         Route::get('/dashboard', [MobileDataController::class, 'dashboard']);
+        Route::get('/options/{resource}', [MobileDataController::class, 'options']);
         Route::get('/data/{resource}', [MobileDataController::class, 'index']);
+        Route::post('/data/{resource}', [MobileDataController::class, 'store']);
         Route::get('/data/{resource}/{id}', [MobileDataController::class, 'show']);
         Route::get('/qr/{token}', [MobileDataController::class, 'scan']);
     });

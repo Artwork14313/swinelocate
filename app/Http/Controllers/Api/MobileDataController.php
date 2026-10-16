@@ -15,6 +15,8 @@ use App\Models\WeightRecord;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class MobileDataController extends Controller
@@ -77,6 +79,16 @@ class MobileDataController extends Controller
                     'label' => $this->label($resource),
                 ];
             }
+        }
+
+        if (
+            $user->hasPermission('register-swine')
+            && ! $user->hasPermission('manage-swine')
+        ) {
+            $data['modules'][] = [
+                'id' => 'register-swine',
+                'label' => 'Register Swine',
+            ];
         }
 
         if ($user->hasPermission('view-reports')) {
@@ -148,6 +160,261 @@ class MobileDataController extends Controller
         }
 
         return response()->json(['data' => $record]);
+    }
+
+    public function options(Request $request, string $resource): JsonResponse
+    {
+        $permissions = [
+            'swine' => 'register-swine',
+            'health-records' => 'manage-health',
+            'weight-records' => 'record-weight',
+            'movements' => 'manage-movements',
+        ];
+
+        abort_unless(isset($permissions[$resource]), 404);
+        abort_unless($request->user()->hasPermission($permissions[$resource]), 403);
+
+        return response()->json([
+            'data' => [
+                'swine' => Swine::query()
+                    ->where('status', 'active')
+                    ->orderBy('tag_number')
+                    ->get(['id', 'tag_number', 'name', 'farm_id', 'farmer_id', 'current_location_id']),
+                'farms' => Farm::query()
+                    ->where('status', 'active')
+                    ->orderBy('name')
+                    ->get(['id', 'name', 'farm_code']),
+                'farmers' => Farmer::query()
+                    ->orderBy('name')
+                    ->get(['id', 'name', 'farm_id']),
+                'locations' => FarmLocation::query()
+                    ->where('status', 'active')
+                    ->orderBy('name')
+                    ->get(['id', 'name', 'farm_id', 'location_code']),
+            ],
+        ]);
+    }
+
+    public function store(Request $request, string $resource): JsonResponse
+    {
+        return match ($resource) {
+            'swine' => $this->storeSwine($request),
+            'health-records' => $this->storeHealthRecord($request),
+            'vaccinations' => $this->storeHealthRecord($request, true),
+            'weight-records' => $this->storeWeightRecord($request),
+            'movements' => $this->storeMovement($request),
+            default => abort(404),
+        };
+    }
+
+    private function storeSwine(Request $request): JsonResponse
+    {
+        abort_unless($request->user()->hasPermission('register-swine'), 403);
+
+        $validated = $request->validate([
+            'farm_id' => ['required', 'integer', 'exists:farms,id'],
+            'farmer_id' => ['required', 'integer', 'exists:farmers,id'],
+            'current_location_id' => ['nullable', 'integer', 'exists:farm_locations,id'],
+            'tag_number' => ['required', 'string', 'max:255', 'unique:swine,tag_number'],
+            'name' => ['nullable', 'string', 'max:255'],
+            'sex' => ['required', Rule::in(['male', 'female'])],
+            'breed' => ['nullable', 'string', 'max:255'],
+            'birth_date' => ['nullable', 'date', 'before_or_equal:today'],
+            'acquisition_date' => ['nullable', 'date', 'before_or_equal:today'],
+            'source' => ['nullable', 'string', 'max:255'],
+            'notes' => ['nullable', 'string'],
+            'is_for_sale' => ['sometimes', 'boolean'],
+            'asking_price' => ['nullable', 'numeric', 'min:0.01', 'max:99999999.99'],
+        ]);
+
+        $farm = Farm::query()
+            ->whereKey($validated['farm_id'])
+            ->where('status', 'active')
+            ->first();
+        abort_if(! $farm, 422, 'The selected farm is inactive.');
+
+        $farmerBelongsToFarm = Farmer::query()
+            ->whereKey($validated['farmer_id'])
+            ->where('farm_id', $farm->getKey())
+            ->exists();
+        abort_unless($farmerBelongsToFarm, 422, 'Select a farmer registered to the selected farm.');
+
+        if (! empty($validated['current_location_id'])) {
+            $validLocation = FarmLocation::query()
+                ->whereKey($validated['current_location_id'])
+                ->where('farm_id', $farm->getKey())
+                ->where('status', 'active')
+                ->exists();
+            abort_unless($validLocation, 422, 'Select an active location in the selected farm.');
+        }
+
+        $validated['status'] = 'active';
+        $validated['is_for_sale'] = $request->boolean('is_for_sale');
+        $validated['asking_price'] = $validated['is_for_sale']
+            ? ($validated['asking_price'] ?? null)
+            : null;
+        $swine = Swine::query()->create($validated);
+
+        return response()->json(['data' => $swine->load(['farm', 'farmer', 'currentLocation'])], 201);
+    }
+
+    private function storeHealthRecord(Request $request, bool $vaccinationOnly = false): JsonResponse
+    {
+        abort_unless($request->user()->hasPermission('manage-health'), 403);
+
+        $validated = $request->validate([
+            'swine_id' => [
+                'required',
+                Rule::exists('swine', 'id')->where(fn ($query) => $query->where('status', 'active')),
+            ],
+            'record_date' => ['required', 'date', 'before_or_equal:today'],
+            'record_type' => [
+                'required',
+                Rule::in($vaccinationOnly ? ['Vaccination'] : [
+                    'Routine Examination',
+                    'Vaccination',
+                    'Illness',
+                    'Treatment',
+                    'Injury',
+                    'Follow-up',
+                    'Other',
+                ]),
+            ],
+            'vaccine_name' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::requiredIf(fn () => $request->input('record_type') === 'Vaccination'),
+            ],
+            'dose' => ['nullable', 'string', 'max:255'],
+            'batch_number' => ['nullable', 'string', 'max:255'],
+            'next_due_date' => ['nullable', 'date', 'after_or_equal:record_date'],
+            'symptoms' => ['nullable', 'string'],
+            'diagnosis' => ['nullable', 'string'],
+            'treatment' => ['nullable', 'string'],
+            'observations' => ['nullable', 'string'],
+            'veterinary_assessment' => ['nullable', 'string'],
+            'health_status' => [
+                'required',
+                Rule::in(['healthy', 'under_observation', 'sick', 'recovering']),
+            ],
+            'notes' => ['nullable', 'string'],
+        ]);
+
+        if ($validated['record_type'] !== 'Vaccination') {
+            $validated['vaccine_name'] = null;
+            $validated['dose'] = null;
+            $validated['batch_number'] = null;
+            $validated['next_due_date'] = null;
+        }
+
+        $validated['recorded_by'] = $request->user()->getKey();
+        $record = HealthRecord::query()->create($validated);
+
+        return response()->json(['data' => $record->load(['swine', 'recordedBy'])], 201);
+    }
+
+    private function storeWeightRecord(Request $request): JsonResponse
+    {
+        abort_unless($request->user()->hasPermission('record-weight'), 403);
+
+        $validated = $request->validate([
+            'swine_id' => [
+                'required',
+                Rule::exists('swine', 'id')->where('status', 'active'),
+            ],
+            'record_date' => ['required', 'date', 'before_or_equal:today'],
+            'weight' => ['required', 'numeric', 'min:0.01', 'max:9999.99'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $validated['recorded_by'] = $request->user()->getKey();
+        $record = WeightRecord::query()->create($validated);
+
+        return response()->json(['data' => $record->load(['swine', 'recordedBy'])], 201);
+    }
+
+    private function storeMovement(Request $request): JsonResponse
+    {
+        abort_unless($request->user()->hasPermission('manage-movements'), 403);
+
+        $validated = $request->validate([
+            'swine_id' => ['required', 'integer', 'exists:swine,id'],
+            'to_farm_id' => ['required', 'integer', 'exists:farms,id'],
+            'to_location_id' => ['required', 'integer', 'exists:farm_locations,id'],
+            'to_farmer_id' => ['nullable', 'integer', 'exists:farmers,id'],
+            'movement_date' => ['required', 'date'],
+            'reason' => ['nullable', 'string', 'max:255'],
+            'notes' => ['nullable', 'string'],
+        ]);
+
+        $swine = Swine::query()->with('farm')->findOrFail($validated['swine_id']);
+        abort_unless($swine->status === 'active', 403, 'Only active swine can be moved.');
+        abort_unless($swine->farm?->status === 'active', 403, 'The current farm is inactive.');
+
+        $destinationFarm = Farm::query()
+            ->whereKey($validated['to_farm_id'])
+            ->where('status', 'active')
+            ->first();
+        $destination = FarmLocation::query()
+            ->whereKey($validated['to_location_id'])
+            ->where('farm_id', $validated['to_farm_id'])
+            ->where('status', 'active')
+            ->first();
+        abort_unless($destinationFarm && $destination, 422, 'Select an active location in the destination farm.');
+
+        $isFarmTransfer = (int) $destinationFarm->getKey() !== (int) $swine->farm_id;
+        $destinationFarmerId = $isFarmTransfer
+            ? ($validated['to_farmer_id'] ?? null)
+            : $swine->farmer_id;
+        $farmerBelongsToFarm = $destinationFarmerId !== null
+            && Farmer::query()
+                ->whereKey($destinationFarmerId)
+                ->where('farm_id', $destinationFarm->getKey())
+                ->exists();
+        abort_if(
+            $isFarmTransfer && ! $farmerBelongsToFarm,
+            422,
+            'Select a farmer registered to the destination farm.',
+        );
+        abort_if(
+            ! $isFarmTransfer && $destinationFarmerId !== null && ! $farmerBelongsToFarm,
+            422,
+            'The selected farmer is not registered to the destination farm.',
+        );
+        abort_if(
+            $swine->current_location_id !== null
+            && (int) $swine->current_location_id === (int) $destination->getKey(),
+            422,
+            'The swine is already assigned to this location.',
+        );
+
+        $movement = DB::transaction(function () use ($request, $swine, $destination, $destinationFarm, $destinationFarmerId, $validated) {
+            $movement = SwineMovement::query()->create([
+                'swine_id' => $swine->getKey(),
+                'from_location_id' => $swine->current_location_id,
+                'to_location_id' => $destination->getKey(),
+                'to_farmer_id' => $destinationFarmerId,
+                'movement_date' => $validated['movement_date'],
+                'reason' => $validated['reason'] ?? null,
+                'notes' => $validated['notes'] ?? null,
+                'recorded_by' => $request->user()->getKey(),
+                'status' => 'completed',
+                'conflict_resolution' => null,
+            ]);
+
+            $swine->update([
+                'farm_id' => $destinationFarm->getKey(),
+                'farmer_id' => $destinationFarmerId,
+                'current_location_id' => $destination->getKey(),
+            ]);
+
+            return $movement;
+        });
+
+        return response()->json([
+            'data' => $movement->load(['swine', 'fromLocation', 'toLocation', 'toFarmer', 'recordedBy']),
+        ], 201);
     }
 
     private function reports(Request $request): JsonResponse

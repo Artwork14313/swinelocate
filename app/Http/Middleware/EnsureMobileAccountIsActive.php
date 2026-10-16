@@ -20,6 +20,9 @@ class EnsureMobileAccountIsActive
             ], 403);
         }
 
-        return $next($request);
+        $response = $next($request);
+        $response->headers->set('Cache-Control', 'no-store, private');
+
+        return $response;
     }
 }

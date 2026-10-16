@@ -3,8 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\Farm;
+use App\Models\Farmer;
+use App\Models\FarmLocation;
 use App\Models\Permission;
 use App\Models\Role;
+use App\Models\Swine;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -97,6 +100,118 @@ class MobileApiTest extends TestCase
         $this->assertDatabaseCount('personal_access_tokens', 0);
     }
 
+    public function test_mobile_can_register_swine_and_record_health_and_weight(): void
+    {
+        $user = $this->userWithPermissions(
+            'register-swine',
+            'manage-health',
+            'record-weight',
+        );
+        $farm = Farm::create([
+            'farm_code' => 'MOB-01',
+            'name' => 'Mobile Farm',
+            'status' => 'active',
+        ]);
+        $farmer = $this->createFarmer($farm, 'Mobile Farmer');
+        $token = $user->createToken('android')->plainTextToken;
+
+        $this->withToken($token)
+            ->getJson('/api/mobile/options/swine')
+            ->assertOk()
+            ->assertJsonPath('data.farms.0.id', $farm->getKey())
+            ->assertJsonMissingPath('data.farmers.0.contact_number');
+
+        $swineResponse = $this->withToken($token)
+            ->postJson('/api/mobile/data/swine', [
+                'farm_id' => $farm->getKey(),
+                'farmer_id' => $farmer->getKey(),
+                'tag_number' => 'MOBILE-PIG-01',
+                'sex' => 'female',
+                'breed' => 'Landrace',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.tag_number', 'MOBILE-PIG-01');
+
+        $swineId = $swineResponse->json('data.id');
+
+        $this->withToken($token)
+            ->postJson('/api/mobile/data/health-records', [
+                'swine_id' => $swineId,
+                'record_date' => today()->toDateString(),
+                'record_type' => 'Vaccination',
+                'vaccine_name' => 'Test vaccine',
+                'health_status' => 'healthy',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.vaccine_name', 'Test vaccine');
+
+        $this->withToken($token)
+            ->postJson('/api/mobile/data/weight-records', [
+                'swine_id' => $swineId,
+                'record_date' => today()->toDateString(),
+                'weight' => 45.5,
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.weight', '45.50');
+    }
+
+    public function test_mobile_movement_updates_current_farm_and_location(): void
+    {
+        $user = $this->userWithPermissions('manage-movements');
+        $origin = Farm::create([
+            'farm_code' => 'MOB-ORIGIN',
+            'name' => 'Origin Farm',
+            'status' => 'active',
+        ]);
+        $destination = Farm::create([
+            'farm_code' => 'MOB-DEST',
+            'name' => 'Destination Farm',
+            'status' => 'active',
+        ]);
+        $originFarmer = $this->createFarmer($origin, 'Origin Farmer');
+        $destinationFarmer = $this->createFarmer($destination, 'Destination Farmer');
+        $originLocation = FarmLocation::create([
+            'farm_id' => $origin->getKey(),
+            'location_code' => 'ORIGIN-01',
+            'name' => 'Origin Pen',
+            'status' => 'active',
+        ]);
+        $destinationLocation = FarmLocation::create([
+            'farm_id' => $destination->getKey(),
+            'location_code' => 'DEST-01',
+            'name' => 'Destination Pen',
+            'status' => 'active',
+        ]);
+        $swine = Swine::create([
+            'farm_id' => $origin->getKey(),
+            'farmer_id' => $originFarmer->getKey(),
+            'current_location_id' => $originLocation->getKey(),
+            'tag_number' => 'MOBILE-MOVE-01',
+            'sex' => 'male',
+            'status' => 'active',
+        ]);
+        $token = $user->createToken('android')->plainTextToken;
+
+        $this->withToken($token)
+            ->postJson('/api/mobile/data/movements', [
+                'swine_id' => $swine->getKey(),
+                'to_farm_id' => $destination->getKey(),
+                'to_location_id' => $destinationLocation->getKey(),
+                'to_farmer_id' => $destinationFarmer->getKey(),
+                'movement_date' => now()->toDateTimeString(),
+                'reason' => 'Transfer',
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.to_location_id', $destinationLocation->getKey());
+
+        $this->assertDatabaseHas('swine', [
+            'id' => $swine->getKey(),
+            'farm_id' => $destination->getKey(),
+            'farmer_id' => $destinationFarmer->getKey(),
+            'current_location_id' => $destinationLocation->getKey(),
+        ]);
+    }
+
     private function userWithPermissions(string ...$slugs): User
     {
         $role = Role::create([
@@ -112,5 +227,15 @@ class MobileApiTest extends TestCase
         $role->permissions()->attach($permissions->pluck('id')->all());
 
         return User::factory()->create(['role_id' => $role->getKey()]);
+    }
+
+    private function createFarmer(Farm $farm, string $name): Farmer
+    {
+        return Farmer::create([
+            'farm_id' => $farm->getKey(),
+            'name' => $name,
+            'contact_number' => '09170000000',
+            'address' => 'Farm address',
+        ]);
     }
 }

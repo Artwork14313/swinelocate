@@ -76,10 +76,6 @@ final class MobileApi {
     private String errorMessage(int status, String body) {
         try {
             JSONObject json = new JSONObject(body);
-            String message = json.optString("message");
-            if (!message.isEmpty()) {
-                return message;
-            }
             JSONObject errors = json.optJSONObject("errors");
             if (errors != null) {
                 java.util.Iterator<String> keys = errors.keys();
@@ -89,6 +85,10 @@ final class MobileApi {
                         return messages.optString(0);
                     }
                 }
+            }
+            String message = json.optString("message");
+            if (!message.isEmpty()) {
+                return message;
             }
         } catch (org.json.JSONException ignored) {
             // A status-based message is more useful than exposing an unparseable server response.

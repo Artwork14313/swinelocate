@@ -180,9 +180,11 @@ The native Android client is in `android/` and uses the package ID
 `com.swine.locate`. It has its own Android interface, QR scanner, and secure
 token-based connection to the Laravel API; it does not display the website in a
 browser or WebView. The current client supports sign-in, permission-filtered
-record browsing/search, dashboard summaries, and swine QR lookup. Data entry,
-editing, and offline synchronization are not yet implemented in the native
-client; the website remains available for those workflows.
+record browsing/search, dashboard summaries, swine QR lookup, and online
+creation of swine, health/vaccination, weight, and movement records. Editing
+existing records, farm/user/role administration, and offline recording/sync are
+not yet implemented in the native client; the website remains available for
+those workflows.
 
 The API uses Laravel Sanctum bearer tokens. Run `php artisan migrate --force`
 when deploying the new API so the personal access token table is created.

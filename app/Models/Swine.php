@@ -3,12 +3,19 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
+/**
+ * @property int $farm_id
+ * @property int|null $farmer_id
+ * @property int|null $current_location_id
+ * @property string $status
+ * @property string $qr_token
+ */
 class Swine extends Model
 {
     use SoftDeletes;
@@ -85,7 +92,7 @@ class Swine extends Model
     {
         static::creating(function (Swine $swine) {
             if (empty($swine->qr_token)) {
-                $swine->qr_token = 'SWL-' . strtoupper(
+                $swine->qr_token = 'SWL-'.strtoupper(
                     Str::random(12)
                 );
             }

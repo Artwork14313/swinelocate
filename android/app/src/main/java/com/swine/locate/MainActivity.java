@@ -14,7 +14,9 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.ArrayAdapter;
 import android.widget.ScrollView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -28,7 +30,14 @@ import org.json.JSONObject;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -181,7 +190,13 @@ public final class MainActivity extends Activity {
                 String resource = module.optString("id");
                 Button open = button(module.optString("label", label(resource)) + "  ›");
                 panel.addView(open, matchWidth());
-                open.setOnClickListener(view -> showResource(resource, 1, ""));
+                open.setOnClickListener(view -> {
+                    if ("register-swine".equals(resource)) {
+                        createResource("swine");
+                    } else {
+                        showResource(resource, 1, "");
+                    }
+                });
             }
         }
         Button signOut = button("Sign out");
@@ -204,6 +219,11 @@ public final class MainActivity extends Activity {
         panel.addView(filter, matchWidth());
         Button searchButton = button("Search");
         panel.addView(searchButton, matchWidth());
+        if (canCreate(resource)) {
+            Button addButton = button("Add " + label(resource));
+            panel.addView(addButton, matchWidth());
+            addButton.setOnClickListener(view -> createResource(resource));
+        }
         TextView results = addText(panel, "Loading records…", 14, 0xFF526577, false);
         addPanel(page, panel);
         setContentView(page);
@@ -268,6 +288,221 @@ public final class MainActivity extends Activity {
                 .setMessage(pretty(record))
                 .setPositiveButton("Close", null)
                 .show());
+    }
+
+    private boolean canCreate(String resource) {
+        if ("swine".equals(resource)) {
+            return hasPermission("register-swine");
+        }
+        if ("health-records".equals(resource) || "vaccinations".equals(resource)) {
+            return hasPermission("manage-health");
+        }
+        if ("weight-records".equals(resource)) {
+            return hasPermission("record-weight");
+        }
+        return "movements".equals(resource) && hasPermission("manage-movements");
+    }
+
+    private void createResource(String resource) {
+        if (!canCreate(resource)) {
+            showMessage("Your account does not have permission to add this record.");
+            return;
+        }
+        showLoading("Loading form choices…");
+        get("/options/" + resource, response -> {
+            JSONObject options = response.optJSONObject("data");
+            if (options == null) {
+                showMessage("The server returned incomplete form choices.");
+                return;
+            }
+            showCreateForm(resource, options);
+        }, exception -> showMessage(exception.getMessage()));
+    }
+
+    private void showCreateForm(String resource, JSONObject options) {
+        ScrollView page = page();
+        LinearLayout panel = card();
+        panel.setPadding(dp(20), dp(20), dp(20), dp(20));
+        Button back = button("‹  Back to " + label(resource));
+        panel.addView(back, matchWidth());
+        back.setOnClickListener(view -> showResource(resource, 1, ""));
+        addText(panel, "Add " + label(resource), 24, DARK, true);
+
+        List<FormField> fields = formFields(resource);
+        Map<String, EditText> textInputs = new HashMap<>();
+        Map<String, Spinner> selectors = new HashMap<>();
+
+        for (FormField definition : fields) {
+            addText(panel, label(definition.key) + (definition.required ? " *" : ""), 14, DARK, true);
+            if (definition.optionsKey != null || definition.choices != null) {
+                Spinner spinner = new Spinner(this);
+                List<String> values = new ArrayList<>();
+                List<String> labels = new ArrayList<>();
+                values.add("");
+                labels.add(definition.required ? "Choose " + label(definition.key) : "Not selected");
+
+                if (definition.choices != null) {
+                    for (String choice : definition.choices) {
+                        values.add(choice);
+                        labels.add(label(choice));
+                    }
+                } else {
+                    JSONArray records = options.optJSONArray(definition.optionsKey);
+                    if (records != null) {
+                        for (int index = 0; index < records.length(); index++) {
+                            JSONObject record = records.optJSONObject(index);
+                            if (record != null) {
+                                values.add(record.optString("id"));
+                                labels.add(optionLabel(definition.optionsKey, record));
+                            }
+                        }
+                    }
+                }
+
+                ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                        this,
+                        android.R.layout.simple_spinner_item,
+                        labels);
+                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                spinner.setAdapter(adapter);
+                panel.addView(spinner, matchWidth());
+                selectors.put(definition.key, spinner);
+                definition.values = values;
+            } else {
+                int inputType = definition.multiline
+                        ? InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE
+                        : InputType.TYPE_CLASS_TEXT;
+                if (definition.numeric) {
+                    inputType = InputType.TYPE_CLASS_NUMBER
+                            | InputType.TYPE_NUMBER_FLAG_DECIMAL
+                            | InputType.TYPE_NUMBER_FLAG_SIGNED;
+                } else if (definition.date) {
+                    inputType = InputType.TYPE_CLASS_DATETIME | InputType.TYPE_DATETIME_VARIATION_DATE;
+                }
+                EditText input = field(definition.hint, inputType);
+                if (definition.multiline) {
+                    input.setSingleLine(false);
+                    input.setMinLines(2);
+                }
+                if (definition.date) {
+                    input.setText(today());
+                }
+                panel.addView(input, matchWidth());
+                textInputs.put(definition.key, input);
+            }
+        }
+
+        Button save = button("Save");
+        panel.addView(save, matchWidth());
+        addPanel(page, panel);
+        setContentView(page);
+
+        save.setOnClickListener(view -> {
+            JSONObject body = new JSONObject();
+            try {
+                for (FormField definition : fields) {
+                    String value;
+                    if (selectors.containsKey(definition.key)) {
+                        Spinner spinner = selectors.get(definition.key);
+                        value = definition.values.get(spinner.getSelectedItemPosition());
+                    } else {
+                        value = textInputs.get(definition.key).getText().toString().trim();
+                    }
+                    if (definition.required && value.isEmpty()) {
+                        showMessage("Please enter or select " + label(definition.key) + ".");
+                        return;
+                    }
+                    if (!value.isEmpty()) {
+                        body.put(definition.key, value);
+                    }
+                }
+            } catch (JSONException exception) {
+                showMessage("Unable to prepare the record.");
+                return;
+            }
+
+            save.setEnabled(false);
+            save.setText("Saving…");
+            post("/data/" + resource, body, token, response -> {
+                showMessage(label(resource) + " saved.");
+                showResource(resource, 1, "");
+            }, exception -> {
+                save.setEnabled(true);
+                save.setText("Save");
+                showMessage(exception.getMessage());
+            });
+        });
+    }
+
+    private List<FormField> formFields(String resource) {
+        List<FormField> fields = new ArrayList<>();
+        if ("swine".equals(resource)) {
+            fields.add(FormField.options("farm_id", "farms", true));
+            fields.add(FormField.options("farmer_id", "farmers", true));
+            fields.add(FormField.options("current_location_id", "locations", false));
+            fields.add(FormField.text("tag_number", true));
+            fields.add(FormField.text("name", false));
+            fields.add(FormField.choices("sex", true, "male", "female"));
+            fields.add(FormField.text("breed", false));
+            fields.add(FormField.date("birth_date", false));
+            fields.add(FormField.date("acquisition_date", false));
+            fields.add(FormField.text("source", false));
+            fields.add(FormField.multiline("notes", false));
+        } else if ("health-records".equals(resource) || "vaccinations".equals(resource)) {
+            fields.add(FormField.options("swine_id", "swine", true));
+            fields.add(FormField.date("record_date", true));
+            fields.add("vaccinations".equals(resource)
+                    ? FormField.choices("record_type", true, "Vaccination")
+                    : FormField.choices("record_type", true,
+                            "Routine Examination", "Vaccination", "Illness", "Treatment",
+                            "Injury", "Follow-up", "Other"));
+            fields.add(FormField.text("vaccine_name", false));
+            fields.add(FormField.text("dose", false));
+            fields.add(FormField.text("batch_number", false));
+            fields.add(FormField.date("next_due_date", false));
+            fields.add(FormField.choices("health_status", true,
+                    "healthy", "under_observation", "sick", "recovering"));
+            fields.add(FormField.multiline("symptoms", false));
+            fields.add(FormField.multiline("diagnosis", false));
+            fields.add(FormField.multiline("treatment", false));
+            fields.add(FormField.multiline("observations", false));
+            fields.add(FormField.multiline("veterinary_assessment", false));
+            fields.add(FormField.multiline("notes", false));
+        } else if ("weight-records".equals(resource)) {
+            fields.add(FormField.options("swine_id", "swine", true));
+            fields.add(FormField.date("record_date", true));
+            fields.add(FormField.number("weight", true));
+            fields.add(FormField.multiline("notes", false));
+        } else if ("movements".equals(resource)) {
+            fields.add(FormField.options("swine_id", "swine", true));
+            fields.add(FormField.options("to_farm_id", "farms", true));
+            fields.add(FormField.options("to_location_id", "locations", true));
+            fields.add(FormField.options("to_farmer_id", "farmers", false));
+            fields.add(FormField.date("movement_date", true));
+            fields.add(FormField.text("reason", false));
+            fields.add(FormField.multiline("notes", false));
+        }
+        return fields;
+    }
+
+    private String optionLabel(String optionsKey, JSONObject option) {
+        String name = firstValue(option, "name", "tag_number");
+        if (name.isEmpty()) {
+            name = "Record #" + option.optString("id");
+        }
+        if ("farms".equals(optionsKey)) {
+            String code = option.optString("farm_code", "");
+            return code.isEmpty() ? name : name + " (" + code + ")";
+        }
+        if ("locations".equals(optionsKey)) {
+            String code = option.optString("location_code", "");
+            return code.isEmpty() ? name : name + " (" + code + ")";
+        }
+        return name;
+    }
+
+    private String today() {
+        return new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
     }
 
     private void scanQr() {
@@ -510,5 +745,64 @@ public final class MainActivity extends Activity {
 
     private interface ErrorCallback {
         void failed(Exception exception);
+    }
+
+    private static final class FormField {
+        final String key;
+        final String optionsKey;
+        final boolean required;
+        final boolean multiline;
+        final boolean numeric;
+        final boolean date;
+        final String hint;
+        final String[] choices;
+        List<String> values = new ArrayList<>();
+
+        private FormField(
+                String key,
+                String optionsKey,
+                boolean required,
+                boolean multiline,
+                boolean numeric,
+                boolean date,
+                String hint,
+                String[] choices) {
+            this.key = key;
+            this.optionsKey = optionsKey;
+            this.required = required;
+            this.multiline = multiline;
+            this.numeric = numeric;
+            this.date = date;
+            this.hint = hint;
+            this.choices = choices;
+        }
+
+        static FormField options(String key, String optionsKey, boolean required) {
+            return new FormField(key, optionsKey, required, false, false, false, "", null);
+        }
+
+        static FormField choices(String key, boolean required, String... choices) {
+            return new FormField(key, null, required, false, false, false, "", choices);
+        }
+
+        static FormField text(String key, boolean required) {
+            return new FormField(key, null, required, false, false, false, labelHint(key), null);
+        }
+
+        static FormField multiline(String key, boolean required) {
+            return new FormField(key, null, required, true, false, false, labelHint(key), null);
+        }
+
+        static FormField number(String key, boolean required) {
+            return new FormField(key, null, required, false, true, false, labelHint(key), null);
+        }
+
+        static FormField date(String key, boolean required) {
+            return new FormField(key, null, required, false, false, true, "YYYY-MM-DD", null);
+        }
+
+        private static String labelHint(String key) {
+            return key.replace('_', ' ');
+        }
     }
 }
