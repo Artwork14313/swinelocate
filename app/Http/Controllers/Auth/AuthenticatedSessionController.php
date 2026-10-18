@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class AuthenticatedSessionController extends Controller
 {
@@ -16,7 +17,14 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(): View
     {
-        return view('auth.login');
+        $downloadAvailable = is_file(public_path('downloads/swinelocate.apk'));
+        $qrTarget = $downloadAvailable
+            ? route('android-app.download')
+            : route('android-app');
+
+        return view('auth.login', [
+            'androidAppQrCode' => QrCode::size(144)->generate($qrTarget),
+        ]);
     }
 
     /**

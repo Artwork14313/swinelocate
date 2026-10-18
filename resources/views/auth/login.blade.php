@@ -168,6 +168,22 @@
 
                 </form>
 
+                <div class="mt-8 flex items-center justify-center gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                    <div class="shrink-0 rounded-lg bg-white p-2">
+                        {!! $androidAppQrCode !!}
+                    </div>
+                    <div>
+                        <p class="font-semibold text-gray-900">
+                            Get SwineLocate for Android
+                        </p>
+                        <p class="mt-1 text-sm text-gray-600">
+                            Scan to open the app download page.
+                        </p>
+                        <a href="{{ route('android-app') }}" class="mt-2 inline-flex text-sm font-semibold text-emerald-700 hover:text-emerald-800">
+                            Android app details
+                        </a>
+                    </div>
+                </div>
 
                 <!-- Footer -->
                 <div class="mt-10 text-center">
