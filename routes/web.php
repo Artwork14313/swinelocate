@@ -20,7 +20,7 @@ use App\Http\Controllers\WeightRecordController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return redirect()->route('login');
+    return redirect()->route('farmers.nearby');
 });
 
 Route::get('/public/farmers/{qr_token}', [FarmerController::class, 'publicProfile'])

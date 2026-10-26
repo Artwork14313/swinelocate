@@ -16,6 +16,12 @@ class FarmerPublicProfileTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_landing_page_redirects_to_nearby_farmers(): void
+    {
+        $this->get('/')
+            ->assertRedirect(route('farmers.nearby'));
+    }
+
     public function test_buyer_only_sees_active_swine_listed_for_sale_without_private_identifiers(): void
     {
         $farm = $this->createFarm('F-PUBLIC-1');
