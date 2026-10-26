@@ -190,7 +190,8 @@
             .bindPopup(
                 `<strong>${escapeHtml(farmer.name)}</strong><br>${escapeHtml(farmer.farm)}<br>` +
                 `${farmer.listing_count} active listing${farmer.listing_count === 1 ? '' : 's'}<br>` +
-                `<a href="${escapeHtml(farmer.profile_url)}">View SwineLocate Farmer Profile</a>`
+                `<a href="${escapeHtml(farmer.profile_url)}">View SwineLocate Farmer Profile</a><br>` +
+                `<a href="https://www.google.com/maps/dir/?api=1&destination=${farmer.latitude},${farmer.longitude}&travelmode=driving" target="_blank" rel="noopener">Get directions from my location</a>`
             ));
 
     </script>

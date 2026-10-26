@@ -740,7 +740,18 @@ public final class MainActivity extends Activity {
         return new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, android.webkit.WebResourceRequest request) {
-                String farmerToken = farmerTokenFromUrl(request.getUrl());
+                Uri url = request.getUrl();
+                String host = url.getHost();
+                String path = url.getPath();
+                if (host != null && host.endsWith("google.com") && path != null && path.startsWith("/maps")) {
+                    try {
+                        startActivity(new Intent(Intent.ACTION_VIEW, url));
+                    } catch (RuntimeException exception) {
+                        showMessage("No maps app available for directions.");
+                    }
+                    return true;
+                }
+                String farmerToken = farmerTokenFromUrl(url);
                 if (farmerToken != null) {
                     showFarmerProfile(farmerToken);
                     return true;
@@ -1955,6 +1966,11 @@ public final class MainActivity extends Activity {
                             .append(escapeHtml(profileUrl))
                             .append("'>View SwineLocate Farmer Profile</a></p>");
                 }
+                popupHtml.append("<p><a href='https://www.google.com/maps/dir/?api=1&amp;destination=")
+                        .append(Double.toString(latitude))
+                        .append(",")
+                        .append(Double.toString(longitude))
+                        .append("&amp;travelmode=driving'>Get directions from my location</a></p>");
                 popupHtml.append("</div>");
 
                 markersJs.append("L.marker([")
