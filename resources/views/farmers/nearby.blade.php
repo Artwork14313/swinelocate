@@ -191,8 +191,58 @@
                 `<strong>${escapeHtml(farmer.name)}</strong><br>${escapeHtml(farmer.farm)}<br>` +
                 `${farmer.listing_count} active listing${farmer.listing_count === 1 ? '' : 's'}<br>` +
                 `<a href="${escapeHtml(farmer.profile_url)}">View SwineLocate Farmer Profile</a><br>` +
-                `<a href="https://www.google.com/maps/dir/?api=1&destination=${farmer.latitude},${farmer.longitude}&travelmode=driving" target="_blank" rel="noopener">Get directions from my location</a>`
+                `<button type="button" class="js-directions" data-lat="${farmer.latitude}" data-lng="${farmer.longitude}" style="margin-top:6px;padding:4px 10px;border-radius:6px;background:#047857;color:#fff;border:0;font-weight:700;cursor:pointer">Show route from my location</button>` +
+                `<div class="js-route-status" style="margin-top:4px;font-size:12px;color:#475569"></div>`
             ));
+
+        let routeLayer = null;
+        let userMarker = null;
+
+        function clearRoute() {
+            if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
+            if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
+        }
+
+        function showRoute(dest, statusEl) {
+            if (!navigator.geolocation) {
+                statusEl.textContent = 'Location is not supported on this device.';
+                return;
+            }
+            statusEl.textContent = 'Finding your location…';
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                const from = [pos.coords.latitude, pos.coords.longitude];
+                clearRoute();
+                userMarker = L.circleMarker(from, { radius: 8, color: '#fff', weight: 3, fillColor: '#2563eb', fillOpacity: 1 })
+                    .addTo(map).bindTooltip('You are here');
+                try {
+                    const response = await fetch('https://router.project-osrm.org/route/v1/driving/' +
+                        from[1] + ',' + from[0] + ';' + dest[1] + ',' + dest[0] +
+                        '?overview=full&geometries=geojson');
+                    const data = await response.json();
+                    if (data.code !== 'Ok' || !data.routes.length) { throw new Error('no route'); }
+                    const route = data.routes[0];
+                    routeLayer = L.geoJSON(route.geometry, { style: { color: '#047857', weight: 5, opacity: 0.85 } }).addTo(map);
+                    map.fitBounds(routeLayer.getBounds(), { padding: [40, 40] });
+                    statusEl.textContent = (route.distance / 1000).toFixed(1) + ' km · about ' + Math.max(1, Math.round(route.duration / 60)) + ' min drive';
+                } catch (error) {
+                    routeLayer = L.polyline([from, dest], { color: '#047857', weight: 4, dashArray: '8 8' }).addTo(map);
+                    map.fitBounds(routeLayer.getBounds(), { padding: [40, 40] });
+                    statusEl.textContent = 'Road route unavailable; showing straight line.';
+                }
+            }, () => {
+                statusEl.textContent = 'Could not get your location. Please allow location access.';
+            }, { enableHighAccuracy: true, timeout: 15000 });
+        }
+
+        map.on('popupopen', (event) => {
+            const root = event.popup.getElement();
+            const button = root && root.querySelector('.js-directions');
+            if (!button) { return; }
+            button.addEventListener('click', () => showRoute(
+                [parseFloat(button.dataset.lat), parseFloat(button.dataset.lng)],
+                root.querySelector('.js-route-status')
+            ));
+        });
 
     </script>
 </x-guest-layout>

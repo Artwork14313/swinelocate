@@ -419,6 +419,7 @@ public final class MainActivity extends Activity {
                 "SwineLocateAndroid/" + BuildConfig.VERSION_NAME + " (+" + applicationBaseUrl() + ")");
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         publicMap.setWebViewClient(farmerLinkClient());
+        publicMap.setWebChromeClient(locationChromeClient());
         screen.addView(publicMap, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 0,
@@ -734,6 +735,45 @@ public final class MainActivity extends Activity {
         }
         setContentView(page);
         profileBack = back;
+    }
+
+    private android.webkit.GeolocationPermissions.Callback pendingGeoCallback;
+    private String pendingGeoOrigin;
+
+    private android.webkit.WebChromeClient locationChromeClient() {
+        return new android.webkit.WebChromeClient() {
+            @Override
+            public void onGeolocationPermissionsShowPrompt(String origin,
+                    android.webkit.GeolocationPermissions.Callback callback) {
+                if (checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION)
+                        == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                    callback.invoke(origin, true, false);
+                    return;
+                }
+                pendingGeoCallback = callback;
+                pendingGeoOrigin = origin;
+                requestPermissions(new String[] {
+                        android.Manifest.permission.ACCESS_FINE_LOCATION,
+                        android.Manifest.permission.ACCESS_COARSE_LOCATION
+                }, 7301);
+            }
+        };
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 7301 && pendingGeoCallback != null) {
+            boolean granted = false;
+            for (int result : grantResults) {
+                if (result == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                    granted = true;
+                }
+            }
+            pendingGeoCallback.invoke(pendingGeoOrigin, granted, false);
+            pendingGeoCallback = null;
+            pendingGeoOrigin = null;
+        }
     }
 
     private WebViewClient farmerLinkClient() {
@@ -1966,11 +2006,11 @@ public final class MainActivity extends Activity {
                             .append(escapeHtml(profileUrl))
                             .append("'>View SwineLocate Farmer Profile</a></p>");
                 }
-                popupHtml.append("<p><a href='https://www.google.com/maps/dir/?api=1&amp;destination=")
+                popupHtml.append("<p><button type='button' class='js-directions' data-lat='")
                         .append(Double.toString(latitude))
-                        .append(",")
+                        .append("' data-lng='")
                         .append(Double.toString(longitude))
-                        .append("&amp;travelmode=driving'>Get directions from my location</a></p>");
+                        .append("'>Show route from my location</button></p><div class='js-route-status'></div>");
                 popupHtml.append("</div>");
 
                 markersJs.append("L.marker([")
@@ -2012,6 +2052,8 @@ public final class MainActivity extends Activity {
                 "    .farmer-card h3 { margin: 0 0 6px 0; color: #3368A0; font-size: 16px; font-weight: bold; }\n" +
                 "    .farmer-card p { margin: 3px 0; }\n" +
                 "    .badge { display: inline-block; background-color: #3368A0; color: white; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-top: 4px; }\n" +
+                "    .js-directions { padding: 5px 10px; border: 0; border-radius: 6px; background: #047857; color: #fff; font-weight: bold; }\n" +
+                "    .js-route-status { font-size: 12px; color: #475569; }\n" +
                 "  </style>\n" +
                 "</head>\n" +
                 "<body>\n" +
@@ -2024,6 +2066,44 @@ public final class MainActivity extends Activity {
                 "    }).addTo(map);\n" +
                 markersJs.toString() +
                 fitMarkersJs +
+                "    var routeLayer = null, userMarker = null;\n" +
+                "    function clearRoute() {\n" +
+                "      if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }\n" +
+                "      if (userMarker) { map.removeLayer(userMarker); userMarker = null; }\n" +
+                "    }\n" +
+                "    function showRoute(dest, statusEl) {\n" +
+                "      if (!navigator.geolocation) { statusEl.textContent = 'Location is not supported.'; return; }\n" +
+                "      statusEl.textContent = 'Finding your location...';\n" +
+                "      navigator.geolocation.getCurrentPosition(function (pos) {\n" +
+                "        var from = [pos.coords.latitude, pos.coords.longitude];\n" +
+                "        clearRoute();\n" +
+                "        userMarker = L.circleMarker(from, { radius: 8, color: '#fff', weight: 3, fillColor: '#2563eb', fillOpacity: 1 }).addTo(map);\n" +
+                "        fetch('https://router.project-osrm.org/route/v1/driving/' + from[1] + ',' + from[0] + ';' + dest[1] + ',' + dest[0] + '?overview=full&geometries=geojson')\n" +
+                "          .then(function (r) { return r.json(); })\n" +
+                "          .then(function (data) {\n" +
+                "            if (data.code !== 'Ok' || !data.routes.length) { throw new Error('no route'); }\n" +
+                "            var route = data.routes[0];\n" +
+                "            routeLayer = L.geoJSON(route.geometry, { style: { color: '#047857', weight: 5, opacity: 0.85 } }).addTo(map);\n" +
+                "            map.fitBounds(routeLayer.getBounds(), { padding: [30, 30] });\n" +
+                "            statusEl.textContent = (route.distance / 1000).toFixed(1) + ' km, about ' + Math.max(1, Math.round(route.duration / 60)) + ' min drive';\n" +
+                "          })\n" +
+                "          .catch(function () {\n" +
+                "            routeLayer = L.polyline([from, dest], { color: '#047857', weight: 4, dashArray: '8 8' }).addTo(map);\n" +
+                "            map.fitBounds(routeLayer.getBounds(), { padding: [30, 30] });\n" +
+                "            statusEl.textContent = 'Road route unavailable; showing straight line.';\n" +
+                "          });\n" +
+                "      }, function () {\n" +
+                "        statusEl.textContent = 'Could not get your location. Please allow location access.';\n" +
+                "      }, { enableHighAccuracy: true, timeout: 15000 });\n" +
+                "    }\n" +
+                "    map.on('popupopen', function (event) {\n" +
+                "      var root = event.popup.getElement();\n" +
+                "      var button = root && root.querySelector('.js-directions');\n" +
+                "      if (!button) { return; }\n" +
+                "      button.addEventListener('click', function () {\n" +
+                "        showRoute([parseFloat(button.getAttribute('data-lat')), parseFloat(button.getAttribute('data-lng'))], root.querySelector('.js-route-status'));\n" +
+                "      });\n" +
+                "    });\n" +
                 "  </script>\n" +
                 "</body>\n" +
                 "</html>";
@@ -2066,6 +2146,7 @@ public final class MainActivity extends Activity {
                 "SwineLocateAndroid/" + BuildConfig.VERSION_NAME + " (https://swinelocate.com; support@swinelocate.com)");
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         publicMap.setWebViewClient(farmerLinkClient());
+                        publicMap.setWebChromeClient(locationChromeClient());
         screen.addView(publicMap, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 0,
