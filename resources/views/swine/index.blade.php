@@ -14,18 +14,24 @@
                 </p>
             </div>
 
-            {{-- Register Swine --}}
-            @if (auth()->user()->hasPermission('register-swine'))
+            <div class="flex flex-wrap gap-3">
+                <a href="{{ route('sale-history.index') }}" class="inline-flex items-center justify-center rounded-lg
+                               border border-gray-300 bg-white px-4 py-2.5 text-sm font-semibold
+                               text-gray-700 shadow-sm hover:bg-gray-50">
+                    Sale History
+                </a>
 
-                <a href="{{ route('swine.create') }}" class="inline-flex items-center justify-center rounded-lg
+                {{-- Register Swine --}}
+                @if (auth()->user()->hasPermission('register-swine'))
+                    <a href="{{ route('swine.create') }}" class="inline-flex items-center justify-center rounded-lg
                                bg-indigo-600 px-4 py-2.5 text-sm font-semibold
                                text-white shadow-sm hover:bg-indigo-700
                                focus:outline-none focus:ring-2
                                focus:ring-indigo-500 focus:ring-offset-2">
-                    + Register Swine
-                </a>
-
-            @endif
+                        + Register Swine
+                    </a>
+                @endif
+            </div>
 
         </div>
 
@@ -528,13 +534,12 @@
 
 
                                                                         {{-- Mark as Sold --}}
-                                                                        <form action="{{ route('swine.sold', $pig) }}" method="POST" class="inline"
-                                                                            onsubmit="return confirm('Are you sure you want to mark this swine as sold?')">
-
-                                                                            @csrf
-                                                                            @method('PATCH')
-
-                                                                            <button type="submit" title="Mark as Sold" aria-label="Mark as Sold" class="group relative inline-flex h-9 w-9 items-center justify-center
+                                                                        <button type="button" title="Mark as Sold" aria-label="Mark as Sold"
+                                                                            data-open-sale-modal
+                                                                            data-swine-id="{{ $pig->id }}"
+                                                                            data-tag-number="{{ $pig->tag_number }}"
+                                                                            data-asking-price="{{ $pig->asking_price }}"
+                                                                            class="group relative inline-flex h-9 w-9 items-center justify-center
                                                        rounded-lg text-blue-600
                                                        transition hover:bg-blue-50
                                                        hover:text-blue-800">
@@ -561,8 +566,6 @@
                                                                                 </span>
 
                                                                             </button>
-
-                                                                        </form>
 
 
                                                                         {{-- Mark as Deceased --}}
@@ -686,5 +689,125 @@
         </div>
 
     </div>
+
+    <dialog id="sale-modal" class="w-[calc(100%-2rem)] max-w-xl rounded-2xl p-0 shadow-2xl backdrop:bg-slate-900/60">
+        <form id="sale-form" method="POST"
+            action="{{ route('swine.sold', ['swine' => '__SWINE_ID__']) }}"
+            data-action-template="{{ route('swine.sold', ['swine' => '__SWINE_ID__']) }}"
+            class="space-y-5 p-6 sm:p-8">
+            @csrf
+            @method('PATCH')
+            <input id="sale-swine-id" type="hidden" name="swine_id" value="{{ old('swine_id') }}">
+
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <p class="text-sm font-semibold uppercase tracking-wide text-indigo-600">Complete sale</p>
+                    <h2 class="mt-1 text-2xl font-bold text-gray-900">Record swine sale</h2>
+                    <p class="mt-1 text-sm text-gray-500">Enter the buyer and sale details to save this swine to sale history.</p>
+                    <p id="sale-swine-tag" class="mt-2 text-sm font-semibold text-gray-700"></p>
+                </div>
+                <button type="button" data-close-sale-modal class="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-700" aria-label="Close sale form">✕</button>
+            </div>
+
+            <div class="grid gap-4 sm:grid-cols-2">
+                <div class="sm:col-span-2">
+                    <label for="buyer_name" class="mb-1 block text-sm font-medium text-gray-700">Buyer name <span class="text-red-600">*</span></label>
+                    <input id="buyer_name" name="buyer_name" type="text" required maxlength="255" value="{{ old('buyer_name') }}"
+                        class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    @error('buyer_name') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                </div>
+
+                <div class="sm:col-span-2">
+                    <label for="buyer_contact" class="mb-1 block text-sm font-medium text-gray-700">Buyer contact number <span class="text-red-600">*</span></label>
+                    <input id="buyer_contact" name="buyer_contact" type="tel" required maxlength="50" value="{{ old('buyer_contact') }}"
+                        class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    @error('buyer_contact') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                </div>
+
+                <div>
+                    <label for="sale_price" class="mb-1 block text-sm font-medium text-gray-700">Sale price (₱) <span class="text-red-600">*</span></label>
+                    <input id="sale_price" name="sale_price" type="number" required min="0.01" max="99999999.99" step="0.01"
+                        value="{{ old('sale_price') }}"
+                        class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    @error('sale_price') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                </div>
+
+                <div>
+                    <label for="sold_at" class="mb-1 block text-sm font-medium text-gray-700">Date sold <span class="text-red-600">*</span></label>
+                    <input id="sold_at" name="sold_at" type="date" required max="{{ now()->toDateString() }}"
+                        value="{{ old('sold_at', now()->toDateString()) }}"
+                        class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    @error('sold_at') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                </div>
+
+                <div class="sm:col-span-2">
+                    <label for="sale_notes" class="mb-1 block text-sm font-medium text-gray-700">Notes <span class="font-normal text-gray-400">(optional)</span></label>
+                    <textarea id="sale_notes" name="notes" rows="3" maxlength="2000"
+                        class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('notes') }}</textarea>
+                    @error('notes') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                </div>
+            </div>
+
+            <div class="flex flex-col-reverse gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:justify-end">
+                <button type="button" data-close-sale-modal class="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">Cancel</button>
+                <button type="submit" class="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">Save sale and mark sold</button>
+            </div>
+        </form>
+    </dialog>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const modal = document.getElementById('sale-modal');
+            const form = document.getElementById('sale-form');
+            const swineIdInput = document.getElementById('sale-swine-id');
+            const swineTag = document.getElementById('sale-swine-tag');
+            const salePrice = document.getElementById('sale_price');
+            const actionTemplate = form.dataset.actionTemplate;
+
+            const openModal = (swineId, tagNumber, askingPrice, preserveInput = false) => {
+                swineIdInput.value = swineId;
+                form.action = actionTemplate.replace('__SWINE_ID__', encodeURIComponent(swineId));
+                swineTag.textContent = `Swine tag: ${tagNumber}`;
+
+                if (!preserveInput) {
+                    form.reset();
+                    swineIdInput.value = swineId;
+                    document.getElementById('sold_at').value = '{{ now()->toDateString() }}';
+                    salePrice.value = askingPrice || '';
+                }
+
+                modal.showModal();
+                document.getElementById('buyer_name').focus();
+            };
+
+            document.querySelectorAll('[data-open-sale-modal]').forEach((button) => {
+                button.addEventListener('click', () => openModal(
+                    button.dataset.swineId,
+                    button.dataset.tagNumber,
+                    button.dataset.askingPrice
+                ));
+            });
+
+            document.querySelectorAll('[data-close-sale-modal]').forEach((button) => {
+                button.addEventListener('click', () => modal.close());
+            });
+
+            modal.addEventListener('click', (event) => {
+                if (event.target === modal) modal.close();
+            });
+
+            if (swineIdInput.value) {
+                const trigger = document.querySelector(`[data-open-sale-modal][data-swine-id="${CSS.escape(swineIdInput.value)}"]`);
+                if (trigger) {
+                    openModal(
+                        trigger.dataset.swineId,
+                        trigger.dataset.tagNumber,
+                        trigger.dataset.askingPrice,
+                        true
+                    );
+                }
+            }
+        });
+    </script>
 
 </x-app-layout>

@@ -12,6 +12,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\QrTraceabilityController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SaleHistoryController;
 use App\Http\Controllers\SwineController;
 use App\Http\Controllers\SwineMovementController;
 use App\Http\Controllers\SyncStatusController;
@@ -132,6 +133,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/swine', [SwineController::class, 'index'])
         ->middleware('permission:manage-swine')
         ->name('swine.index');
+
+    Route::get('/sale-history', [SaleHistoryController::class, 'index'])
+        ->middleware('permission:manage-swine')
+        ->name('sale-history.index');
 
     Route::get('/swine/create', [SwineController::class, 'create'])
         ->middleware('permission:register-swine')

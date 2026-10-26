@@ -230,6 +230,11 @@ MOBILE SIDEBAR OVERLAY
                                         Swine
                                     </a>
 
+                                    <a href="{{ route('sale-history.index') }}" @click="sidebarOpen = false" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium
+                                        {{ request()->routeIs('sale-history.*') ? 'bg-blue-700 text-white' : 'text-gray-700 hover:bg-gray-50' }}">
+                                        Sale History
+                                    </a>
+
                         @endif
 
                     </div>
@@ -712,6 +717,11 @@ DESKTOP SIDEBAR
                         : 'text-gray-700 hover:bg-gray-50'
                                                                                                                        }}">
                                 Swine
+                            </a>
+
+                            <a href="{{ route('sale-history.index') }}" class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium
+                                {{ request()->routeIs('sale-history.*') ? 'bg-blue-700 text-white' : 'text-gray-700 hover:bg-gray-50' }}">
+                                Sale History
                             </a>
 
                     @endif

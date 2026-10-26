@@ -6,9 +6,11 @@ use App\Models\Farm;
 use App\Models\FarmLocation;
 use App\Models\Farmer;
 use App\Models\Swine;
+use App\Models\SwineSale;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
@@ -479,8 +481,16 @@ class SwineController extends Controller
     /**
      * Mark the specified swine as sold.
      */
-    public function markSold(Swine $swine): RedirectResponse
+    public function markSold(Request $request, Swine $swine): RedirectResponse
     {
+        $validated = $request->validate([
+            'buyer_name' => ['required', 'string', 'max:255'],
+            'buyer_contact' => ['required', 'string', 'max:50'],
+            'sale_price' => ['required', 'numeric', 'gt:0', 'max:99999999.99'],
+            'sold_at' => ['required', 'date', 'before_or_equal:today'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+
         /*
         |--------------------------------------------------------------------------
         | Lifecycle Validation
@@ -491,26 +501,45 @@ class SwineController extends Controller
         |
         */
 
-        if ($swine->status !== 'active') {
+        $markedSold = DB::transaction(function () use ($swine, $validated): bool {
+            $swine = Swine::query()
+                ->whereKey($swine->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($swine->status !== 'active' || $swine->sale()->exists()) {
+                return false;
+            }
+
+            SwineSale::query()->create([
+                ...$validated,
+                'swine_id' => $swine->getKey(),
+                'recorded_by' => auth()->id(),
+            ]);
+
+            $swine->update([
+                'status' => 'sold',
+                'is_for_sale' => false,
+                'asking_price' => null,
+            ]);
+
+            return true;
+        });
+
+        if (! $markedSold) {
             return redirect()
                 ->route('swine.index')
                 ->with(
                     'error',
-                    'Only active swine can be marked as sold.'
+                    'Only active swine without an existing sale can be marked as sold.'
                 );
         }
 
-        $swine->update([
-            'status' => 'sold',
-            'is_for_sale' => false,
-            'asking_price' => null,
-        ]);
-
         return redirect()
-            ->route('swine.index')
+            ->route('sale-history.index')
             ->with(
                 'success',
-                'Swine marked as sold successfully.'
+                'Swine sale recorded successfully.'
             );
     }
 

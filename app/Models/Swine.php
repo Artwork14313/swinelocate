@@ -73,6 +73,11 @@ class Swine extends Model
         )->latest('movement_date');
     }
 
+    public function sale(): HasOne
+    {
+        return $this->hasOne(SwineSale::class);
+    }
+
     public function healthRecords(): HasMany
     {
         return $this->hasMany(HealthRecord::class);
