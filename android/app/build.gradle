@@ -27,8 +27,8 @@ android {
         applicationId 'com.swine.locate'
         minSdk 24
         targetSdk 35
-        versionCode 2
-        versionName '2.0'
+        versionCode 3
+        versionName '2.1'
         buildConfigField 'String', 'API_BASE_URL', '"https://swinelocate-production-h3g41v.laravel.cloud/api/mobile"'
     }
 
