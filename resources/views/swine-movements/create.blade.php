@@ -90,7 +90,7 @@
                             <div class="mt-2 rounded-lg bg-gray-100 px-4 py-3">
 
                                 <p class="text-sm font-medium text-gray-900">
-                                    {{ $swine->currentLocation?->name ?? 'No location assigned' }}
+                                    {{ $swine->currentLocation?->name_with_address ?? 'No location assigned' }}
                                 </p>
 
                                 @if ($swine->currentLocation?->location_code)
@@ -176,7 +176,7 @@
 
                                     <option value="{{ $location->id }}" data-farm-id="{{ $location->farm_id }}"
                                         @selected(old('to_location_id') == $location->id)>
-                                        {{ $location->name }}
+                                        {{ $location->name_with_address }}
 
                                         @if ($location->location_code)
                                             — {{ $location->location_code }}

@@ -977,7 +977,7 @@
                                         <div class="flex items-center gap-2 text-sm">
 
                                             <span class="rounded-md bg-gray-100 px-2.5 py-1 text-gray-700">
-                                                {{ $movement->fromLocation?->name ?? 'No location' }}
+                                                {{ $movement->fromLocation?->name_with_address ?? 'No location' }}
                                             </span>
 
                                             <span class="text-gray-400">
@@ -985,7 +985,7 @@
                                             </span>
 
                                             <span class="rounded-md bg-blue-50 px-2.5 py-1 text-[#3368A0]">
-                                                {{ $movement->toLocation?->name ?? 'No location' }}
+                                                {{ $movement->toLocation?->name_with_address ?? 'No location' }}
                                             </span>
 
                                         </div>

@@ -187,7 +187,7 @@
                                         <td class="px-6 py-4">
 
                                             <span class="text-gray-900">
-                                                {{ $location->name }}
+                                                {{ $location->name_with_address }}
                                             </span>
 
                                         </td>

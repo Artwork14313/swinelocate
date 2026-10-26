@@ -433,7 +433,7 @@
                                 <div>
 
                                     <p class="font-medium text-gray-900">
-                                        {{ $location->name }}
+                                        {{ $location->name_with_address }}
                                     </p>
 
                                     <p class="mt-1 text-sm text-gray-500">

@@ -348,7 +348,7 @@
                                                             <td class="px-6 py-4">
 
                                                                 <span class="text-sm text-gray-700">
-                                                                    {{ $movement->fromLocation?->name ?? 'No location' }}
+                                                                                                                                    {{ $movement->fromLocation?->name_with_address ?? 'No location' }}
                                                                 </span>
 
                                                             </td>
@@ -359,7 +359,7 @@
                                                             <td class="px-6 py-4">
 
                                                                 <span class="text-sm font-medium text-gray-900">
-                                                                    {{ $movement->toLocation?->name ?? '—' }}
+                                                                                                                                    {{ $movement->toLocation?->name_with_address ?? '—' }}
                                                                 </span>
 
                                                             </td>
@@ -558,7 +558,7 @@
                                                     </p>
 
                                                     <p class="mt-1 text-sm text-gray-900">
-                                                        {{ $movement->fromLocation?->name ?? 'No location' }}
+                                                        {{ $movement->fromLocation?->name_with_address ?? 'No location' }}
                                                     </p>
 
                                                 </div>
@@ -571,7 +571,7 @@
                                                     </p>
 
                                                     <p class="mt-1 text-sm font-medium text-gray-900">
-                                                        {{ $movement->toLocation?->name ?? '—' }}
+                                                        {{ $movement->toLocation?->name_with_address ?? '—' }}
                                                     </p>
 
                                                 </div>

@@ -162,8 +162,8 @@
                                     <tr>
                                         <td class="whitespace-nowrap px-5 py-3 text-gray-600">{{ $movement->movement_date->format('M j, Y') }}</td>
                                         <td class="whitespace-nowrap px-5 py-3 font-medium text-gray-900">{{ $movement->swine?->tag_number ?? 'Deleted swine' }}</td>
-                                        <td class="px-5 py-3 text-gray-600">{{ $movement->fromLocation?->name ?? '—' }}</td>
-                                        <td class="px-5 py-3 text-gray-600">{{ $movement->toLocation?->name ?? '—' }}</td>
+                                        <td class="px-5 py-3 text-gray-600">{{ $movement->fromLocation?->name_with_address ?? '—' }}</td>
+                                        <td class="px-5 py-3 text-gray-600">{{ $movement->toLocation?->name_with_address ?? '—' }}</td>
                                     </tr>
                                 @empty
                                     <tr><td colspan="4" class="px-5 py-8 text-center text-gray-500">No movements in this date range.</td></tr>

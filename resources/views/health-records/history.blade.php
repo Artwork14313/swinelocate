@@ -127,7 +127,7 @@
                             </p>
 
                             <p class="mt-1 text-sm font-semibold text-gray-900">
-                                {{ $swine->currentLocation?->name ?? 'No location assigned' }}
+                                {{ $swine->currentLocation?->name_with_address ?? 'No location assigned' }}
                             </p>
 
                         </div>

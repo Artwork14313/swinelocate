@@ -7,7 +7,7 @@
             <div>
 
                 <h2 class="font-semibold text-xl text-gray-800">
-                    {{ $location->name }}
+                    {{ $location->name_with_address }}
                 </h2>
 
                 <p class="text-sm text-gray-500 mt-1">
@@ -75,7 +75,7 @@
                             </p>
 
                             <p class="mt-1 font-medium text-gray-900">
-                                {{ $location->name }}
+                                {{ $location->name_with_address }}
                             </p>
 
                         </div>

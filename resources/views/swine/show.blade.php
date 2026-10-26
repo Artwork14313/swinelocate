@@ -246,7 +246,7 @@
                             @if ($swine->currentLocation)
 
                                 <dd class="mt-1 text-sm font-medium text-gray-900">
-                                    {{ $swine->currentLocation->name }}
+                                    {{ $swine->currentLocation->name_with_address }}
                                 </dd>
 
                                 @if ($swine->currentLocation->location_code)

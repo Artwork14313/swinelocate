@@ -58,7 +58,7 @@
                             @forelse ($farmer->swine as $swine)
                                 <tr>
                                     <td class="px-6 py-4"><a href="{{ route('swine.show', $swine) }}" class="font-semibold text-indigo-600 hover:text-indigo-800">{{ $swine->tag_number }}</a></td>
-                                    <td class="px-6 py-4 text-sm text-gray-700">{{ $swine->currentLocation->name ?? 'Unassigned' }}</td>
+                                    <td class="px-6 py-4 text-sm text-gray-700">{{ $swine->currentLocation->name_with_address ?? 'Unassigned' }}</td>
                                     <td class="px-6 py-4 text-sm text-gray-700">{{ ucfirst($swine->status) }}</td>
                                 </tr>
                             @empty

@@ -181,7 +181,7 @@
                                             )
                                         >
                                             {{ $location->location_code }} -
-                                            {{ $location->name }}
+                                            {{ $location->name_with_address }}
                                         </option>
                                     @empty
                                         <option value="" disabled>

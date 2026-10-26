@@ -198,8 +198,8 @@ class ReportsController extends Controller
                         $record->movement_date?->toDateTimeString(),
                         $record->swine?->tag_number,
                         $record->swine?->farm?->name,
-                        $record->fromLocation?->name,
-                        $record->toLocation?->name,
+                        $record->fromLocation?->name_with_address,
+                        $record->toLocation?->name_with_address,
                         $record->reason,
                         $record->notes,
                     ]);

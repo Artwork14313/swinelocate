@@ -161,7 +161,7 @@
                                     </p>
 
                                     <p class="mt-1 font-semibold text-gray-900">
-                                        {{ $selectedSwine->currentLocation?->name ?? '—' }}
+                                        {{ $selectedSwine->currentLocation?->name_with_address ?? '—' }}
                                     </p>
 
                                 </div>

@@ -182,7 +182,7 @@
                         </p>
 
                         <p class="mt-1 text-lg font-bold text-gray-900">
-                            {{ $swine->currentLocation->name ?? 'No location assigned' }}
+                            {{ $swine->currentLocation->name_with_address ?? 'No location assigned' }}
                         </p>
 
                         @if($swine->currentLocation)
@@ -813,7 +813,7 @@
                                             </p>
 
                                             <p class="mt-1 font-semibold text-gray-900">
-                                                {{ $movement->fromLocation?->name ?? 'Initial Location' }}
+                                                {{ $movement->fromLocation?->name_with_address ?? 'Initial Location' }}
                                             </p>
 
                                             @if($movement->fromLocation?->location_code)
@@ -847,7 +847,7 @@
                                             </p>
 
                                             <p class="mt-1 font-semibold text-gray-900">
-                                                {{ $movement->toLocation?->name ?? 'Unknown Location' }}
+                                                {{ $movement->toLocation?->name_with_address ?? 'Unknown Location' }}
                                             </p>
 
                                             @if($movement->toLocation?->location_code)

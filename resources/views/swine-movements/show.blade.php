@@ -458,7 +458,7 @@
 
 
                         <p class="mt-2 text-lg font-semibold text-gray-900">
-                            {{ $movement->fromLocation?->name ?? 'No previous location' }}
+                            {{ $movement->fromLocation?->name_with_address ?? 'No previous location' }}
                         </p>
 
 
@@ -509,7 +509,7 @@
 
 
                         <p class="mt-2 text-lg font-semibold text-gray-900">
-                            {{ $movement->toLocation?->name ?? '—' }}
+                            {{ $movement->toLocation?->name_with_address ?? '—' }}
                         </p>
 
 

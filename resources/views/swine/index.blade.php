@@ -309,7 +309,7 @@
                                         @if ($pig->currentLocation)
 
                                             <div class="font-medium text-gray-900">
-                                                {{ $pig->currentLocation->name }}
+                                                {{ $pig->currentLocation->name_with_address }}
                                             </div>
 
                                             @if ($pig->currentLocation->location_code)

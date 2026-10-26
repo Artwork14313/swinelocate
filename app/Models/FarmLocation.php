@@ -21,9 +21,23 @@ class FarmLocation extends Model
         'status',
     ];
 
+    protected $with = ['farm'];
+
     public function farm(): BelongsTo
     {
         return $this->belongsTo(Farm::class);
+    }
+
+    public function getNameWithAddressAttribute(): string
+    {
+        $farm = $this->farm;
+        $address = collect([$farm?->address, $farm?->municipality, $farm?->province])
+            ->map(fn ($part) => trim((string) $part))
+            ->filter()
+            ->unique()
+            ->implode(', ');
+
+        return $address === '' ? $this->name : "{$this->name} — {$address}";
     }
 
     public function swine(): HasMany

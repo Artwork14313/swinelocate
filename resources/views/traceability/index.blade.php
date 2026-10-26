@@ -38,7 +38,7 @@
                                 <td class="px-6 py-4 font-semibold text-gray-900">{{ $pig->tag_number }}</td>
                                 <td class="px-6 py-4 text-sm text-gray-700">{{ $pig->farmer->name ?? '—' }}</td>
                                 <td class="px-6 py-4 text-sm text-gray-700">{{ $pig->farm->name ?? '—' }}</td>
-                                <td class="px-6 py-4 text-sm text-gray-700">{{ $pig->currentLocation->name ?? 'Unassigned' }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-700">{{ $pig->currentLocation->name_with_address ?? 'Unassigned' }}</td>
                                 <td class="px-6 py-4 text-sm text-gray-700">{{ ucfirst($pig->status) }}</td>
                                 <td class="px-6 py-4 text-right">
                                     <a href="{{ route('swine.scan', ['qr_token' => $pig->qr_token]) }}" class="text-sm font-semibold text-indigo-600 hover:text-indigo-800">View Traceability</a>
