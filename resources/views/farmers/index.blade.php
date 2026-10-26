@@ -36,6 +36,8 @@
                             <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-500">Farm</th>
                             <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-500">Contact</th>
                             <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-500">Registered Swine</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold uppercase text-gray-500">Sold Swine</th>
+                            <th class="px-6 py-3 text-right text-xs font-semibold uppercase text-gray-500">Total Income</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
@@ -47,9 +49,11 @@
                                 <td class="px-6 py-4 text-sm text-gray-700">{{ $farmer->farm->name }}</td>
                                 <td class="px-6 py-4 text-sm text-gray-700">{{ $farmer->contact_number }}</td>
                                 <td class="px-6 py-4 text-sm text-gray-700">{{ $farmer->swine_count }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-700">{{ $farmer->sold_swine_count }}</td>
+                                <td class="whitespace-nowrap px-6 py-4 text-right text-sm font-semibold text-gray-900">₱{{ number_format((float) $farmer->total_income, 2) }}</td>
                             </tr>
                         @empty
-                            <tr><td colspan="4" class="px-6 py-10 text-center text-sm text-gray-500">No farmers registered yet.</td></tr>
+                            <tr><td colspan="6" class="px-6 py-10 text-center text-sm text-gray-500">No farmers registered yet.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

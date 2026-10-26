@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Farm;
 use App\Models\Farmer;
+use App\Models\SwineSale;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -16,7 +17,16 @@ class FarmerController extends Controller
     {
         $farmers = Farmer::query()
             ->with('farm')
-            ->withCount('swine')
+            ->withCount([
+                'swine',
+                'swine as sold_swine_count' => fn ($query) => $query->has('sale'),
+            ])
+            ->addSelect([
+                'total_income' => SwineSale::query()
+                    ->selectRaw('COALESCE(SUM(swine_sales.sale_price), 0)')
+                    ->join('swine', 'swine.id', '=', 'swine_sales.swine_id')
+                    ->whereColumn('swine.farmer_id', 'farmers.id'),
+            ])
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = trim($request->string('search')->toString());
 
@@ -73,13 +83,24 @@ class FarmerController extends Controller
                 ->orderBy('tag_number'),
         ]);
 
+        $soldSales = SwineSale::query()
+            ->whereHas('swine', fn ($query) => $query
+                ->withTrashed()
+                ->where('farmer_id', $farmer->getKey()))
+            ->with(['swine' => fn ($query) => $query->withTrashed()])
+            ->latest('sold_at')
+            ->latest('id')
+            ->get();
+
+        $totalIncome = $soldSales->sum(fn (SwineSale $sale) => (float) $sale->sale_price);
+
         $qrCode = QrCode::size(220)->generate(
             route('farmers.public-profile', [
                 'qr_token' => $farmer->qr_token,
             ])
         );
 
-        return view('farmers.show', compact('farmer', 'qrCode'));
+        return view('farmers.show', compact('farmer', 'qrCode', 'soldSales', 'totalIncome'));
     }
 
     public function publicProfile(string $qr_token): View

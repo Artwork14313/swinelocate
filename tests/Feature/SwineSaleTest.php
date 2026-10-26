@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Farm;
+use App\Models\Farmer;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\Swine;
@@ -73,6 +74,59 @@ class SwineSaleTest extends TestCase
 
         $this->assertSame('active', $swine->fresh()->status);
         $this->assertDatabaseCount('swine_sales', 0);
+    }
+
+    public function test_farmer_pages_show_sold_swine_and_total_income(): void
+    {
+        $role = Role::create(['name' => 'Farmer Sale Role', 'slug' => 'farmer-sale-'.bin2hex(random_bytes(4))]);
+        $role->permissions()->attach(
+            Permission::create(['name' => 'Manage Farmers', 'slug' => 'manage-farmers'])
+        );
+        $this->actingAs(User::factory()->create(['role_id' => $role->id]));
+
+        $farm = Farm::create(['farm_code' => 'F-INC-1', 'name' => 'Income Farm']);
+        $farmer = Farmer::create([
+            'farm_id' => $farm->id,
+            'name' => 'Income Farmer',
+            'contact_number' => '09170000000',
+            'address' => 'Somewhere',
+        ]);
+        $otherFarmer = Farmer::create([
+            'farm_id' => $farm->id,
+            'name' => 'Other Farmer',
+            'contact_number' => '09170000001',
+            'address' => 'Elsewhere',
+        ]);
+
+        foreach ([['SW-INC-1', $farmer, 10000], ['SW-INC-2', $farmer, 2500.50], ['SW-OTHER', $otherFarmer, 999]] as [$tag, $owner, $price]) {
+            $swine = Swine::create([
+                'farm_id' => $farm->id,
+                'farmer_id' => $owner->id,
+                'tag_number' => $tag,
+                'sex' => 'male',
+                'status' => 'sold',
+            ]);
+            SwineSale::create([
+                'swine_id' => $swine->id,
+                'buyer_name' => 'Buyer '.$tag,
+                'buyer_contact' => '09180000000',
+                'sale_price' => $price,
+                'sold_at' => '2026-10-20',
+            ]);
+        }
+
+        $this->get(route('farmers.show', $farmer))
+            ->assertOk()
+            ->assertSee('Sold Swine')
+            ->assertSee('Buyer SW-INC-1')
+            ->assertSee('Buyer SW-INC-2')
+            ->assertDontSee('Buyer SW-OTHER')
+            ->assertSee('₱12,500.50');
+
+        $this->get(route('farmers.index'))
+            ->assertOk()
+            ->assertSee('₱12,500.50')
+            ->assertSee('₱999.00');
     }
 
     private function userWithManageSwinePermission(): User
