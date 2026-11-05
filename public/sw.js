@@ -1,4 +1,4 @@
-const CACHE_NAME = 'swine-locate-v6';
+const CACHE_NAME = 'swine-locate-v7';
 
 const APP_SHELL = [
     '/dashboard',
@@ -86,6 +86,12 @@ self.addEventListener('fetch', event => {
             fetch(request)
         );
 
+        return;
+    }
+
+
+    // APK downloads must always come straight from the server, never from a cache.
+    if (url.pathname.startsWith('/android-app/download')) {
         return;
     }
 

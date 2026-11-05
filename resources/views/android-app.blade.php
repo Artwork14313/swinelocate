@@ -9,7 +9,7 @@
                     {!! $qrCode !!}
                 </div>
                 @if ($downloadAvailable)
-                    <a href="{{ route('android-app.download') }}"
+                    <a href="{{ $downloadUrl }}"
                         class="mt-6 inline-flex w-full items-center justify-center rounded-lg bg-indigo-700 px-5 py-3 font-semibold text-white hover:bg-indigo-800">
                         Download SwineLocate APK
                     </a>

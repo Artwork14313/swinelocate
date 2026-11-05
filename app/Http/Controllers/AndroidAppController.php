@@ -12,13 +12,17 @@ class AndroidAppController extends Controller
     {
         $downloadPath = public_path('downloads/swinelocate.apk');
         $downloadAvailable = is_file($downloadPath);
+        $downloadUrl = $downloadAvailable
+            ? route('android-app.download', ['v' => filemtime($downloadPath)])
+            : null;
         $qrTarget = $downloadAvailable
-            ? route('android-app.download')
+            ? $downloadUrl
             : route('android-app');
 
         return view('android-app', [
             'qrCode' => QrCode::size(240)->generate($qrTarget),
             'downloadAvailable' => $downloadAvailable,
+            'downloadUrl' => $downloadUrl,
         ]);
     }
 
@@ -30,6 +34,8 @@ class AndroidAppController extends Controller
 
         return response()->download($path, 'SwineLocate.apk', [
             'Content-Type' => 'application/vnd.android.package-archive',
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
         ]);
     }
 }
