@@ -3,7 +3,11 @@ package com.swine.locate;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.graphics.Typeface;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -69,6 +73,15 @@ public final class MainActivity extends Activity {
     private JSONObject dashboard;
     private WebView publicMap;
     private boolean publicMapVisible;
+    private TextView syncConnectionText;
+    private View syncConnectionIndicator;
+    private TextView syncPendingCount;
+    private TextView syncConflictCount;
+    private TextView syncLastSync;
+    private LinearLayout syncRecords;
+    private Button syncNowButton;
+    private ConnectivityManager syncConnectivityManager;
+    private ConnectivityManager.NetworkCallback syncNetworkCallback;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -119,6 +132,7 @@ public final class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         mainHandler.removeCallbacks(syncRunnable);
+        clearSyncStatusObservers();
         if (publicMap != null) {
             publicMap.destroy();
             publicMap = null;
@@ -151,6 +165,7 @@ public final class MainActivity extends Activity {
     // Every signed-in screen is wrapped with a top bar and a slide-in navigation drawer.
     @Override
     public void setContentView(View view) {
+        clearSyncStatusObservers();
         profileBack = null;
         drawerPanel = null;
         drawerScrim = null;
@@ -307,9 +322,7 @@ public final class MainActivity extends Activity {
                 if ("@scan".equals(id)) {
                     addDrawerItem(items, title, "scan", false, this::scanQr);
                 } else if ("@sync".equals(id)) {
-                    int waiting = offlineStore.pendingCount();
-                    addDrawerItem(items, title + (waiting > 0 ? "  (" + waiting + " waiting)" : ""),
-                            "sync", false, () -> syncPending(true));
+                    addDrawerItem(items, title, "sync", false, this::showSyncStatus);
                 } else {
                     addDrawerItem(items, title, id, false, () -> {
                         if ("register-swine".equals(id)) {
@@ -912,6 +925,187 @@ public final class MainActivity extends Activity {
         }
         box.setLayoutParams(params);
         return box;
+    }
+
+    private void showSyncStatus() {
+        activeMenu = "sync";
+        ScrollView page = page();
+
+        LinearLayout header = card();
+        addText(header, "Sync Status", 24, DARK, true);
+        addText(header, "Monitor offline records waiting to synchronize with the server.", 14, 0xFF526577, false);
+        addSyncCard(page, header);
+
+        LinearLayout connectionCard = card();
+        addText(connectionCard, "CONNECTION STATUS", 12, 0xFF526577, true);
+        LinearLayout connectionRow = new LinearLayout(this);
+        connectionRow.setOrientation(LinearLayout.HORIZONTAL);
+        connectionRow.setGravity(Gravity.CENTER_VERTICAL);
+        View indicator = new View(this);
+        LinearLayout.LayoutParams indicatorParams = new LinearLayout.LayoutParams(dp(12), dp(12));
+        indicatorParams.rightMargin = dp(10);
+        connectionRow.addView(indicator, indicatorParams);
+        TextView connectionText = new TextView(this);
+        connectionText.setTextSize(18);
+        connectionText.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        connectionRow.addView(connectionText, new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        connectionCard.addView(connectionRow, matchWidth());
+        Button syncButton = button("Sync Now");
+        syncButton.setTextColor(CARD);
+        syncButton.setBackgroundTintList(ColorStateList.valueOf(BLUE));
+        LinearLayout.LayoutParams buttonParams = matchWidth();
+        buttonParams.topMargin = dp(12);
+        connectionCard.addView(syncButton, buttonParams);
+        addSyncCard(page, connectionCard);
+
+        TextView pendingValue = addSyncMetric(page, "PENDING SYNCHRONIZATION",
+                "Records waiting to be uploaded.", BLUE);
+        TextView conflictValue = addSyncMetric(page, "SYNCHRONIZATION CONFLICTS",
+                "Records requiring review.", 0xFFDC2626);
+        TextView lastSyncValue = addSyncMetric(page, "LAST SYNCHRONIZATION",
+                "Latest successful synchronization activity.", DARK);
+        lastSyncValue.setTextSize(18);
+
+        LinearLayout recordsCard = card();
+        addText(recordsCard, "Synchronization Records", 20, DARK, true);
+        addText(recordsCard, "Offline records waiting for synchronization or requiring review.", 14, 0xFF526577, false);
+        LinearLayout records = new LinearLayout(this);
+        records.setOrientation(LinearLayout.VERTICAL);
+        recordsCard.addView(records, matchWidth());
+        addSyncCard(page, recordsCard);
+
+        setContentView(page);
+        syncConnectionText = connectionText;
+        syncConnectionIndicator = indicator;
+        syncPendingCount = pendingValue;
+        syncConflictCount = conflictValue;
+        syncLastSync = lastSyncValue;
+        syncRecords = records;
+        syncNowButton = syncButton;
+        syncButton.setOnClickListener(view -> {
+            if (!isNetworkAvailable()) {
+                showMessage("There is currently no internet connection.");
+                refreshSyncStatus();
+                return;
+            }
+            syncPending(true);
+        });
+        observeSyncNetwork();
+        refreshSyncStatus();
+    }
+
+    private TextView addSyncMetric(ScrollView page, String title, String detail, int valueColor) {
+        LinearLayout metric = card();
+        addText(metric, title, 12, 0xFF526577, true);
+        TextView value = addText(metric, "0", 28, valueColor, true);
+        addText(metric, detail, 13, 0xFF526577, false);
+        addSyncCard(page, metric);
+        return value;
+    }
+
+    private void addSyncCard(ScrollView page, View card) {
+        LinearLayout.LayoutParams params = matchWidth();
+        params.bottomMargin = dp(14);
+        ((ViewGroup) page.getChildAt(0)).addView(card, params);
+    }
+
+    private void refreshSyncStatus() {
+        if (syncConnectionText == null) {
+            return;
+        }
+        boolean online = isNetworkAvailable();
+        syncConnectionText.setText(online ? "Online" : "Offline");
+        syncConnectionText.setTextColor(online ? 0xFF16A34A : 0xFFDC2626);
+        syncConnectionIndicator.setBackground(rounded(
+                online ? 0xFF22C55E : 0xFFEF4444, 8, online ? 0xFF22C55E : 0xFFEF4444));
+        syncPendingCount.setText(String.valueOf(offlineStore.pendingCount()));
+        syncConflictCount.setText("0");
+
+        long lastSyncAt = getSharedPreferences("sync_status", MODE_PRIVATE)
+                .getLong("last_successful_sync", 0L);
+        syncLastSync.setText(lastSyncAt == 0L
+                ? "Never"
+                : new SimpleDateFormat("MMM d, yyyy h:mm a", Locale.getDefault())
+                        .format(new Date(lastSyncAt)));
+
+        syncNowButton.setEnabled(!syncing);
+        syncNowButton.setText(syncing ? "Synchronizing..." : "Sync Now");
+        syncRecords.removeAllViews();
+        List<OfflineStore.PendingChange> changes = offlineStore.pending();
+        if (changes.isEmpty()) {
+            addText(syncRecords, "No pending synchronization records or conflicts.", 14, 0xFF526577, false);
+            return;
+        }
+        for (int index = 0; index < changes.size(); index++) {
+            OfflineStore.PendingChange change = changes.get(index);
+            if (index > 0) {
+                View divider = new View(this);
+                divider.setBackgroundColor(0xFFE5ECF3);
+                LinearLayout.LayoutParams dividerParams = new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, dp(1));
+                dividerParams.topMargin = dp(8);
+                syncRecords.addView(divider, dividerParams);
+            }
+            String[] pathParts = change.path.split("/");
+            String resource = pathParts.length > 2 ? label(pathParts[2]) : "Offline record";
+            addText(syncRecords, resource, 16, DARK, true);
+            addText(syncRecords, change.method + " · " + change.path, 13, 0xFF526577, false);
+            addText(syncRecords, "Waiting to synchronize", 13, 0xFFB45309, true);
+        }
+    }
+
+    private boolean isNetworkAvailable() {
+        ConnectivityManager manager = getSystemService(ConnectivityManager.class);
+        if (manager == null) {
+            return false;
+        }
+        Network activeNetwork = manager.getActiveNetwork();
+        NetworkCapabilities capabilities = activeNetwork == null
+                ? null
+                : manager.getNetworkCapabilities(activeNetwork);
+        return capabilities != null
+                && capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                && capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+    }
+
+    private void observeSyncNetwork() {
+        syncConnectivityManager = getSystemService(ConnectivityManager.class);
+        if (syncConnectivityManager == null) {
+            return;
+        }
+        syncNetworkCallback = new ConnectivityManager.NetworkCallback() {
+            @Override
+            public void onAvailable(Network network) {
+                mainHandler.post(MainActivity.this::refreshSyncStatus);
+            }
+
+            @Override
+            public void onLost(Network network) {
+                mainHandler.post(MainActivity.this::refreshSyncStatus);
+            }
+
+            @Override
+            public void onCapabilitiesChanged(Network network, NetworkCapabilities capabilities) {
+                mainHandler.post(MainActivity.this::refreshSyncStatus);
+            }
+        };
+        syncConnectivityManager.registerDefaultNetworkCallback(syncNetworkCallback);
+    }
+
+    private void clearSyncStatusObservers() {
+        if (syncConnectivityManager != null && syncNetworkCallback != null) {
+            syncConnectivityManager.unregisterNetworkCallback(syncNetworkCallback);
+        }
+        syncConnectivityManager = null;
+        syncNetworkCallback = null;
+        syncConnectionText = null;
+        syncConnectionIndicator = null;
+        syncPendingCount = null;
+        syncConflictCount = null;
+        syncLastSync = null;
+        syncRecords = null;
+        syncNowButton = null;
     }
 
     private void showResource(String resource, int pageNumber, String search) {
@@ -2233,13 +2427,21 @@ public final class MainActivity extends Activity {
     }
 
     private void syncPending(boolean manual) {
-        if (token == null || syncing || offlineStore.pendingCount() == 0) {
+        if (syncing) {
             if (manual) {
-                showMessage("Nothing to sync.");
+                showMessage("Synchronization is already in progress.");
             }
             return;
         }
+        if (token == null || offlineStore.pendingCount() == 0) {
+            if (manual) {
+                showMessage("Nothing to sync.");
+            }
+            refreshSyncStatus();
+            return;
+        }
         syncing = true;
+        refreshSyncStatus();
         executor.execute(() -> {
             int synced = 0;
             List<String> rejected = new ArrayList<>();
@@ -2264,8 +2466,14 @@ public final class MainActivity extends Activity {
             }
             int syncedCount = synced;
             boolean stillReachable = reachable;
+            if (syncedCount > 0) {
+                getSharedPreferences("sync_status", MODE_PRIVATE).edit()
+                        .putLong("last_successful_sync", System.currentTimeMillis())
+                        .apply();
+            }
             mainHandler.post(() -> {
                 syncing = false;
+                refreshSyncStatus();
                 if (!rejected.isEmpty()) {
                     new AlertDialog.Builder(this)
                             .setTitle("Some offline changes were rejected")
